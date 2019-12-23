@@ -1,1 +1,3 @@
 .vscode
+models/VAEmodel.pkl
+__pycache__/
