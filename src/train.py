@@ -9,32 +9,34 @@ from torchvision import transforms
 
 from models.vae import VAE
 from features.worm_dataset import WormDataset
+from features.worm_transform import ToBinary, FillHole, ToNDarray
+import config
+
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-z_size = 64
-layer_count = 4
-BATCH_SIZE = 256
-IMG_SIZE = 64
 
 def load_datasets():
     """ Set transform """
     worm_transforms = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
+        transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
+        ToBinary(),
+#        FillHole(),
         transforms.ToTensor()])
 
     """ Set dataset """
-    train_set = WormDataset(root="F:\Tanimoto_eLife_Fig3B\\", train=True,
+    train_set = WormDataset(root="F:\Tanimoto_eLife_Fig3B", train=True,
         transform=worm_transforms)
-    test_set = WormDataset(root="F:\Tanimoto_eLife_Fig3B\\", train=False,
+    test_set = WormDataset(root="F:\Tanimoto_eLife_Fig3B", train=False,
         transform=worm_transforms)
 
     """ Dataloader """
     # Training dataset
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True)
+        train_set, batch_size=config.BATCH_SIZE, shuffle=True)
     # Test dataset
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=BATCH_SIZE, shuffle=True)
+        test_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
     return train_loader, test_loader
 
@@ -56,10 +58,16 @@ def train(epoch, vae, train_loader, test_loader, optimizer):
         (loss_re + loss_kl).backward()
         optimizer.step()
 
-        if batch_idx % (BATCH_SIZE // 2) == 0:
+        if batch_idx % (config.BATCH_SIZE // 2) == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss_re: {:.6f} \tLoss_kl: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item()))
+
+        if batch_idx == 0:
+            topil = transforms.ToPILImage()
+            tond = ToNDarray()
+            img = tond(topil(_.cpu()[0]))
+            plt.imsave("input_img.png", img, cmap='gray')
 
 
 def main():
@@ -67,9 +75,9 @@ def main():
     train_loader, test_loader = load_datasets()
 
     """ Def model"""
-    vae = VAE(zsize=z_size, layer_count=layer_count, channels=1)
+    vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
     if device == "cuda":
-        vae.cuda()
+        print(vae.cuda())
     vae.to(device)
 
     optimizer = optim.SGD(vae.parameters(), lr=0.01)

@@ -20,15 +20,21 @@ class WormDataset(torch.utils.data.Dataset):
         self.train = train  # training set or test set
         self.transform = transform
 
-        if not self._check_exists():
-            raise RuntimeError('Dataset not found.')
-
+        data_dirs_all = glob.glob(self.root + "/*")
         if self.train:
-            data_dir = self.training_dir
+            data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
         else:
-            data_dir = self.test_dir
+            data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
+        del data_dirs_all
 
-        self.data = glob.glob(self.root + data_dir + "/*")
+        self.data = []
+        for dir_i in data_dirs:
+            #HACK:ランダム参照してるので遅い?
+            self.data.extend(glob.glob(dir_i + "/main/*"))
+
+            if len(self.data) > 10000:
+                break
+
         self.targets = self.data.copy()
 
     def __getitem__(self, index):
@@ -52,9 +58,3 @@ class WormDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
-
-
-    def _check_exists(self):
-        print(self.root + self.training_dir)
-        return (os.path.exists(self.root + self.training_dir) and
-                os.path.exists(self.root + self.test_dir))
