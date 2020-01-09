@@ -7,8 +7,11 @@ Copyright (c) 2019 hirogithu
 * Model - AutoEncoder + Word2Vec
   - AutoEncoder
     - 潜在表現の生成機構
-  - Word2Vec
     - 回転不変な潜在表現を獲得するための機構
+  - Word2Vec
+    - 時間的に近い姿勢が得られる表現を目指す．
+      - 次の瞬間にとりうる姿勢
+    
 
 ## Goal
 * 線虫の姿勢空間から知見獲得を目指す．
@@ -17,15 +20,15 @@ Copyright (c) 2019 hirogithu
 
 ## Task
 * 実装
-- [] Preprocessing
-- [] Model arch
-- [] Evaluation
-- [] Visualization
+  - [x] Preprocessing
+  - [x] Model arch
+  - [] Evaluation
+  - [] Visualization
 
 * サーベイ
-- [] Word2Vec
-- [] Rotation invariant tech
+  - [] Word2Vec
+  - [] Rotation invariant tech
 
 ### history
-* 2019/12/19: project started
-* 2019/12/20: Outline made
+  * 2019/12/19: Project started
+  * 2019/12/20: Outline made
