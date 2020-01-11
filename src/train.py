@@ -16,6 +16,9 @@ from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToND
 from visualization.save_images_gray_grid import save_images_grid
 import config
 
+# 可視化
+#from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,7 +67,7 @@ def train(epoch, vae, train_loader, optimizer):
         (loss_re + loss_kl).backward()
         optimizer.step()
 
-        if batch_idx % (config.BATCH_SIZE // 10) == 0:
+        if batch_idx % (len(train_loader) // 10 + 1) == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss_re: {:.6f} \tLoss_kl: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item()))
@@ -75,6 +78,8 @@ def train(epoch, vae, train_loader, optimizer):
             img = tond(topil(_.cpu()[0]))
             plt.imsave("input_img.png", img, cmap='gray')
 
+    return loss_re, loss_kl
+
 def evaluate(epoch, vae, test_loader):
     sample_v = torch.randn(256, config.z_size).view(-1, config.z_size, 1, 1)
 
@@ -83,6 +88,7 @@ def evaluate(epoch, vae, test_loader):
 
         for batch_idx, (x, target) in enumerate(test_loader):
             # Reconstruction from testdata
+            x = x.to(device)
             x_rec, _, _ = vae.forward(x)
 
             x = (x - x.min()) / (x.max() - x.min())
@@ -95,6 +101,7 @@ def evaluate(epoch, vae, test_loader):
                         filename=r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/training/{:0=3}_sample_encode.png'.format(epoch))
 
             # Reconstruction from random (mu, var)
+            sample_v = sample_v.to(device)
             x_rec = vae.decode(sample_v)
 
             resultsample = x_rec * 0.5 + 0.5
@@ -104,31 +111,38 @@ def evaluate(epoch, vae, test_loader):
                         filename=r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/training/{:0=3}_sample_decode.png'.format(epoch))
             break
 
-def main(train_epoch):
+def main(args):
     """ load datasets """
     train_loader, test_loader = load_datasets()
 
-    #""" Def model"""
+    # start tensorboard
+    writer = SummaryWriter(log_dir="../log/" + args.log, comment=args.comment)
+
+    # Def model
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
-
-    if device == "cuda":
-        print(vae.cuda())
-
     vae.to(device)
 
     optimizer = optim.SGD(vae.parameters(), lr=0.01)
 
-    #""" Train model """
-    for epoch in range(1, train_epoch + 1):
-        train(epoch, vae, train_loader, optimizer)
-        evaluate(epoch, vae, test_loader)
+    # Train model
+    for epoch in range(1, args.epoch + 1):
+        loss_re, loss_kl = train(epoch, vae, train_loader, optimizer)
+        #evaluate(epoch, vae, test_loader)
 
-    #""" Save model """
+        writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
+        writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=epoch)
+
+    # end tensorboard
+    writer.close()
+
+    # Save model
     torch.save(vae.state_dict(), "../models/VAEmodel.pkl")
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
-    parse.add_argument("-e", type=int, default=15)
+    parse.add_argument("-e", "--epoch", type=int, default=15)
+    parse.add_argument("-m", "--comment", type=str, default="test")
+    parse.add_argument("--log", type=str, default="default")
     args = parse.parse_args()
 
-    main(args.e)
+    main(args)
