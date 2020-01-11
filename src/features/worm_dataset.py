@@ -4,6 +4,7 @@ import os
 import glob
 from PIL import Image
 import torch
+import config
 
 class WormDataset(torch.utils.data.Dataset):
     """
@@ -22,6 +23,7 @@ class WormDataset(torch.utils.data.Dataset):
 
         data_dirs_all = glob.glob(self.root + "/*")
         if self.train:
+            #TODO:学習データ比決め内してるの修正．0.8
             data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
         else:
             data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
@@ -29,10 +31,9 @@ class WormDataset(torch.utils.data.Dataset):
 
         self.data = []
         for dir_i in data_dirs:
-            #HACK:ランダム参照してるので遅い?
-            self.data.extend(glob.glob(dir_i + "/main/*"))
+            self.data.extend(glob.glob(dir_i + "/main/*")[:100])
 
-            if len(self.data) > 10000:
+            if len(self.data) > config.MAX_LEN_TRAIN_DATA:
                 break
 
         self.targets = self.data.copy()
