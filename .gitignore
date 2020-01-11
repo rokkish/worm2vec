@@ -1,3 +1,4 @@
 .vscode
 models/VAEmodel.pkl
 __pycache__/
+results/training
