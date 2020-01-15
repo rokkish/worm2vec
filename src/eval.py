@@ -26,14 +26,14 @@ import config
 import matplotlib.pyplot as plt
 
 def plot_x(x, id_):
-    plt.imsave(r"c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/eval_x_" + id_ + ".jpg", x, cmap="gray")
+    plt.imsave("../results/eval_x_" + id_ + ".jpg", x, cmap="gray")
 
 def evaluation(vae, eval_id):
     """ load datasets """
     train_loader, test_loader = train.load_datasets()
 
-    if not os.path.exists(r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/' + eval_id):
-        os.mkdir(r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/' + eval_id)
+    if not os.path.exists('../results/' + eval_id):
+        os.mkdir('../results/' + eval_id)
 
     vae.eval()
 
@@ -53,13 +53,13 @@ def evaluation(vae, eval_id):
 
         #save_image(resultsample.view(-1, 1, config.IMG_SIZE, config.IMG_SIZE),
         save_images_grid(resultsample, nrow=16, scale_each=True,
-                    filename=r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/'+ eval_id +'/sample_encode.png')
+                    filename='../results/'+ eval_id +'/sample_encode.png')
 
         x_rec = vae.decode(sample_v)
         resultsample = x_rec * 0.5 + 0.5
         resultsample = resultsample.cpu()
         save_images_grid(resultsample, nrow=16, scale_each=True,
-                    filename=r'c:\Users\u853337i\Desktop\worm2vec\worm2vec/results/'+ eval_id +'/sample_decode.png')
+                    filename='../results/'+ eval_id +'/sample_decode.png')
 
         break
 
@@ -69,6 +69,6 @@ if __name__ == "__main__":
     args = parse.parse_args()
 
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
-    vae.load_state_dict(torch.load(r"C:\Users\u853337i\Desktop\worm2vec\worm2vec/models/VAEmodel.pkl"))
+    vae.load_state_dict(torch.load("../models/VAEmodel.pkl"))
 
     evaluation(vae, args.id)
