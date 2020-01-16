@@ -30,7 +30,7 @@ def plot_x(x, id_):
 
 def evaluation(vae, eval_id):
     """ load datasets """
-    train_loader, test_loader = train.load_datasets()
+    train_loader, test_loader = train.load_processed_datasets()
 
     if not os.path.exists('../results/' + eval_id):
         os.mkdir('../results/' + eval_id)
@@ -51,7 +51,6 @@ def evaluation(vae, eval_id):
         plot_x(resultsample[0, 0].detach().numpy(), "r0")
         plot_x(resultsample[1, 0].detach().numpy(), "r1")
 
-        #save_image(resultsample.view(-1, 1, config.IMG_SIZE, config.IMG_SIZE),
         save_images_grid(resultsample, nrow=16, scale_each=True,
                     filename='../results/'+ eval_id +'/sample_encode.png')
 
@@ -65,7 +64,7 @@ def evaluation(vae, eval_id):
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
-    parse.add_argument("--id", type=str, default="000")
+    parse.add_argument("--dir", type=str, default="eval")
     args = parse.parse_args()
 
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)

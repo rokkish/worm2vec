@@ -11,26 +11,37 @@ class WormDataset(torch.utils.data.Dataset):
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None):
+    def __init__(self, root, train=True, transform=None, processed=False):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
-
-        data_dirs_all = glob.glob(self.root + "/*")
-        if self.train:
-            #TODO:学習データ比決め内してるの修正．0.8
-            data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
-        else:
-            data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
-        del data_dirs_all
-
+        self.processed = processed # Use processed data ? or raw data
         self.data = []
-        for dir_i in data_dirs:
-            self.data.extend(glob.glob(dir_i + "/main/*"))
+
+        if self.processed:
+            tensor_all = glob.glob(self.root + "/*")
+            if self.train:
+                self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
+            else:
+                self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
 
             if len(self.data) > config.MAX_LEN_TRAIN_DATA:
-                break
+                self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
+
+        else:
+            data_dirs_all = glob.glob(self.root + "/*")
+            if self.train:
+                #TODO:学習データ比決め内してるの修正．0.8
+                data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
+            else:
+                data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
+
+            for dir_i in data_dirs:
+                self.data.extend(glob.glob(dir_i + "/main/*"))
+
+                if len(self.data) > config.MAX_LEN_TRAIN_DATA:
+                    break
 
         #self.targets = self.data.copy()
 
@@ -45,7 +56,10 @@ class WormDataset(torch.utils.data.Dataset):
         img = self.data[index]
         #target = self.targets[index]
 
-        img = Image.open(img)
+        if self.processed == True:
+            img = torch.load(img)[0]
+        else:
+            img = Image.open(img)
 
         if self.transform is not None:
             img = self.transform(img)

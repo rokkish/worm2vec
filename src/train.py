@@ -34,7 +34,7 @@ logger.setLevel(logging.DEBUG)
 # create console handler and set level to debug
 sh = logging.StreamHandler()
 fh = logging.FileHandler("../log/logger/test.log")
-sh.setLevel(logging.DEBUG)
+sh.setLevel(logging.INFO)
 fh.setLevel(logging.DEBUG)
 
 # create formatter
@@ -50,31 +50,20 @@ logger.addHandler(fh)
 
 ### end region ###
 
-os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)  # choose GPU:0
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def load_datasets():
-    """ Set transform """
-    worm_transforms = transforms.Compose([
-        ToBinary(),
-        FillHole(),
-        Labelling(),
-        Padding(),
-        transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
-        transforms.ToTensor()])
-
+def load_processed_datasets():
     """ Set dataset """
-    train_set = WormDataset(root="../../data/Tanimoto_eLife_Fig3B", train=True,
-        transform=worm_transforms)
-    test_set = WormDataset(root="../../data/Tanimoto_eLife_Fig3B", train=False,
-        transform=worm_transforms)
+    train_set = WormDataset(root="../../data/processed", train=True,
+        transform=None, processed=True)
+
+    test_set = WormDataset(root="../../data/processed", train=False,
+        transform=None, processed=True)
 
     """ Dataloader """
-    # Training dataset
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=config.BATCH_SIZE, shuffle=True)
-    # Test dataset
+
     test_loader = torch.utils.data.DataLoader(
         test_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
@@ -89,27 +78,29 @@ def train(epoch, vae, train_loader, optimizer, writer):
 
     vae.train()
 
+    logger.debug("Load data")
     for batch_idx, (data, target) in enumerate(train_loader):
         logger.debug("Train batch: %d/%d " % (batch_idx + 1, len(train_loader)))
 
-        data, _ = data.to(device), target.to(device)
+        data = data.to(device)
+
         optimizer.zero_grad()
+
+        logger.debug("foward")
         rec, mu, logvar = vae(data)
+
+        logger.debug("get loss")
         loss_re, loss_kl = loss_function(rec, data, mu, logvar)
+
+        logger.debug("backward")
         (loss_re + loss_kl).backward()
+
         optimizer.step()
 
-        logger.debug("Epoch: {} Train batch: [{}/{} ({:.0f}%)]\tLoss_re: {:.6f} \tLoss_kl: {:.6f}".format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
+        logger.debug("Train batch: [{}/{} ({:.0f}%)]\tLoss_re: {:.6f} \tLoss_kl: {:.6f}".format(
+                batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item()))
-        #if batch_idx % (len(train_loader) // 10 + 1) == 0:
 
-        """if batch_idx == 0:
-            topil = transforms.ToPILImage()
-            tond = ToNDarray()
-            img = tond(topil(_.cpu()[0]))
-            plt.imsave("input_img.png", img, cmap='gray')
-        """
         writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=batch_idx)
         writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=batch_idx)
 
@@ -148,8 +139,8 @@ def evaluate(epoch, vae, test_loader):
 
 def main(args):
     """ load datasets """
-    logger.info("train loader")
-    train_loader, test_loader = load_datasets()
+    logger.info("Begin train")
+    train_loader, test_loader = load_processed_datasets()
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.log, comment=args.comment)
@@ -166,10 +157,10 @@ def main(args):
         
         logger.info("Epoch: %d/%d" % (epoch, args.epoch))
         loss_re, loss_kl = train(epoch, vae, train_loader, optimizer, writer)
-        logger.info("END train")
+        logger.info("End epoch train")
         
         evaluate(epoch, vae, test_loader)
-        logger.info("END evaluation")
+        logger.info("End epoch evaluation")
 
         #writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
         #writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=epoch)
@@ -184,9 +175,11 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("-e", "--epoch", type=int, default=15)
     parse.add_argument("-m", "--comment", type=str, default="test")
-    parse.add_argument("--log", type=str, default="default")
+    parse.add_argument("--logdir", type=str, default="default", help="set path of logfile ../log/tensorboard/")
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
     args = parse.parse_args()
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)  # choose GPU:0
 
     main(args)
