@@ -1,4 +1,24 @@
-## dir
+## Environments
+Pytorch
+TensorboardX
+
+## Run
+train vae model
+```
+python train.py --epoch --comment --logdir --gpu_id
+```
+
+generate img from random noize
+```
+python eval.py --id
+```
+
+## Requirements
+```
+pip install -r requirements.txt
+```
+
+## Dir
 ```
 ├── LICENSE
 ├── Makefile           <- Makefile with commands like `make data` or `make train`
