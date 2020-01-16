@@ -9,11 +9,7 @@ import config
 class WormDataset(torch.utils.data.Dataset):
     """
         Def Dataset
-        TODO:root内dir全て読み込めるようにする．
     """
-
-    training_dir = '201302081337/main'
-    test_dir = '201302081353/main'
 
     def __init__(self, root, train=True, transform=None):
 
@@ -31,12 +27,12 @@ class WormDataset(torch.utils.data.Dataset):
 
         self.data = []
         for dir_i in data_dirs:
-            self.data.extend(glob.glob(dir_i + "/main/*")[:100])
+            self.data.extend(glob.glob(dir_i + "/main/*"))
 
             if len(self.data) > config.MAX_LEN_TRAIN_DATA:
                 break
 
-        self.targets = self.data.copy()
+        #self.targets = self.data.copy()
 
     def __getitem__(self, index):
         """
@@ -46,16 +42,16 @@ class WormDataset(torch.utils.data.Dataset):
         Returns:
             tuple: (image, target) where image == target.
         """
-        img, target = self.data[index], self.targets[index]
+        img = self.data[index]
+        #target = self.targets[index]
 
         img = Image.open(img)
-        target = Image.open(target)
 
         if self.transform is not None:
             img = self.transform(img)
-            target = self.transform(target)
+            #target = self.transform(target)
 
-        return img, target
+        return img, img#, target
 
     def __len__(self):
         return len(self.data)
