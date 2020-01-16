@@ -24,25 +24,33 @@ from tensorboardX import SummaryWriter
 #import matplotlib.pyplot as plt
 
 ### begin region ###
+
 import logging
+
 # create logger
 logger = logging.getLogger('train_VAE')
 logger.setLevel(logging.DEBUG)
 
 # create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+sh = logging.StreamHandler()
+fh = logging.FileHandler("../log/logger/test.log")
+sh.setLevel(logging.DEBUG)
+fh.setLevel(logging.DEBUG)
 
 # create formatter
 formatter = logging.Formatter('[%(asctime)s] - [%(name)s] - [%(levelname)s] - %(message)s')
 
-# add formatter to ch
-ch.setFormatter(formatter)
+# add formatter to handler
+sh.setFormatter(formatter)
+fh.setFormatter(formatter)
 
-# add ch to logger
-logger.addHandler(ch)
+# add handler to logger
+logger.addHandler(sh)
+logger.addHandler(fh)
 
 ### end region ###
+
+os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)  # choose GPU:0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -72,7 +80,7 @@ def load_datasets():
 
     return train_loader, test_loader
 
-def train(epoch, vae, train_loader, optimizer):
+def train(epoch, vae, train_loader, optimizer, writer):
 
     def loss_function(recon_x, x, mu, logvar):
         BCE = torch.mean((recon_x - x)**2)
@@ -102,6 +110,8 @@ def train(epoch, vae, train_loader, optimizer):
             img = tond(topil(_.cpu()[0]))
             plt.imsave("input_img.png", img, cmap='gray')
         """
+        writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=batch_idx)
+        writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=batch_idx)
 
     return loss_re, loss_kl
 
@@ -155,14 +165,14 @@ def main(args):
     for epoch in range(1, args.epoch + 1):
         
         logger.info("Epoch: %d/%d" % (epoch, args.epoch))
-        loss_re, loss_kl = train(epoch, vae, train_loader, optimizer)
+        loss_re, loss_kl = train(epoch, vae, train_loader, optimizer, writer)
         logger.info("END train")
         
         evaluate(epoch, vae, test_loader)
         logger.info("END evaluation")
 
-        writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
-        writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=epoch)
+        #writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
+        #writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=epoch)
 
     # end tensorboard
     writer.close()
@@ -178,7 +188,5 @@ if __name__ == "__main__":
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
     args = parse.parse_args()
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)  # choose GPU:0
 
     main(args)
