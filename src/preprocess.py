@@ -9,11 +9,10 @@ import glob
 from PIL import Image
 import torch
 from torchvision import transforms
+import argparse
 
 import config
 from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToNDarray
-
-STAR_ID = 14580
 
 class WormDataset_prepro(torch.utils.data.Dataset):
     """
@@ -22,18 +21,20 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             Load all of raw data to preprocess.
     """
 
-    def __init__(self, root, transform=None):
+    def __init__(self, root, transform=None, STAR_ID=0, END_ID=1):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.transform = transform
         self.data = []
+        self.STAR_ID = STAR_ID
+        self.END_ID = END_ID
 
         data_dirs_all = glob.glob(self.root + "/*")
         data_dirs = data_dirs_all
 
         for dir_i in data_dirs:
             self.data.extend(glob.glob(dir_i + "/main/*"))
-        self.data = self.data[STAR_ID:]
+        self.data = self.data[self.STAR_ID:self.END_ID]
 
     def __getitem__(self, index):
         """
@@ -59,7 +60,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data)
 
-def load_datasets():
+def load_datasets(STAR_ID, END_ID):
     """ Set transform """
     worm_transforms = transforms.Compose([
         ToBinary(),
@@ -71,7 +72,7 @@ def load_datasets():
 
     """ Set dataset """
     dataset = WormDataset_prepro(root="../../data/Tanimoto_eLife_Fig3B",
-        transform=worm_transforms)
+        transform=worm_transforms, STAR_ID=STAR_ID, END_ID=END_ID)
 
     """ Dataloader """
     loader = torch.utils.data.DataLoader(
@@ -80,17 +81,44 @@ def load_datasets():
     return loader
 
 if __name__ == "__main__":
+    parse = argparse.ArgumentParser()
+    parse.add_argument("--process_id", type=int, default=0,
+                help="input 0~3 for pararell docker container")
 
-    loader = load_datasets()
+    args = parse.parse_args()
+
+    ## begin count img
+
+    img_list = []
+    
+    data_dirs = glob.glob("../../data/Tanimoto_eLife_Fig3B/*")
+    
+    for dir_i in data_dirs:
+        img_list.extend(glob.glob(dir_i + "/main/*"))
+    
+    STAR_ID, END_ID = len(img_list) // 4 * args.process_id, len(img_list) // 4* (args.process_id + 1)
+    
+    print("load data from ", STAR_ID, "to", END_ID, "all:", len(img_list))
+    del img_list
+
+    ## end count img
+
+
+    loader = load_datasets(STAR_ID, END_ID)
+
     init_t = time.time()
 
     for data_i, data in enumerate(loader):
-        if len(data.shape) == 4:
-            torch.save(data, "../../data/processed/tensor_{:0=10}.pt".format(data_i + STAR_ID))
+        if len(data.shape) != 4:
+            print(data_i + STAR_ID , "/", END_ID, " Not save because of fail to load")
+
+        elif torch.sum(data) == 0:
+            print(data_i + STAR_ID , "/", END_ID, " Not save because of celegans on edge")
+
         else:
-            print(data_i + STAR_ID , "/", 259913, " Not save")
+            torch.save(data, "../../data/processed/tensor_{:0=10}.pt".format(data_i + STAR_ID))
 
         if (data_i + STAR_ID) %1000==0:
-            print(data_i + STAR_ID , "/", 259913, " Load&Save Processd : ", time.time() - init_t)
+            print(data_i + STAR_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
 
-    print(data_i + STAR_ID , "/", 259913, " Finish Processd : ", time.time() - init_t)
+    print(data_i + STAR_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
