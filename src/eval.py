@@ -10,11 +10,11 @@ import torch.optim as optim
 import torchvision
 from torchvision import transforms
 
-import matplotlib.pyplot as plt
+from tensorboardX import SummaryWriter
+
 from skimage.io import imread
 from PIL import Image
 import argparse
-
 import numpy as np
 
 # 自作
@@ -23,11 +23,12 @@ from visualization.save_images_gray_grid import save_images_grid
 import train
 import config
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
+"""
 def plot_x(x, id_):
     plt.imsave("../results/eval_x_" + id_ + ".jpg", x, cmap="gray")
-
+"""
 def evaluation(vae, eval_id):
     """ load datasets """
     train_loader, test_loader = train.load_processed_datasets()
@@ -47,9 +48,9 @@ def evaluation(vae, eval_id):
         resultsample = torch.cat([x, x_rec]) 
         resultsample = resultsample.cpu()
 
-        plot_x(x[0, 0], "x0")
-        plot_x(resultsample[0, 0].detach().numpy(), "r0")
-        plot_x(resultsample[1, 0].detach().numpy(), "r1")
+        #plot_x(x[0, 0], "x0")
+        #plot_x(resultsample[0, 0].detach().numpy(), "r0")
+        #plot_x(resultsample[1, 0].detach().numpy(), "r1")
 
         save_images_grid(resultsample, nrow=16, scale_each=True,
                     filename='../results/'+ eval_id +'/sample_encode.png')
@@ -70,4 +71,4 @@ if __name__ == "__main__":
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
     vae.load_state_dict(torch.load("../models/VAEmodel.pkl"))
 
-    evaluation(vae, args.id)
+    evaluation(vae, args.dir)
