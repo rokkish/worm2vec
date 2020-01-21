@@ -78,7 +78,7 @@ def train(epoch, vae, train_loader, optimizer, writer):
 
     vae.train()
 
-    logger.debug("Load data")
+    #logger.debug("Load data")
     for batch_idx, (data, target) in enumerate(train_loader):
         logger.debug("Train batch: %d/%d " % (batch_idx + 1, len(train_loader)))
 
@@ -86,13 +86,13 @@ def train(epoch, vae, train_loader, optimizer, writer):
 
         optimizer.zero_grad()
 
-        logger.debug("foward")
+        #logger.debug("foward")
         rec, mu, logvar = vae(data)
 
-        logger.debug("get loss")
+        #logger.debug("get loss")
         loss_re, loss_kl = loss_function(rec, data, mu, logvar)
 
-        logger.debug("backward")
+        #logger.debug("backward")
         (loss_re + loss_kl).backward()
 
         optimizer.step()
@@ -106,7 +106,10 @@ def train(epoch, vae, train_loader, optimizer, writer):
 
     return loss_re, loss_kl
 
-def evaluate(epoch, vae, test_loader):
+def evaluate(epoch, vae, test_loader, writer):
+    if epoch % 10 != 0:
+        return
+
     sample_v = torch.randn(256, config.z_size).view(-1, config.z_size, 1, 1)
 
     with torch.no_grad():
@@ -137,17 +140,22 @@ def evaluate(epoch, vae, test_loader):
                         filename=r'../results/training/{:0=3}_sample_decode.png'.format(epoch))
             break
 
+    #sample_v = torch.randn(128, config.z_size).view(-1, 1, config.z_size, config.z_size)
+    #if epoch == 1:
+    #    writer.add_graph(vae, sample_v)
+
 def main(args):
     """ load datasets """
     logger.info("Begin train")
     train_loader, test_loader = load_processed_datasets()
 
     # start tensorboard
-    writer = SummaryWriter(log_dir="../log/tensorboard/" + args.log, comment=args.comment)
+    writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir, comment=args.comment)
 
     # Def model
     logger.info("define model")
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
+    print(vae)
     vae.to(device)
 
     optimizer = optim.SGD(vae.parameters(), lr=0.01)
@@ -158,8 +166,8 @@ def main(args):
         logger.info("Epoch: %d/%d" % (epoch, args.epoch))
         loss_re, loss_kl = train(epoch, vae, train_loader, optimizer, writer)
         logger.info("End epoch train")
-        
-        evaluate(epoch, vae, test_loader)
+
+        evaluate(epoch, vae, test_loader, writer)
         logger.info("End epoch evaluation")
 
         #writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
@@ -181,5 +189,4 @@ if __name__ == "__main__":
     args = parse.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)  # choose GPU:0
-
     main(args)
