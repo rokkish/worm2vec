@@ -74,7 +74,7 @@ class Labelling(object):
             img (ndarray Image): Hole of Image will be filled.
 
         Returns:
-            np.array image: labelled image.
+            np.array image: labelled image. 最大領域画像の切り出し，オブジェクト内オブジェクトの消去
         """
         def get_largest_region(regions):
             tmp_area = 0
@@ -84,16 +84,47 @@ class Labelling(object):
                 if tmp_area == region.area:
                     return region
 
+        def delete_obect_in_largest_region(img, largest_region, regions):
+
+            lminr, lminc, lmaxr, lmaxc = largest_region.bbox
+
+            for region in regions:
+
+                if region != largest_region:
+
+                    minr, minc, maxr, maxc = region.bbox
+
+                    if minr > lminr and minc > lminc and maxr < lmaxr and maxc < lmaxc:
+                        labeled_img = img[minr:maxr, minc:maxc]
+                        img[minr:maxr, minc:maxc] = np.where(labeled_img > 0 , 0, labeled_img)
+
+            return img
+
+        def check_whether_on_edge(img, labeled_img, region):
+            minr, minc, maxr, maxc = region.bbox
+
+            # region.bbox is around edges.
+            if minr < 10 or minc < 10 or maxr > img.shape[0] - 10 or maxc > img.shape[1] - 10:
+                labeled_img = np.where(labeled_img > 0 , 0, labeled_img)
+
+            return labeled_img
+
         # label image regions
         label_image = label(img)
 
         # take regions with largest enough areas
-        regions = regionprops(label_image)
+        regions = regionprops(label_image, coordinates='xy')
         region = get_largest_region(regions)
 
-        # show img
+        img = delete_obect_in_largest_region(img, region, regions)
+
+        # cut img
         minr, minc, maxr, maxc = region.bbox
         labeled_img = img[minr:maxr, minc:maxc]
+
+        # detect on edge
+        labeled_img = check_whether_on_edge(img, labeled_img, region)
+
         return labeled_img
 
 class Padding(object):
