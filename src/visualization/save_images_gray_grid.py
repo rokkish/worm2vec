@@ -110,3 +110,17 @@ def save_images_grid(tensor, filename, nrow=8, padding=2,
     ndarr = grid.mul(255).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
     im = Image.fromarray(ndarr[:, :, 0], mode="L")
     im.save(filename, format=format)
+
+def show_images_grid(tensor, filename, nrow=8, padding=2,
+               normalize=False, range=None, scale_each=False, pad_value=0, format=None):
+
+    from PIL import Image
+
+    grid = make_grid(tensor, nrow=nrow, padding=padding, pad_value=pad_value,
+                     normalize=normalize, range=range, scale_each=scale_each)
+
+    ndarr = grid.mul(255).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+    im = Image.fromarray(ndarr[:, :, 0], mode="L")
+
+    return im
+    
