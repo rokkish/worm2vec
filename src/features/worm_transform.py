@@ -11,6 +11,7 @@ import config
 # labelling
 import matplotlib.patches as mpatches
 from skimage.measure import label, regionprops
+from torchvision.transforms import functional
 
 class ToBinary(object):
     def __init__(self):
@@ -19,18 +20,16 @@ class ToBinary(object):
     def __call__(self, img):
         """
         Args:
-            img (PIL Image): Image to be converted to binaryscale.
+            img (PIL Image) :   Image to be converted to binaryscale.
 
         Returns:
-            #PIL Image: Binaryscaled image.
-            img:np.array
+            img             :   np.array
         """
         img = np.asarray(img)
         thres = filters.threshold_otsu(img)
         img_bin = img > thres #* 0.7
         #img_bin = Image.fromarray(np.uint8(img_bin))
         return img_bin
-
 
 class FillHole(object):
     def __init__(self):
@@ -127,7 +126,7 @@ class Labelling(object):
 
         return labeled_img
 
-class Padding(object):
+class Rotation(object):
     def __init__(self):
         pass
 
@@ -137,26 +136,98 @@ class Padding(object):
             img (ndarray Image): Hole of Image will be filled.
 
         Returns:
-            PIL Image: padded image.
+            img (ndarray Image): Padded image.
         """
 
-        x_width = max((450 - img.shape[0]) // 2, 0)
-        y_width = max((450 - img.shape[1]) // 2, 0)
-        if x_width < 0 or y_width < 0:
-            print(x_width, y_width)
-            raise ValueError("width over 400")
+        img = Image.fromarray(np.uint8(img))
+        w, h = img.size[0], img.size[1]
 
-        x_width_up = x_width
-        y_width_up = y_width
-        if img.shape[0] % 2 == 1:
-            x_width_up += 1
-        if img.shape[1] % 2 == 1:
-            y_width_up += 1
-        img_padded = util.pad(img, [(x_width_up, x_width), (y_width_up, y_width)], mode="constant")
+        rotated_img = np.reshape(np.asarray(img), (-1, w, h))
 
-        img_padded = Image.fromarray(np.uint8(img_padded))
+        for theta in range(10, 360, 10):
 
-        return img_padded
+            img_ = functional.affine(img=img, angle=theta, translate=[1, 1], scale=1, shear=0, fillcolor=0)
+
+            rotated_img = np.concatenate([rotated_img, np.reshape(np.asarray(img_), (-1, w, h))], 0)
+
+        #print("rotated", rotated_img.shape)
+        return rotated_img
+
+class Padding(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        """
+        Args:
+            ndarray Image (N, W, H) :   Rotated Image.
+
+        Returns:
+            ndarray Image (N, W, H) :   Padded image.
+        """
+        def pad_img(img):
+            x_width = max((450 - img.shape[0]) // 2, 0)
+            y_width = max((450 - img.shape[1]) // 2, 0)
+
+            if x_width < 0 or y_width < 0:
+                print(x_width, y_width)
+                raise ValueError("width over 450")
+
+            x_width_up = x_width
+            y_width_up = y_width
+
+            if img.shape[0] % 2 == 1:
+                x_width_up += 1
+            if img.shape[1] % 2 == 1:
+                y_width_up += 1
+
+            img_padded = util.pad(img, [(x_width_up, x_width), (y_width_up, y_width)], mode="constant")
+
+            return img_padded
+
+        for i, img_i in enumerate(img):
+            img_ = pad_img(img_i)
+            img_ = np.reshape(img_, (-1, img_.shape[0], img_.shape[1]))
+            if i == 0:
+                padded_img = img_
+            else:
+                padded_img = np.concatenate([padded_img, img_], 0)
+
+        #print("padd", padded_img.shape)
+
+        return padded_img
+
+class Resize(object):
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        """
+        Args:
+            ndarray Image (N, W, H) :   Rotated Image.
+
+        Returns:
+            ndarray Image (N, W, H) :   Padded image.
+        """
+        def resize_img(img):
+            img = Image.fromarray(np.uint8(img))
+            img = functional.resize(img, self.size, self.interpolation)
+            return np.asarray(img)
+
+        for i, img_i in enumerate(img):
+            img_ = resize_img(img_i)
+            img_ = np.reshape(img_, (-1, img_.shape[0], img_.shape[1]))
+            if i == 0:
+                resized_img = img_
+            else:
+                resized_img = np.concatenate([resized_img, img_], 0)
+
+
+        resized_img = np.reshape(resized_img, (-1, 1, resized_img.shape[1], resized_img.shape[2]))
+        #print("resized", resized_img.shape)
+
+        return resized_img
 
 class ToNDarray(object):
     def __init__(self):

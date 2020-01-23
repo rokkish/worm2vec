@@ -12,7 +12,7 @@ from torchvision import transforms
 import argparse
 
 import config
-from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToNDarray
+from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Padding, Resize, ToNDarray
 
 class WormDataset_prepro(torch.utils.data.Dataset):
     """
@@ -66,9 +66,10 @@ def load_datasets(STAR_ID, END_ID):
         ToBinary(),
         FillHole(),
         Labelling(),
+        Rotation(),
         Padding(),
-        transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
-        transforms.ToTensor()])
+        Resize((config.IMG_SIZE, config.IMG_SIZE))])
+        #transforms.ToTensor()])
 
     """ Set dataset """
     dataset = WormDataset_prepro(root="../../data/Tanimoto_eLife_Fig3B",
@@ -103,12 +104,14 @@ if __name__ == "__main__":
 
     ## end count img
 
-
     loader = load_datasets(STAR_ID, END_ID)
 
     init_t = time.time()
 
     for data_i, data in enumerate(loader):
+        data = data[0]
+        print("tensor:", data.shape)
+
         if len(data.shape) != 4:
             print(data_i + STAR_ID , "/", END_ID, " Not save because of fail to load")
 
@@ -120,5 +123,8 @@ if __name__ == "__main__":
 
         if (data_i + STAR_ID) %1000==0:
             print(data_i + STAR_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
+
+        if data_i > 10:
+            break
 
     print(data_i + STAR_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
