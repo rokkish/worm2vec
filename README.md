@@ -3,6 +3,13 @@ Pytorch
 TensorboardX
 
 ## Run
+
+preprocess data, and save as torch
+```
+python preprocess.py --process_id 0~3
+```
+
+
 train vae model
 ```
 python train.py --epoch --comment --logdir --gpu_id
