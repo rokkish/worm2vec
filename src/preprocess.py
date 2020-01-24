@@ -66,8 +66,8 @@ def load_datasets(STAR_ID, END_ID):
         ToBinary(),
         FillHole(),
         Labelling(),
-        Rotation(),
         Padding(),
+        Rotation(),
         Resize((config.IMG_SIZE, config.IMG_SIZE))])
         #transforms.ToTensor()])
 
