@@ -126,6 +126,33 @@ class Labelling(object):
 
         return labeled_img
 
+class Padding(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        """
+        Args:
+            ndarray Image (W, H) :   labelled image.
+
+        Returns:
+            ndarray Image (W, H) :   Padded image.
+        """
+        x_width = max((450 - img.shape[0]) // 2, 0)
+        y_width = max((450 - img.shape[1]) // 2, 0)
+        if x_width < 0 or y_width < 0:
+            print(x_width, y_width)
+            raise ValueError("width over 400")
+        x_width_up = x_width
+        y_width_up = y_width
+        if img.shape[0] % 2 == 1:
+            x_width_up += 1
+        if img.shape[1] % 2 == 1:
+            y_width_up += 1
+        img_padded = util.pad(img, [(x_width_up, x_width), (y_width_up, y_width)], mode="constant")
+
+        return img_padded
+
 class Rotation(object):
     def __init__(self):
         pass
@@ -133,13 +160,13 @@ class Rotation(object):
     def __call__(self, img):
         """
         Args:
-            img (ndarray Image): Hole of Image will be filled.
+            img (ndarray Image) (W, H) : Hole of Image will be filled.
 
         Returns:
-            img (ndarray Image): Padded image.
+            img (ndarray Image) (N, W, H) : Rotated image.
         """
 
-        img = Image.fromarray(np.uint8(img))
+        img = Image.fromarray(np.uint8(img), mode="L")
         w, h = img.size[0], img.size[1]
 
         rotated_img = np.reshape(np.asarray(img), (-1, w, h))
@@ -153,50 +180,6 @@ class Rotation(object):
         #print("rotated", rotated_img.shape)
         return rotated_img
 
-class Padding(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, img):
-        """
-        Args:
-            ndarray Image (N, W, H) :   Rotated Image.
-
-        Returns:
-            ndarray Image (N, W, H) :   Padded image.
-        """
-        def pad_img(img):
-            x_width = max((450 - img.shape[0]) // 2, 0)
-            y_width = max((450 - img.shape[1]) // 2, 0)
-
-            if x_width < 0 or y_width < 0:
-                print(x_width, y_width)
-                raise ValueError("width over 450")
-
-            x_width_up = x_width
-            y_width_up = y_width
-
-            if img.shape[0] % 2 == 1:
-                x_width_up += 1
-            if img.shape[1] % 2 == 1:
-                y_width_up += 1
-
-            img_padded = util.pad(img, [(x_width_up, x_width), (y_width_up, y_width)], mode="constant")
-
-            return img_padded
-
-        for i, img_i in enumerate(img):
-            img_ = pad_img(img_i)
-            img_ = np.reshape(img_, (-1, img_.shape[0], img_.shape[1]))
-            if i == 0:
-                padded_img = img_
-            else:
-                padded_img = np.concatenate([padded_img, img_], 0)
-
-        #print("padd", padded_img.shape)
-
-        return padded_img
-
 class Resize(object):
     def __init__(self, size, interpolation=Image.BILINEAR):
         self.size = size
@@ -208,10 +191,10 @@ class Resize(object):
             ndarray Image (N, W, H) :   Rotated Image.
 
         Returns:
-            ndarray Image (N, W, H) :   Padded image.
+            ndarray Image (N, W, H) :   Resized image.
         """
         def resize_img(img):
-            img = Image.fromarray(np.uint8(img))
+            img = Image.fromarray(np.uint8(img), mode="L")
             img = functional.resize(img, self.size, self.interpolation)
             return np.asarray(img)
 
@@ -222,7 +205,6 @@ class Resize(object):
                 resized_img = img_
             else:
                 resized_img = np.concatenate([resized_img, img_], 0)
-
 
         resized_img = np.reshape(resized_img, (-1, 1, resized_img.shape[1], resized_img.shape[2]))
         #print("resized", resized_img.shape)
