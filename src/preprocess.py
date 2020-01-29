@@ -108,15 +108,19 @@ if __name__ == "__main__":
 
     init_t = time.time()
 
+    count_delete_img = 0
+
     for data_i, data in enumerate(loader):
         data = data[0]
-        print("tensor:", data.shape)
+        #printprint("tensor:", data.shape)
 
         if len(data.shape) != 4:
             print(data_i + STAR_ID , "/", END_ID, " Not save because of fail to load")
+            count_delete_img += 1
 
         elif torch.sum(data) == 0:
             print(data_i + STAR_ID , "/", END_ID, " Not save because of celegans on edge")
+            count_delete_img += 1
 
         else:
             torch.save(data, "../../data/processed/tensor_{:0=10}.pt".format(data_i + STAR_ID))
@@ -124,7 +128,5 @@ if __name__ == "__main__":
         if (data_i + STAR_ID) %1000==0:
             print(data_i + STAR_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
 
-        if data_i > 10:
-            break
-
+    print("TOTAL DELETE:", count_delete_img)
     print(data_i + STAR_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
