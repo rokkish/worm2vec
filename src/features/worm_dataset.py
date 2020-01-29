@@ -57,15 +57,18 @@ class WormDataset(torch.utils.data.Dataset):
         #target = self.targets[index]
 
         if self.processed == True:
-            img = torch.load(img)[0]
+            t = torch.load(img)
+            img = t[0].type(torch.float)
+            target = t[1:].type(torch.float)
         else:
             img = Image.open(img)
 
         if self.transform is not None:
-            img = self.transform(img)
+            pass
+            #img = self.transform(img)
             #target = self.transform(target)
 
-        return img, img#, target
+        return img, target
 
     def __len__(self):
         return len(self.data)
