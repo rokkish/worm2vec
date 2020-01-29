@@ -12,7 +12,7 @@ python preprocess.py --process_id 0~3
 
 train vae model
 ```
-python train.py --epoch --comment --logdir --gpu_id
+python train.py --epoch --comment --logdir --gpu_id --traindir
 ```
 
 generate img from random noize
