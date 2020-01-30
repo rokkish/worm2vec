@@ -90,8 +90,9 @@ def make_grid(tensor, nrow=8, padding=2,
             k = k + 1
     return grid
 
-def save_images_grid(tensor, filename, nrow=8, padding=2,
-               normalize=False, range=None, scale_each=False, pad_value=0, format=None):
+def save_images_grid(tensor, filename=None, nrow=8, padding=2,
+               normalize=False, range=None, scale_each=False, pad_value=0, format=None,
+               writer=None, tag_img="default", global_step=0):
     """Save a given Tensor into an image file.
 
     Args:
@@ -109,7 +110,14 @@ def save_images_grid(tensor, filename, nrow=8, padding=2,
     # after unnormalizing to [0, 255] to round to nearest integer
     ndarr = grid.mul(255).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
     im = Image.fromarray(ndarr[:, :, 0], mode="L")
-    im.save(filename, format=format)
+
+    if writer is not None:
+
+        writer.add_image(tag=tag_img, img_tensor=ndarr, dataformats="HW1", global_step=global_step)
+
+    else:
+
+        im.save(filename, format=format)
 
 def show_images_grid(tensor, filename, nrow=8, padding=2,
                normalize=False, range=None, scale_each=False, pad_value=0, format=None):
