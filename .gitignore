@@ -4,3 +4,4 @@ __pycache__/
 results/training
 log/tensorboard
 log/logger
+*.ipynb*
