@@ -67,20 +67,28 @@ def load_processed_datasets(train_dir):
 
     return train_loader, test_loader
 
-def train(epoch, vae, train_loader, optimizer, writer, device):
+def train(epoch, vae, train_loader, optimizer, writer, device, rotation_invariant_rate):
 
     def loss_function(recon_x, x, mu, logvar):
         BCE = torch.mean((recon_x - x)**2)
         KLD = -0.5 * torch.mean(torch.mean(1 + logvar - mu.pow(2) - logvar.exp(), 1))
         return BCE, KLD * 0.1
 
-    def rotation_invariance_regularization(target, vae, z):
+    def rotation_invariance_regularization(target, vae, z, rotation_invariant_rate=rotation_invariant_rate):
+
+        def cut_z(z, rotation_invariant_rate=rotation_invariant_rate):
+            return z[:, :int(z.shape[1]*rotation_invariant_rate)]
+
         RI = 0
+        z = cut_z(z)
+
         for theta in range(target.shape[1]):
             mu, logvar = vae.encode(target[:, theta])
             mu, logvar = mu.squeeze(), logvar.squeeze()
             z_theta = vae.reparameterize(mu, logvar)
+            z_theta = cut_z(z_theta)
             RI += torch.norm(z - z_theta)
+
         return RI / target.shape[0] / target.shape[1] * config.lambda_ri
 
     vae.train()
@@ -106,15 +114,17 @@ def train(epoch, vae, train_loader, optimizer, writer, device):
         optimizer.step()
 
         if batch_idx % (len(train_loader) // 10) == 0:
-            logger.debug("Train batch: [{}/{} ({:.0f}%)]\tLoss_re: {:.5f} \tLoss_kl: {:.5f} \tLoss_ri: {:.5f}".format(
+            logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss_re: {:.5f} \tLoss_kl: {:.5f} \tLoss_ri: {:.5f}".format(
                     batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item(), loss_ri.item()))
 
-        writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=batch_idx)
-        writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=batch_idx)
-        writer.add_scalar(tag="train_loss/ri", scalar_value=loss_ri.item(), global_step=batch_idx)
+        writer.add_scalar(tag="train_loss_step_batch/re", scalar_value=loss_re.item(), global_step=batch_idx)
+        writer.add_scalar(tag="train_loss_step_batch/kl", scalar_value=loss_kl.item(), global_step=batch_idx)
+        writer.add_scalar(tag="train_loss_step_batch/ri", scalar_value=loss_ri.item(), global_step=batch_idx)
 
-    return loss_re, loss_kl
+    writer.add_scalar(tag="train_loss_step_epoch/re", scalar_value=loss_re.item(), global_step=epoch)
+    writer.add_scalar(tag="train_loss_step_epoch/kl", scalar_value=loss_kl.item(), global_step=epoch)
+    writer.add_scalar(tag="train_loss_step_epoch/ri", scalar_value=loss_ri.item(), global_step=epoch)
 
 def evaluate(epoch, vae, test_loader, writer, device):
     if epoch % 10 != 0:
@@ -127,42 +137,44 @@ def evaluate(epoch, vae, test_loader, writer, device):
         vae.eval()
 
         for batch_idx, (x, target) in enumerate(test_loader):
-            # Embedding from testdata
+            if batch_idx > 5:
+                break
+
             x = x.to(device)
-            mu, logvar = vae.encode(x)
-            mu, logvar = mu.squeeze(), logvar.squeeze()
-            z = vae.reparameterize(mu, logvar)
-
-            x = (x - x.min()) / (x.max() - x.min())
-            z = (z - z.min()) / (z.max() - z.min())
-
-            logger.debug(x.shape) # [64, 1, 64, 64]
-            logger.debug(z.shape) # [64, 64]
 
             if Embedding:
+                # Embedding from testdata
+                mu, logvar = vae.encode(x)
+                mu, logvar = mu.squeeze(), logvar.squeeze()
+                z = vae.reparameterize(mu, logvar)
+
+                x = (x - x.min()) / (x.max() - x.min())
+                z = (z - z.min()) / (z.max() - z.min())
+
                 meta = []
                 for i in range(x.shape[0]):
                     meta.append(str(i))
-                writer.add_embedding(mat=z, metadata=meta, label_img=x)
+                writer.add_embedding(mat=z, metadata=meta, label_img=x, global_step=epoch, tag="Bacth_{0:0=3}".format(batch_idx))
 
-            else:
+            # Reconstruction from testdata
+            x_rec, _, _ = vae.forward(x)
+            x_rec = (x_rec - x_rec.min()) / (x_rec.max() - x_rec.min())
 
-                resultsample = torch.cat([x, z])
-                resultsample = resultsample.cpu()
+            result_rec_from_data = torch.cat([x, x_rec])
+            result_rec_from_data = result_rec_from_data.cpu()
 
-                save_images_grid(resultsample, nrow=16, scale_each=True,
-                            filename=r'../results/training/{:0=3}_sample_encode.png'.format(epoch))
+            save_images_grid(result_rec_from_data, nrow=16, scale_each=True, global_step=epoch,
+                        tag_img="Rec_from_data/BATCH_{0:0=3}".format(batch_idx), writer=writer)
 
             # Reconstruction from random (mu, var)
             sample_v = sample_v.to(device)
             x_rec = vae.decode(sample_v)
 
-            resultsample = x_rec * 0.5 + 0.5
-            resultsample = resultsample.cpu()
+            result_from_noise = x_rec * 0.5 + 0.5
+            result_from_noise = result_from_noise.cpu()
 
-            save_images_grid(resultsample, nrow=16, scale_each=True,
-                        filename=r'../results/training/{:0=3}_sample_decode.png'.format(epoch))
-            break
+            save_images_grid(result_from_noise, nrow=16, scale_each=True, global_step=epoch,
+                        tag_img="Rec_from_noise/BATCH_{0:0=3}".format(batch_idx), writer=writer)
 
     #sample_v = torch.randn(128, config.z_size).view(-1, 1, config.z_size, config.z_size)
     #if epoch == 1:
@@ -175,24 +187,20 @@ def main(args, device):
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir, comment=args.comment)
 
-    logger.info("define model")
+    logger.debug("define model")
     vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
-    print(vae)
     vae.to(device)
 
     optimizer = optim.SGD(vae.parameters(), lr=0.01, momentum=0.9)
 
     for epoch in range(1, args.epoch + 1):
         
-        logger.info("Epoch: %d/%d" % (epoch, args.epoch))
-        loss_re, loss_kl = train(epoch, vae, train_loader, optimizer, writer, device)
-        logger.info("End epoch train")
+        logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, args.epoch, int(args.gpu_id)))
+        train(epoch, vae, train_loader, optimizer, writer, device, args.rotation_invariant_rate)
+        logger.debug("End epoch train")
 
         evaluate(epoch, vae, test_loader, writer, device)
-        logger.info("End epoch evaluation")
-
-        #writer.add_scalar(tag="train_loss/re", scalar_value=loss_re.item(), global_step=epoch)
-        #writer.add_scalar(tag="train_loss/kl", scalar_value=loss_kl.item(), global_step=epoch)
+        logger.debug("End epoch evaluation")
 
     # end tensorboard
     writer.close()
@@ -208,6 +216,7 @@ if __name__ == "__main__":
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
     parse.add_argument("--traindir", type=str, default="processed", help="set path of train data dir ../../data/[traindir]")
+    parse.add_argument("--rotation_invariant_rate", type=float, default=1.0, help="define the rate of Rotation Invariant between (z, z_phi)")
     args = parse.parse_args()
 
     device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
