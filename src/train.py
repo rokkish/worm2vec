@@ -67,14 +67,14 @@ def load_processed_datasets(train_dir):
 
     return train_loader, test_loader
 
-def train(epoch, vae, train_loader, optimizer, writer, device, rotation_invariant_rate):
+def train(epoch, vae, train_loader, optimizer, writer, device, args):
 
     def loss_function(recon_x, x, mu, logvar):
         BCE = torch.mean((recon_x - x)**2)
         KLD = -0.5 * torch.mean(torch.mean(1 + logvar - mu.pow(2) - logvar.exp(), 1))
         return BCE, KLD * 0.1
 
-    def rotation_invariance_regularization(target, vae, z, rotation_invariant_rate=rotation_invariant_rate):
+    def rotation_invariance_regularization(target, vae, z, rotation_invariant_rate=args.rotation_invariant_rate):
 
         def cut_z(z, rotation_invariant_rate=rotation_invariant_rate):
             return z[:, :int(z.shape[1]*rotation_invariant_rate)]
@@ -106,25 +106,35 @@ def train(epoch, vae, train_loader, optimizer, writer, device, rotation_invarian
 
         #logger.debug("get loss")
         loss_re, loss_kl = loss_function(rec, data, mu, logvar)
-        loss_ri = rotation_invariance_regularization(target, vae, z)
 
-        #logger.debug("backward")
-        (loss_re + loss_kl + loss_ri).backward()
+        if args.use_rotate:
+            loss_ri = rotation_invariance_regularization(target, vae, z)
+            (loss_re + loss_kl + loss_ri).backward()
+        else:
+            #logger.debug("backward")
+            (loss_re + loss_kl).backward()
 
         optimizer.step()
 
         if batch_idx % (len(train_loader) // 10) == 0:
-            logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss_re: {:.5f} \tLoss_kl: {:.5f} \tLoss_ri: {:.5f}".format(
-                    batch_idx * len(data), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item(), loss_ri.item()))
+            if args.use_rotate:
+                logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss_re: {:.5f} \tLoss_kl: {:.5f} \tLoss_ri: {:.5f}".format(
+                        batch_idx * len(data), len(train_loader.dataset),
+                        100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item(), loss_ri.item()))
+            else:
+                logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss_re: {:.5f} \tLoss_kl: {:.5f}".format(
+                        batch_idx * len(data), len(train_loader.dataset),
+                        100. * batch_idx / len(train_loader), loss_re.item(), loss_kl.item()))
 
         writer.add_scalar(tag="train_loss_step_batch/re", scalar_value=loss_re.item(), global_step=batch_idx)
         writer.add_scalar(tag="train_loss_step_batch/kl", scalar_value=loss_kl.item(), global_step=batch_idx)
-        writer.add_scalar(tag="train_loss_step_batch/ri", scalar_value=loss_ri.item(), global_step=batch_idx)
+        if args.use_rotate:
+            writer.add_scalar(tag="train_loss_step_batch/ri", scalar_value=loss_ri.item(), global_step=batch_idx)
 
     writer.add_scalar(tag="train_loss_step_epoch/re", scalar_value=loss_re.item(), global_step=epoch)
     writer.add_scalar(tag="train_loss_step_epoch/kl", scalar_value=loss_kl.item(), global_step=epoch)
-    writer.add_scalar(tag="train_loss_step_epoch/ri", scalar_value=loss_ri.item(), global_step=epoch)
+    if args.use_rotate:
+        writer.add_scalar(tag="train_loss_step_epoch/ri", scalar_value=loss_ri.item(), global_step=epoch)
 
 def evaluate(epoch, vae, test_loader, writer, device):
     if epoch % 10 != 0:
@@ -196,7 +206,7 @@ def main(args, device):
     for epoch in range(1, args.epoch + 1):
         
         logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, args.epoch, int(args.gpu_id)))
-        train(epoch, vae, train_loader, optimizer, writer, device, args.rotation_invariant_rate)
+        train(epoch, vae, train_loader, optimizer, writer, device, args)
         logger.debug("End epoch train")
 
         evaluate(epoch, vae, test_loader, writer, device)
@@ -216,6 +226,7 @@ if __name__ == "__main__":
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
     parse.add_argument("--traindir", type=str, default="processed", help="set path of train data dir ../../data/[traindir]")
+    parse.add_argument("--use_rotate", action="store_true", help="if true, train with rotate data, rotate invariant loss")
     parse.add_argument("--rotation_invariant_rate", type=float, default=1.0, help="define the rate of Rotation Invariant between (z, z_phi)")
     args = parse.parse_args()
 
