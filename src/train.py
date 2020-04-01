@@ -17,38 +17,13 @@ from features.worm_dataset import WormDataset
 from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToNDarray
 from visualization.save_images_gray_grid import save_images_grid
 import config
+import get_logger
+logger = get_logger.get_logger(name='train')
 
 # 可視化
 from tensorboardX import SummaryWriter
 #from torch.utils.tensorboard import SummaryWriter
 #import matplotlib.pyplot as plt
-
-### begin region ###
-
-import logging
-
-# create logger
-logger = logging.getLogger('train_VAE')
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-sh = logging.StreamHandler()
-fh = logging.FileHandler("../log/logger/test.log")
-sh.setLevel(logging.INFO)
-fh.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter('[%(asctime)s] - [%(name)s] - [%(levelname)s] - %(message)s')
-
-# add formatter to handler
-sh.setFormatter(formatter)
-fh.setFormatter(formatter)
-
-# add handler to logger
-logger.addHandler(sh)
-logger.addHandler(fh)
-
-### end region ###
 
 def load_processed_datasets(train_dir):
     """ Set dataset """
