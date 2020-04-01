@@ -12,7 +12,7 @@ from torchvision import transforms
 import argparse
 
 # 自作
-from models.vae import VAE
+from models.cboi import CBOI
 from features.worm_dataset import WormDataset
 from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToNDarray
 from visualization.save_images_gray_grid import save_images_grid
@@ -173,8 +173,8 @@ def main(args, device):
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir, comment=args.comment)
 
     logger.debug("define model")
-    vae = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
-    vae.to(device)
+    model = CBOI()
+    model.to(device)
 
     optimizer = optim.SGD(vae.parameters(), lr=0.01, momentum=0.9)
 
