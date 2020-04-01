@@ -68,13 +68,10 @@ def main(args, device):
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("-e", "--epoch", type=int, default=15)
-    parse.add_argument("-m", "--comment", type=str, default="test")
     parse.add_argument("--logdir", type=str, default="default", help="set path of logfile ../log/tensorboard/[logdir]")
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
     parse.add_argument("--traindir", type=str, default="processed", help="set path of train data dir ../../data/[traindir]")
-    parse.add_argument("--use_rotate", action="store_true", help="if true, train with rotate data, rotate invariant loss")
-    parse.add_argument("--rotation_invariant_rate", type=float, default=1.0, help="define the rate of Rotation Invariant between (z, z_phi)")
     args = parse.parse_args()
 
     device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
