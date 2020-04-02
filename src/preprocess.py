@@ -21,12 +21,12 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             Load all of raw data to preprocess.
     """
 
-    def __init__(self, root, transform=None, STAR_ID=0, END_ID=1):
+    def __init__(self, root, transform=None, START_ID=0, END_ID=1):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.transform = transform
         self.data = []
-        self.STAR_ID = STAR_ID
+        self.START_ID = START_ID
         self.END_ID = END_ID
 
         data_dirs_all = glob.glob(self.root + "/*")
@@ -34,7 +34,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
 
         for dir_i in data_dirs:
             self.data.extend(glob.glob(dir_i + "/main/*"))
-        self.data = self.data[self.STAR_ID:self.END_ID]
+        self.data = self.data[self.START_ID:self.END_ID]
 
     def __getitem__(self, index):
         """
@@ -60,7 +60,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data)
 
-def load_datasets(STAR_ID, END_ID):
+def load_datasets(START_ID, END_ID):
     """ Set transform """
     worm_transforms = transforms.Compose([
         ToBinary(),
@@ -73,7 +73,7 @@ def load_datasets(STAR_ID, END_ID):
 
     """ Set dataset """
     dataset = WormDataset_prepro(root="../../data/Tanimoto_eLife_Fig3B",
-        transform=worm_transforms, STAR_ID=STAR_ID, END_ID=END_ID)
+        transform=worm_transforms, START_ID=START_ID, END_ID=END_ID)
 
     """ Dataloader """
     loader = torch.utils.data.DataLoader(
@@ -97,14 +97,14 @@ if __name__ == "__main__":
     for dir_i in data_dirs:
         img_list.extend(glob.glob(dir_i + "/main/*"))
     
-    STAR_ID, END_ID = len(img_list) // 4 * args.process_id, len(img_list) // 4* (args.process_id + 1)
+    START_ID, END_ID = len(img_list) // 4 * args.process_id, len(img_list) // 4* (args.process_id + 1)
     
-    print("load data from ", STAR_ID, "to", END_ID, "all:", len(img_list))
+    print("load data from ", START_ID, "to", END_ID, "all:", len(img_list))
     del img_list
 
     ## end count img
 
-    loader = load_datasets(STAR_ID, END_ID)
+    loader = load_datasets(START_ID, END_ID)
 
     init_t = time.time()
 
@@ -115,18 +115,18 @@ if __name__ == "__main__":
         #printprint("tensor:", data.shape)
 
         if len(data.shape) != 4:
-            print(data_i + STAR_ID , "/", END_ID, " Not save because of fail to load")
+            print(data_i + START_ID , "/", END_ID, " Not save because of fail to load")
             count_delete_img += 1
 
         elif torch.sum(data) == 0:
-            print(data_i + STAR_ID , "/", END_ID, " Not save because of celegans on edge")
+            print(data_i + START_ID , "/", END_ID, " Not save because of celegans on edge")
             count_delete_img += 1
 
         else:
             torch.save(data, "../../data/processed/tensor_{:0=10}.pt".format(data_i + STAR_ID))
 
-        if (data_i + STAR_ID) %1000==0:
-            print(data_i + STAR_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
+        if (data_i + START_ID) % 1000 == 0:
+            print(data_i + START_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
 
     print("TOTAL DELETE:", count_delete_img)
-    print(data_i + STAR_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
+    print(data_i + START_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
