@@ -85,6 +85,7 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("--process_id", type=int, default=0,
                 help="input 0~3 for pararell docker container")
+    parse.add_argument("--save_name", default="processed")
 
     args = parse.parse_args()
 
