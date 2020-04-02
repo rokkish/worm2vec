@@ -54,16 +54,16 @@ def main(args, device):
     model = CBOI()
     model.to(device)
 
-    optimizer = optim.SGD(vae.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-    trainer = Trainer(vae, optimizer, writer, device)
+    trainer = Trainer(model, optimizer, writer, device)
     trainer.fit(train_loader, args)
 
     # end tensorboard
     writer.close()
 
     # Save model
-    torch.save(vae.state_dict(), "../models/VAEmodel.pkl")
+    torch.save(model.state_dict(), "../models/CBOImodel.pkl")
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
