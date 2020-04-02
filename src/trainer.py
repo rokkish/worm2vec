@@ -16,7 +16,7 @@ class Trainer():
 
     def fit(self, train_loader, args):
         model, optimizer = self.model, self.optimizer
-        writre, device = self.writre, self.device
+        writer, device = self.writer, self.device
 
         for epoch in range(1, args.epoch + 1):
             model.train()
