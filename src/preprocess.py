@@ -45,6 +45,8 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             tuple: (image)
         """
         img = self.data[index]
+        #FIXME:not smart['..', '..', 'data', 'Tanimoto_eLife_Fig3B', '201302081603', 'main', 'img3317.bmp']
+        img_date = img.split("/")[4]
 
         try:
             img = Image.open(img)
@@ -55,7 +57,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        return img
+        return img, img_date
 
     def __len__(self):
         return len(self.data)
@@ -111,9 +113,11 @@ if __name__ == "__main__":
 
     count_delete_img = 0
 
-    for data_i, data in enumerate(loader):
+    for data_i, (data, date) in enumerate(loader):
         data = data[0]
-        #printprint("tensor:", data.shape)
+        date = date[0]
+        dir_i = "../../data/" + args.save_name + "/" + date
+        #print("tensor:", data.shape)
 
         if len(data.shape) != 4:
             print(data_i + START_ID , "/", END_ID, " Not save because of fail to load")
@@ -124,7 +128,8 @@ if __name__ == "__main__":
             count_delete_img += 1
 
         else:
-            torch.save(data, "../../data/processed/tensor_{:0=10}.pt".format(data_i + STAR_ID))
+            os.makedirs(dir_i, exist_ok=True)
+            torch.save(data, dir_i + "/tensor_{:0=6}.pt".format(data_i + START_ID))
 
         if (data_i + START_ID) % 1000 == 0:
             print(data_i + START_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
