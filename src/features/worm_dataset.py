@@ -11,12 +11,13 @@ class WormDataset(torch.utils.data.Dataset):
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None, processed=False):
+    def __init__(self, root, train=True, transform=None, processed=False, window=3):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
         self.processed = processed # Use processed data ? or raw data
+        self.window = window
         self.data = []
 
         if self.processed:
