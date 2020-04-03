@@ -52,24 +52,30 @@ class WormDataset(torch.utils.data.Dataset):
             index (int): Index
 
         Returns:
-            tuple: (image, target) where image == target.
+            tuple: (context, target, OutOfRange)
+                context     : tensor(N, R, C, H, W)
+                target      : tensor(R, C, H, W)
+                
         """
-        img = self.data[index]
-        #target = self.targets[index]
 
-        if self.processed == True:
-            t = torch.load(img)
-            img = t[0].type(torch.float)
-            target = t[1:].type(torch.float)
+        if index - self.window < 0 or index + 1 + self.window > len(self.data):
+            dummy_path = self.data[index]
+            dummy = torch.load(dummy_path).type(torch.float)
+            return dummy, dummy
+
+        target_path = self.data[index]
+        left_context_path = self.data[index - self.window:index]
+        right_context_path = self.data[index + 1:index + 1 + self.window]
+
+        if self.processed:
+            target = torch.load(target_path)
+            target = target.type(torch.float)
+            context = self.load_tensor(left_context_path + right_context_path)
+            context = context.type(torch.float)
         else:
-            img = Image.open(img)
+            target = Image.open(target)
 
-        if self.transform is not None:
-            pass
-            #img = self.transform(img)
-            #target = self.transform(target)
-
-        return img, target
+        return context, target
 
     def __len__(self):
         return len(self.data)
