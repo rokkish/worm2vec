@@ -26,13 +26,13 @@ from tensorboardX import SummaryWriter
 #from torch.utils.tensorboard import SummaryWriter
 #import matplotlib.pyplot as plt
 
-def load_processed_datasets(train_dir):
+def load_processed_datasets(train_dir, window):
     """ Set dataset """
     train_set = WormDataset(root="../../data/"+train_dir, train=True,
-        transform=None, processed=True)
+        transform=None, processed=True, window=window)
 
     test_set = WormDataset(root="../../data/"+train_dir, train=False,
-        transform=None, processed=True)
+        transform=None, processed=True, window=window)
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(
@@ -45,7 +45,7 @@ def load_processed_datasets(train_dir):
 
 def main(args, device):
     logger.info("Begin train")
-    train_loader, test_loader = load_processed_datasets(args.traindir)
+    train_loader, test_loader = load_processed_datasets(args.traindir, args.window)
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
@@ -71,7 +71,8 @@ if __name__ == "__main__":
     parse.add_argument("--logdir", type=str, default="default", help="set path of logfile ../log/tensorboard/[logdir]")
     parse.add_argument("--gpu_id", type=str, default="0",
                 help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
-    parse.add_argument("--traindir", type=str, default="processed", help="set path of train data dir ../../data/[traindir]")
+    parse.add_argument("--traindir", type=str, default="processed_split_date/201302081353", help="set path of train data dir ../../data/[traindir]")
+    parse.add_argument("--window", type=int, default=3)
     args = parse.parse_args()
 
     device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
