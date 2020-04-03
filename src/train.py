@@ -29,10 +29,10 @@ from tensorboardX import SummaryWriter
 def load_processed_datasets(train_dir, window):
     """ Set dataset """
     train_set = WormDataset(root="../../data/"+train_dir, train=True,
-        transform=None, processed=True, window=window)
+        transform=None, window=window)
 
     test_set = WormDataset(root="../../data/"+train_dir, train=False,
-        transform=None, processed=True, window=window)
+        transform=None, window=window)
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(

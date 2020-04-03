@@ -11,40 +11,22 @@ class WormDataset(torch.utils.data.Dataset):
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None, processed=False, window=3):
+    def __init__(self, root, train=True, transform=None, window=3):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
-        self.processed = processed # Use processed data ? or raw data
         self.window = window
         self.data = []
 
-        if self.processed:
-            tensor_all = glob.glob(self.root + "/*")
-            if self.train:
-                self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
-            else:
-                self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
-
-            if len(self.data) > config.MAX_LEN_TRAIN_DATA:
-                self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
-
+        tensor_all = glob.glob(self.root + "/*")
+        if self.train:
+            self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
         else:
-            data_dirs_all = glob.glob(self.root + "/*")
-            if self.train:
-                #TODO:学習データ比決め内してるの修正．0.8
-                data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
-            else:
-                data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
+            self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
 
-            for dir_i in data_dirs:
-                self.data.extend(glob.glob(dir_i + "/main/*"))
-
-                if len(self.data) > config.MAX_LEN_TRAIN_DATA:
-                    break
-
-        #self.targets = self.data.copy()
+        if len(self.data) > config.MAX_LEN_TRAIN_DATA:
+            self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
 
     def __getitem__(self, index):
         """
@@ -67,13 +49,10 @@ class WormDataset(torch.utils.data.Dataset):
         left_context_path = self.data[index - self.window:index]
         right_context_path = self.data[index + 1:index + 1 + self.window]
 
-        if self.processed:
-            target = torch.load(target_path)
-            target = target.type(torch.float)
-            context = self.load_tensor(left_context_path + right_context_path)
-            context = context.type(torch.float)
-        else:
-            target = Image.open(target)
+        target = torch.load(target_path)
+        target = target.type(torch.float)
+        context = self.load_tensor(left_context_path + right_context_path)
+        context = context.type(torch.float)
 
         return context, target
 
