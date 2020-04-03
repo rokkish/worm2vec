@@ -9,15 +9,9 @@ preprocess data, and save as torch
 python preprocess.py --process_id 0~3
 ```
 
-
 train vae model
 ```
-python train.py --epoch --comment --logdir --gpu_id --traindir --rotation_invariant_rate
-```
-
-generate img from random noize
-```
-python eval.py --id
+python train.py --epoch --logdir --gpu_id --traindir
 ```
 
 ## Requirements
