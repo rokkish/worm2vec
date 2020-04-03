@@ -73,3 +73,12 @@ class WormDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
+    def load_tensor(self, pathList):
+        for i, path in enumerate(pathList):
+            tmp = torch.load(path)
+            if i == 0:
+                tensors = torch.load(pathList[i]).unsqueeze(0)
+            else:
+                tensors = torch.cat([tensors, tmp.unsqueeze(0)], dim=0)
+        return tensors
