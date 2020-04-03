@@ -5,6 +5,8 @@ import glob
 from PIL import Image
 import torch
 import config
+import get_logger
+logger = get_logger.get_logger(name='dataset')
 
 class WormDataset(torch.utils.data.Dataset):
     """
