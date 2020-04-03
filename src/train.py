@@ -48,7 +48,7 @@ def main(args, device):
     train_loader, test_loader = load_processed_datasets(args.traindir)
 
     # start tensorboard
-    writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir, comment=args.comment)
+    writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
 
     logger.debug("define model")
     model = CBOI()
