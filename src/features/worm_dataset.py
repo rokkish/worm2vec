@@ -38,14 +38,14 @@ class WormDataset(torch.utils.data.Dataset):
         Returns:
             tuple: (context, target, OutOfRange)
                 context     : tensor(N, R, C, H, W)
-                target      : tensor(R, C, H, W)
-                
+                target      : tensor(1, R, C, H, W)
+
         """
 
         if index - self.window < 0 or index + 1 + self.window > len(self.data):
             dummy_path = self.data[index]
             dummy = torch.load(dummy_path).type(torch.float)
-            return dummy, dummy
+            return dummy
 
         target_path = self.data[index]
         left_context_path = self.data[index - self.window:index]
@@ -53,10 +53,11 @@ class WormDataset(torch.utils.data.Dataset):
 
         target = torch.load(target_path)
         target = target.type(torch.float)
+        target = target.unsqueeze(0)
         context = self.load_tensor(left_context_path + right_context_path)
         context = context.type(torch.float)
 
-        return context, target
+        return torch.cat([target, context], dim=0)
 
     def __len__(self):
         return len(self.data)
