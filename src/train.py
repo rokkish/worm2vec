@@ -15,8 +15,6 @@ from my_args import args
 from models.cboi import CBOI
 from features.worm_dataset import WormDataset
 from trainer import Trainer
-from features.worm_transform import ToBinary, FillHole, Labelling, Padding, ToNDarray
-from visualization.save_images_gray_grid import save_images_grid
 import config
 import get_logger
 logger = get_logger.get_logger(name='train')
@@ -56,8 +54,9 @@ def main(args, device):
 
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-    trainer = Trainer(model, optimizer, writer, device)
-    trainer.fit(train_loader, args)
+    trainer = Trainer(model, optimizer, writer, device, \
+        args.epoch, args.window, args.gpu_id, args.use_rotate)
+    trainer.fit(train_loader)
 
     # end tensorboard
     writer.close()
