@@ -45,19 +45,19 @@ class Trainer():
                     logger.debug("target:%s, context:%s" % (target.shape, context.shape))
 
 
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
                 loss = self.model.forward(target, context)
 
                 self.model.backward()
 
-                optimizer.step()
+                self.optimizer.step()
 
                 if batch_idx % (len(train_loader) // 10) == 0:
                     logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
                             batch_idx * len(target), len(train_loader.dataset),
                             100. * batch_idx / len(train_loader), loss.item()))
                 
-                writer.add_scalar(tag="train_loss_step_batch/loss_000", scalar_value=loss.item(), global_step=batch_idx)
+                self.writer.add_scalar(tag="train_loss_step_batch/loss_000", scalar_value=loss.item(), global_step=batch_idx)
 
-            writer.add_scalar(tag="train_loss_step_epoch/loss_000", scalar_value=loss.item(), global_step=epoch)
+            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", scalar_value=loss.item(), global_step=epoch)
