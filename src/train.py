@@ -41,7 +41,7 @@ def load_processed_datasets(train_dir, window):
 
     return train_loader, test_loader
 
-def main(args, device):
+def main(device):
     logger.info("Begin train")
     train_loader, test_loader = load_processed_datasets(args.traindir, args.window)
 
@@ -68,4 +68,4 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
 
-    main(args, device)
+    main(device)
