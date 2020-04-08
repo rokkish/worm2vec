@@ -3,6 +3,7 @@
 """
 import torch
 import numpy
+import config
 import get_logger
 logger = get_logger.get_logger(name='trainer')
 
