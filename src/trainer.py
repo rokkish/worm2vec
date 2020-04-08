@@ -28,23 +28,20 @@ class Trainer():
 
             logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
-            for batch_idx, data in enumerate(train_loader):
+            for batch_idx, data_dic in enumerate(train_loader):
 
-                logger.debug("batch_idx:%d, trian_loader.dataset:%s, train_loader:%s" \
-                 % (batch_idx, len(train_loader.dataset), len(train_loader)))
+                data_idx, data = self.get_data_from_dic(data_dic)
 
-                if batch_idx - self.window < 0 or \
-                    batch_idx + self.window > len(train_loader.dataset):
+                if data_idx == config.error_idx:
                     logger.debug("Skip this batch beacuse window can't load data")
                     continue
                 else:
                     if self.use_rotate:
-                        target, context = data[:, 0], data[:, 1:]
+                        logger.debug(data.shape)
+                        target, context = data[0, 0], data[0, 1]
                     else:
-                        target, context = data[:, 0, 0], data[:, 1:, 0]
+                        target, context = data[:, 0, 0], data[:, 1, 0]
                     target, context = target.to(self.device), context.to(self.device)
-                    logger.debug("target:%s, context:%s" % (target.shape, context.shape))
-
 
                 self.optimizer.zero_grad()
 
@@ -62,3 +59,15 @@ class Trainer():
                 self.writer.add_scalar(tag="train_loss_step_batch/loss_000", scalar_value=loss.item(), global_step=batch_idx)
 
             self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", scalar_value=loss.item(), global_step=epoch)
+
+    @staticmethod
+    def get_data_from_dic(data_dic):
+        """
+        data_dic = {
+            data_idx(int):data(tensor)
+            }
+        """
+        for k, v in data_dic.items():
+            data_idx, data = k, v
+        return data_idx, data
+    
