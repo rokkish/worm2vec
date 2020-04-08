@@ -13,6 +13,7 @@ from my_args import args
 
 # 自作
 from models.cboi import CBOI
+from models.vae import VAE
 from features.worm_dataset import WormDataset
 from trainer import Trainer
 import config
@@ -49,7 +50,7 @@ def main(device):
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
 
     logger.debug("define model")
-    model = CBOI()
+    model = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
     model.to(device)
 
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
@@ -62,7 +63,7 @@ def main(device):
     writer.close()
 
     # Save model
-    torch.save(model.state_dict(), "../models/CBOImodel.pkl")
+    torch.save(model.state_dict(), "../models/" + args.model_name + ".pkl")
 
 if __name__ == "__main__":
 
