@@ -1,8 +1,11 @@
 # hypara of model
-z_size = 64
+z_size = 32
 IMG_SIZE = 64
 layer_count = 4
-BATCH_SIZE = 128 #256
+BATCH_SIZE = 1 #256
 
 # DATA
-MAX_LEN_TRAIN_DATA = 999
+MAX_LEN_TRAIN_DATA = 3000
+
+# 例外処理
+error_idx = -1
