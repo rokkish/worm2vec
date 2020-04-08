@@ -71,3 +71,7 @@ class WormDataset(torch.utils.data.Dataset):
             else:
                 tensors = torch.cat([tensors, tmp], dim=0)
         return tensors
+
+    @staticmethod
+    def mean_context(context):
+        return torch.mean(context, 0)
