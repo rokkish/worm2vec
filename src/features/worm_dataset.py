@@ -20,6 +20,7 @@ class WormDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.window = window
         self.data = []
+        self.data_index = 0
 
         tensor_all = glob.glob(self.root + "/*")
         if self.train:
@@ -41,11 +42,11 @@ class WormDataset(torch.utils.data.Dataset):
                 target      : tensor(1, R, C, H, W)
 
         """
-
+        self.data_index = index
         if index - self.window < 0 or index + 1 + self.window > len(self.data):
             dummy_path = self.data[index]
             dummy = torch.load(dummy_path).type(torch.float)
-            return dummy
+            return {config.error_idx:dummy}
 
         target_path = self.data[index]
         left_context_path = self.data[index - self.window:index]
@@ -56,8 +57,10 @@ class WormDataset(torch.utils.data.Dataset):
         target = target.unsqueeze(0)
         context = self.load_tensor(left_context_path + right_context_path)
         context = context.type(torch.float)
+        context = self.mean_context(context)
+        context = context.unsqueeze(0)
 
-        return torch.cat([target, context], dim=0)
+        return {self.data_index:torch.cat([target, context], dim=0)}
 
     def __len__(self):
         return len(self.data)
