@@ -16,4 +16,6 @@ parse.add_argument("--window", type=int, default=3)
 parse.add_argument("--use_rotate", action="store_true", \
     help="if True, train with rotate data(theta=0, 10, ..350), else train with only original data(theta=0)")
 
+parse.add_argument("--model_name", type=str, default="VAEmodel", help="Set Name of model ../models/[model_name]")
+
 args = parse.parse_args()
