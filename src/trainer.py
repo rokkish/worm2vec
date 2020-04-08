@@ -45,9 +45,11 @@ class Trainer():
 
                 self.optimizer.zero_grad()
 
-                loss = self.model.forward(target, context)
+                recon_x, _, _ = self.model.forward(context)
 
-                self.model.backward()
+                loss = self.model.loss_function(target, recon_x)
+
+                loss.backward()
 
                 self.optimizer.step()
 
