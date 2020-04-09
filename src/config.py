@@ -6,6 +6,6 @@ BATCH_SIZE = 1 #256
 
 # DATA
 MAX_LEN_TRAIN_DATA = 3000
-
+MAX_LEN_EVA_LDATA = 10
 # 例外処理
 error_idx = -1
