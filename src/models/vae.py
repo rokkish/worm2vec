@@ -56,21 +56,19 @@ class VAE(nn.Module):
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std)
             return eps.mul(std).add_(mu)
-        else:
-            return mu
+        return mu
 
     def decode(self, x):
         x = x.view(x.shape[0], self.zsize)
         x = self.d1(x)
         x = x.view(x.shape[0], self.d_max, 4, 4)
-        #x = self.deconv1_bn(x)
         x = F.leaky_relu(x, 0.2)
 
         for i in range(1, self.layer_count):
             x = F.leaky_relu(getattr(self, "deconv%d_bn" % (i + 1))(getattr(self, "deconv%d" % (i + 1))(x)), 0.2)
 
         x = torch.tanh(getattr(self, "deconv%d" % (self.layer_count + 1))(x))
-#        x = F.tanh(getattr(self, "deconv%d" % (self.layer_count + 1))(x))
+
         return x
 
     def forward(self, x):
@@ -90,6 +88,6 @@ class VAE(nn.Module):
         return BinaryCrossEntropyLoss
 
 def normal_init(m, mean, std):
-    if isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv2d):
+    if isinstance(m, (nn.ConvTranspose2d, nn.Conv2d)):
         m.weight.data.normal_(mean, std)
         m.bias.data.zero_()
