@@ -9,16 +9,16 @@ import torch
 import torch.optim as optim
 from torchvision import transforms
 
-from my_args import args
-
 # 自作
-from models.cboi import CBOI
-from models.vae import VAE
-from features.worm_dataset import WormDataset
-from trainer import Trainer
 import config
 import get_logger
+from my_args import args
+from models.vae import VAE
+from models.cboi import CBOI
+from trainer import Trainer
+from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='train')
+device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
 
 # 可視化
 from tensorboardX import SummaryWriter
@@ -42,7 +42,7 @@ def load_processed_datasets(train_dir, window):
 
     return train_loader, test_loader
 
-def main(device):
+def main():
     logger.info("Begin train")
     train_loader, test_loader = load_processed_datasets(args.traindir, args.window)
 
@@ -68,6 +68,4 @@ def main(device):
 
 if __name__ == "__main__":
 
-    device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
-
-    main(device)
+    main()
