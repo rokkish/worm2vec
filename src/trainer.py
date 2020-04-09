@@ -37,11 +37,7 @@ class Trainer():
                     logger.debug("Skip this batch beacuse window can't load data")
                     continue
                 else:
-                    if self.use_rotate:
-                        logger.debug(data.shape)
-                        target, context = data[0, 0], data[0, 1]
-                    else:
-                        target, context = data[:, 0, 0], data[:, 1, 0]
+                    target, context = self.slice_data(self.use_rotate, data)
                     target, context = target.to(self.device), context.to(self.device)
 
                 self.optimizer.zero_grad()
@@ -73,4 +69,19 @@ class Trainer():
         for k, v in data_dic.items():
             data_idx, data = k, v
         return data_idx, data
-    
+
+    @staticmethod
+    def slice_data(use_rotate, data):
+        """Slice data, get target, context.
+            Args:
+                use_rotate  :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (R, C, H, W)
+                not         :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (1, C, H, W)
+            Return:
+                target (Tensor)   :Image @ t[sec]
+                context (Tensor)  :Image @ t-w, ..., t-1, t+1, ..., t+w[sec]
+        """
+        if use_rotate:
+            target, context = data[0, 0], data[0, 1]
+        else:
+            target, context = data[:, 0, 0], data[:, 1, 0]
+        return target, context
