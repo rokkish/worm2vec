@@ -59,6 +59,60 @@ class Trainer():
 
             self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", scalar_value=loss.item(), global_step=epoch)
 
+    def predict(self, x, epoch=0, batch_idx=0):
+        """Predict/Reconstruct Image from batch data x.
+            Args:
+                x (Tensor)                  : Binary Image (Rotation, Channel, Height, Width)
+                epoch - global_step (int)   : Save result image by global_step.
+                batch_idx (int)             : Save result image named by BATCH_[batc_idx]
+        """
+        x.to(self.device)
+        recon_x, _, _ = self.model.forward(x)
+
+        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=epoch,\
+            tag_img="Input_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=epoch,\
+            tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+
+    def evaluate(self, test_loader, epoch=0):
+        """Evaluate model with test dataset.
+            Args:
+                test_loader (Dataset) :
+                epoch (int)           :Save result image by global_step.
+        """
+
+        with torch.no_grad():
+            self.model.eval()
+
+            for batch_idx, data_dic in enumerate(test_loader):
+
+                data_idx, data = self.get_data_from_dic(data_dic)
+
+                if data_idx == config.error_idx:
+                    logger.debug("Skip this batch beacuse window can't load data")
+                    continue
+                else:
+                    target, context = self.slice_data(self.use_rotate, data)
+                    target, context = target.to(self.device), context.to(self.device)
+
+                recon_x, _, _ = self.model.forward(context)
+
+                loss = self.model.loss_function(target, recon_x)
+
+                if batch_idx % (len(test_loader) // 10) == 0:
+                    logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
+                        batch_idx , len(test_loader.dataset),
+                        100. * batch_idx / len(test_loader), loss.item()))
+
+                self.writer.add_scalar(tag="eval_loss_step_batch/loss_000", \
+                    scalar_value=loss.item(), global_step=batch_idx)
+
+                if batch_idx > config.MAX_LEN_EVA_LDATA:
+                    break
+
+            self.writer.add_scalar(tag="eval_loss_step_epoch/loss_000", \
+                scalar_value=loss.item(), global_step=epoch)
+
     @staticmethod
     def get_data_from_dic(data_dic):
         """
