@@ -6,6 +6,7 @@ import numpy
 import config
 import get_logger
 logger = get_logger.get_logger(name='trainer')
+from visualization.save_images_gray_grid import save_images_grid
 
 class Trainer():
     def __init__(self, model, optimizer, writer, device, \
