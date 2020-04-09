@@ -51,13 +51,14 @@ def main(device):
 
     logger.debug("define model")
     model = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
+    #TODO:init_weight()
     model.to(device)
 
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
     trainer = Trainer(model, optimizer, writer, device, \
         args.epoch, args.window, args.gpu_id, args.use_rotate)
-    trainer.fit(train_loader)
+    trainer.fit(train_loader, test_loader)
 
     # end tensorboard
     writer.close()

@@ -22,7 +22,7 @@ class Trainer():
         self.use_rotate = use_rotate
         self.current_epoch = 0
 
-    def fit(self, train_loader):
+    def fit(self, train_loader, test_loader):
 
         for epoch in range(1, self.max_epoch + 1):
             self.model.train()
@@ -52,12 +52,16 @@ class Trainer():
 
                 if batch_idx % (len(train_loader) // 10) == 0:
                     logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
-                            batch_idx * len(target), len(train_loader.dataset),
-                            100. * batch_idx / len(train_loader), loss.item()))
-                
-                self.writer.add_scalar(tag="train_loss_step_batch/loss_000", scalar_value=loss.item(), global_step=batch_idx)
+                        batch_idx, len(train_loader.dataset),
+                        100. * batch_idx / len(train_loader), loss.item()))
 
-            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", scalar_value=loss.item(), global_step=epoch)
+                self.writer.add_scalar(tag="train_loss_step_batch/loss_000",\
+                    scalar_value=loss.item(), global_step=batch_idx)
+
+            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", \
+                scalar_value=loss.item(), global_step=epoch)
+
+            self.evaluate(test_loader, epoch)
 
     def predict(self, x, epoch=0, batch_idx=0):
         """Predict/Reconstruct Image from batch data x.
