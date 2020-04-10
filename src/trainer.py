@@ -27,6 +27,8 @@ class Trainer():
         for epoch in range(1, self.max_epoch + 1):
             self.model.train()
 
+            loss_mean_epoch = 0
+
             logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
             for batch_idx, data_dic in enumerate(train_loader):
@@ -58,8 +60,10 @@ class Trainer():
                 self.writer.add_scalar(tag="train_loss_step_batch/loss_000",\
                     scalar_value=loss.item(), global_step=batch_idx)
 
+                loss_mean_epoch += loss.item()
+
             self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", \
-                scalar_value=loss.item(), global_step=epoch)
+                scalar_value=loss_mean_epoch/len(train_loader.dataset), global_step=epoch)
 
             self.evaluate(test_loader, epoch)
 
@@ -87,6 +91,7 @@ class Trainer():
 
         with torch.no_grad():
             self.model.eval()
+            loss_mean_epoch = 0
 
             for batch_idx, data_dic in enumerate(test_loader):
 
@@ -111,11 +116,12 @@ class Trainer():
                 self.writer.add_scalar(tag="eval_loss_step_batch/loss_000", \
                     scalar_value=loss.item(), global_step=batch_idx)
 
-                if batch_idx > config.MAX_LEN_EVA_LDATA:
-                    break
+                #if batch_idx > config.MAX_LEN_EVA_LDATA:
+                #    break
+                loss_mean_epoch += loss.item()
 
             self.writer.add_scalar(tag="eval_loss_step_epoch/loss_000", \
-                scalar_value=loss.item(), global_step=epoch)
+                scalar_value=loss_mean_epoch/len(test_loader.dataset), global_step=epoch)
 
     @staticmethod
     def get_data_from_dic(data_dic):
