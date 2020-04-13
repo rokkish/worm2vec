@@ -16,6 +16,7 @@ from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Pad
 import get_logger
 logger = get_logger.get_logger(name='preprocess')
 
+
 class WormDataset_prepro(torch.utils.data.Dataset):
     """
         clone from "class WormDataset"
@@ -25,7 +26,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
 
     def __init__(self, root, transform=None, START_ID=0, END_ID=1):
 
-        self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
+        self.root = root
         self.transform = transform
         self.data = []
         self.START_ID = START_ID
@@ -64,6 +65,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data)
 
+
 def load_datasets(START_ID, END_ID):
     """ Set transform """
     worm_transforms = transforms.Compose([
@@ -77,7 +79,9 @@ def load_datasets(START_ID, END_ID):
 
     """ Set dataset """
     dataset = WormDataset_prepro(root="../../data/Tanimoto_eLife_Fig3B",
-        transform=worm_transforms, START_ID=START_ID, END_ID=END_ID)
+                                 transform=worm_transforms,
+                                 START_ID=START_ID,
+                                 END_ID=END_ID)
 
     """ Dataloader """
     loader = torch.utils.data.DataLoader(
@@ -85,32 +89,35 @@ def load_datasets(START_ID, END_ID):
 
     return loader
 
-if __name__ == "__main__":
-    parse = argparse.ArgumentParser()
-    parse.add_argument("--process_id", type=int, default=0,
-                help="input 0~3 for pararell docker container")
-    parse.add_argument("--save_name", default="processed")
 
-    args = parse.parse_args()
-
-    ## begin count img
-
+def count_img(process_id):
+    """Count num dataset, and return (start, end) id to divide data. 
+        Arg:
+            process_id (int): No.[0, 1, 2, 3] of docker container.
+    """
     img_list = []
-    
+
     data_dirs = glob.glob("../../data/Tanimoto_eLife_Fig3B/*")
-    
+
     for dir_i in data_dirs:
         img_list.extend(glob.glob(dir_i + "/main/*"))
-    
-    START_ID, END_ID = len(img_list) // 4 * args.process_id, len(img_list) // 4* (args.process_id + 1)
-    
+
+    START_ID, END_ID = len(img_list) // 4 * process_id, \
+        len(img_list) // 4 * (process_id + 1)
+
     print("load data from ", START_ID, "to", END_ID, "all:", len(img_list))
-    del img_list
 
-    ## end count img
+    return START_ID, END_ID
 
-    loader = load_datasets(START_ID, END_ID)
 
+def preprocess(START_ID, END_ID, loader, process_id, save_name):
+    """Preprocess datasets
+        Arg:
+            START_ID, END_ID (int)          :(S, E) range of preprocessing datasets
+            loader           (datasets)     :iterator of data
+            process_id       (int)          :0, 1, 2, 3
+            save_name        (str)          :dir name
+    """
     init_t = time.time()
 
     count_delete_img = 0
@@ -118,8 +125,7 @@ if __name__ == "__main__":
     for data_i, (data, date) in enumerate(loader):
         data = data[0]
         date = date[0]
-        dir_i = "../../data/" + args.save_name + "/" + date
-        #print("tensor:", data.shape)
+        dir_i = "../../data/" + save_name + "/" + date
 
         if len(data.shape) != 4:
             count_delete_img += 1
@@ -129,10 +135,33 @@ if __name__ == "__main__":
 
         else:
             os.makedirs(dir_i, exist_ok=True)
-            torch.save(data, dir_i + "/tensor_{:0=6}.pt".format(data_i + START_ID))
+            torch.save(data, "{}/tensor_{:0=6}.pt".format(dir_i, data_i + START_ID))
 
         if (data_i + START_ID) % 1000 == 0:
-            logger.debug("[%d] %d/%d \t Load&Save Processd :%d"%(args.process_id, data_i + START_ID, END_ID, time.time() - init_t))
+            logger.debug("[%d] %d/%d \t Load&Save Processd :%d" % \
+                (process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
-    logger.debug("[%d] delete %d img"%(args.process_id, count_delete_img))
-    logger.debug("[%d] %d/%d \t Finish Processd :%d"%(args.process_id, data_i + START_ID, END_ID, time.time() - init_t))
+    logger.debug("[%d] delete %d img" % (process_id, count_delete_img))
+    logger.debug("[%d] %d/%d \t Finish Processd :%d" % \
+        (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+
+
+def main(args):
+    """Load datasets, Do preprocess()
+    """
+    START_ID, END_ID = count_img(args.process_id)
+
+    loader = load_datasets(START_ID, END_ID)
+
+    preprocess(START_ID, END_ID, loader, args.process_id, args.save_name)
+
+
+if __name__ == "__main__":
+    parse = argparse.ArgumentParser()
+    parse.add_argument("--process_id", type=int, default=0,
+                       help="input 0~3 for pararell docker container")
+    parse.add_argument("--save_name", default="processed")
+
+    args = parse.parse_args()
+
+    main(args)
