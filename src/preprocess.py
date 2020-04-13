@@ -13,6 +13,8 @@ import argparse
 
 import config
 from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Padding, Resize, ToNDarray
+import get_logger
+logger = get_logger.get_logger(name='preprocess')
 
 class WormDataset_prepro(torch.utils.data.Dataset):
     """
@@ -120,11 +122,9 @@ if __name__ == "__main__":
         #print("tensor:", data.shape)
 
         if len(data.shape) != 4:
-            print(data_i + START_ID , "/", END_ID, " Not save because of fail to load")
             count_delete_img += 1
 
         elif torch.sum(data) == 0:
-            print(data_i + START_ID , "/", END_ID, " Not save because of celegans on edge")
             count_delete_img += 1
 
         else:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             torch.save(data, dir_i + "/tensor_{:0=6}.pt".format(data_i + START_ID))
 
         if (data_i + START_ID) % 1000 == 0:
-            print(data_i + START_ID , "/", END_ID, " Load&Save Processd : ", time.time() - init_t)
+            logger.debug("[%d] %d/%d \t Load&Save Processd :%d"%(args.process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
-    print("TOTAL DELETE:", count_delete_img)
-    print(data_i + START_ID , "/", END_ID, " Finish Processd : ", time.time() - init_t)
+    logger.debug("[%d] delete %d img"%(args.process_id, count_delete_img))
+    logger.debug("[%d] %d/%d \t Finish Processd :%d"%(args.process_id, data_i + START_ID, END_ID, time.time() - init_t))
