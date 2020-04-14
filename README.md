@@ -6,7 +6,7 @@ TensorboardX
 
 preprocess data, and save as torch
 ```
-python preprocess.py --process_id 0~3
+python preprocess.py --process_id 0~3 --save_name processed
 ```
 
 train vae model
@@ -16,7 +16,7 @@ python train.py --epoch --logdir --gpu_id --traindir
 
 ## Requirements
 ```
-pip install -r requirements.txt
+pip install -r ../documents/requirements.txt
 ```
 
 ## Dir
