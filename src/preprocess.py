@@ -41,6 +41,8 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             img_path_ls.sort(key=sort_index.get_file_number)
             self.data.extend(img_path_ls)
         self.data = self.data[self.START_ID:self.END_ID]
+        logger.debug("head of self.data %s" % (self.data[:2]))
+        logger.debug("tail of self.data %s" % (self.data[-2:]))
 
     def __getitem__(self, index):
         """
@@ -108,7 +110,8 @@ def count_img(process_id):
     START_ID, END_ID = len(img_list) // 4 * process_id, \
         len(img_list) // 4 * (process_id + 1)
 
-    print("load data from ", START_ID, "to", END_ID, "all:", len(img_list))
+    logger.debug("[%d] load data from %d to %d all:%d" % \
+        (process_id, START_ID, END_ID, len(img_list)))
 
     return START_ID, END_ID
 
@@ -141,11 +144,11 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
             torch.save(data, "{}/tensor_{:0=6}.pt".format(dir_i, data_i + START_ID))
 
         if (data_i + START_ID) % 1000 == 0:
-            logger.debug("[%d] %d/%d \t Load&Save Processd :%d" % \
+            logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" % \
                 (process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
     logger.debug("[%d] delete %d img" % (process_id, count_delete_img))
-    logger.debug("[%d] %d/%d \t Finish Processd :%d" % \
+    logger.debug("[%d] %d/%d \t Finish Processd :%d sec" % \
         (process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
 
