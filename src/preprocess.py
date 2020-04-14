@@ -13,6 +13,7 @@ import argparse
 
 import config
 from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Padding, Resize, ToNDarray
+import features.sort_index as sort_index
 import get_logger
 logger = get_logger.get_logger(name='preprocess')
 
@@ -36,7 +37,9 @@ class WormDataset_prepro(torch.utils.data.Dataset):
         data_dirs = data_dirs_all
 
         for dir_i in data_dirs:
-            self.data.extend(glob.glob(dir_i + "/main/*"))
+            img_path_ls = glob.glob(dir_i+"/main/*.bmp")
+            img_path_ls.sort(key=sort_index.get_file_number)
+            self.data.extend(img_path_ls)
         self.data = self.data[self.START_ID:self.END_ID]
 
     def __getitem__(self, index):
