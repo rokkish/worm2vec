@@ -60,8 +60,10 @@ def main():
         else:
             target, context = trainer.slice_data(args.use_rotate, data)
             target, context = target.to(device), context.to(device)
-        trainer.predict(context, epoch=0, batch_idx=0)
-        break
+        trainer.predict(context, target, epoch=batch_idx, batch_idx=0)
+
+        if batch_idx > args.max_predict:
+            break
 
     # end tensorboard
     writer.close()
