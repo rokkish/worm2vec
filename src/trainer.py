@@ -67,10 +67,11 @@ class Trainer():
 
             self.evaluate(test_loader, epoch)
 
-    def predict(self, x, epoch=0, batch_idx=0):
+    def predict(self, x, target, epoch=0, batch_idx=0):
         """Predict/Reconstruct Image from batch data x.
             Args:
-                x (Tensor)                  : Binary Image (Rotation, Channel, Height, Width)
+                x (Tensor)                  : context. Binary Image (Rotation, Channel, Height, Width)
+                target (Tensor)             : target. Binary Image (Rotation, Channel, Height, Width)
                 epoch - global_step (int)   : Save result image by global_step.
                 batch_idx (int)             : Save result image named by BATCH_[batc_idx]
         """
@@ -79,6 +80,8 @@ class Trainer():
 
         save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=epoch,\
             tag_img="Input_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=epoch,\
+            tag_img="Output_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
         save_images_grid(recon_x, nrow=6, scale_each=True, global_step=epoch,\
             tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
 
