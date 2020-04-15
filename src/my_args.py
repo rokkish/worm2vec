@@ -18,4 +18,7 @@ parse.add_argument("--use_rotate", action="store_true", \
 
 parse.add_argument("--model_name", type=str, default="VAEmodel", help="Set Name of model ../models/[model_name]")
 
+# predict.py
+parse.add_argument("--max_predict", type=int, default=3)
+
 args = parse.parse_args()
