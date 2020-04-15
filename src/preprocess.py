@@ -14,6 +14,7 @@ import argparse
 import config
 from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Padding, Resize, ToNDarray
 import features.sort_index as sort_index
+from trainer import Trainer
 import get_logger
 logger = get_logger.get_logger(name='preprocess')
 
@@ -60,12 +61,13 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             img = Image.open(img)
         except IOError:
             print("IOError")
-            return 0
+            dummy = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
+            return {config.error_idx: dummy}
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, img_date
+        return {img_date: img}
 
     def __len__(self):
         return len(self.data)
@@ -128,10 +130,26 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
 
     count_delete_img = 0
 
-    for data_i, (data, date) in enumerate(loader):
+    for data_i, data_dic in enumerate(loader):
+
+        date, data = Trainer.get_data_from_dic(data_dic)
+
+        if (data_i + START_ID) % 1000 == 0:
+            logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" % \
+                (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+
+        if date == config.error_idx:
+            logger.debug("Skip this batch beacuse window can't load data")
+            logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
+            count_delete_img += 1
+            continue
+
         data = data[0]
-        date = date[0]
         dir_i = "../../data/" + save_name + "/" + date
+        tensor_name = "{}/tensor_{:0=6}.pt".format(dir_i, data_i + START_ID)
+
+        if os.path.isfile(tensor_name):
+            continue
 
         if len(data.shape) != 4:
             count_delete_img += 1
@@ -141,11 +159,7 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
 
         else:
             os.makedirs(dir_i, exist_ok=True)
-            torch.save(data, "{}/tensor_{:0=6}.pt".format(dir_i, data_i + START_ID))
-
-        if (data_i + START_ID) % 1000 == 0:
-            logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" % \
-                (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+            torch.save(data, tensor_name)
 
     logger.debug("[%d] delete %d img" % (process_id, count_delete_img))
     logger.debug("[%d] %d/%d \t Finish Processd :%d sec" % \
