@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 class VAE(nn.Module):
     def __init__(self, zsize, layer_count=3, channels=3):
         super(VAE, self).__init__()
@@ -86,6 +87,7 @@ class VAE(nn.Module):
     def loss_function(x, recon_x):
         BinaryCrossEntropyLoss = torch.mean((recon_x - x)**2)
         return BinaryCrossEntropyLoss
+
 
 def normal_init(m, mean, std):
     if isinstance(m, (nn.ConvTranspose2d, nn.Conv2d)):

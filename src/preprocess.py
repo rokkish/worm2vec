@@ -112,8 +112,8 @@ def count_img(process_id):
     START_ID, END_ID = len(img_list) // 4 * process_id, \
         len(img_list) // 4 * (process_id + 1)
 
-    logger.debug("[%d] load data from %d to %d all:%d" % \
-        (process_id, START_ID, END_ID, len(img_list)))
+    logger.debug("[%d] load data from %d to %d all:%d" %
+                 (process_id, START_ID, END_ID, len(img_list)))
 
     return START_ID, END_ID
 
@@ -135,8 +135,8 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
         date, data = Trainer.get_data_from_dic(data_dic)
 
         if (data_i + START_ID) % 1000 == 0:
-            logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" % \
-                (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+            logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
+                         (process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
         if date == config.error_idx:
             logger.debug("Skip this batch beacuse window can't load data")
@@ -162,8 +162,8 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
             torch.save(data, tensor_name)
 
     logger.debug("[%d] delete %d img" % (process_id, count_delete_img))
-    logger.debug("[%d] %d/%d \t Finish Processd :%d sec" % \
-        (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+    logger.debug("[%d] %d/%d \t Finish Processd :%d sec" %
+                 (process_id, data_i + START_ID, END_ID, time.time() - init_t))
 
 
 def main(args):

@@ -1,12 +1,11 @@
 """class dataset"""
 
-import os
 import glob
-from PIL import Image
 import torch
 import config
 import get_logger
 logger = get_logger.get_logger(name='dataset')
+
 
 class WormDataset(torch.utils.data.Dataset):
     """
@@ -46,7 +45,7 @@ class WormDataset(torch.utils.data.Dataset):
         if index - self.window < 0 or index + 1 + self.window > len(self.data):
             dummy_path = self.data[index]
             dummy = torch.load(dummy_path).type(torch.float)
-            return {config.error_idx:dummy}
+            return {config.error_idx: dummy}
 
         target_path = self.data[index]
         left_context_path = self.data[index - self.window:index]
@@ -60,7 +59,7 @@ class WormDataset(torch.utils.data.Dataset):
         context = self.mean_context(context)
         context = context.unsqueeze(0)
 
-        return {self.data_index:torch.cat([target, context], dim=0)}
+        return {self.data_index: torch.cat([target, context], dim=0)}
 
     def __len__(self):
         return len(self.data)

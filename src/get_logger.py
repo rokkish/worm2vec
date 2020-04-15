@@ -1,5 +1,6 @@
 import logging
 
+
 def get_logger(name, level=logging.DEBUG, save_name="../log/logger/test.log"):
     # create logger
     logger = logging.getLogger(name)

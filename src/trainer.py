@@ -2,15 +2,15 @@
     Trainer model.
 """
 import torch
-import numpy
 import config
 import get_logger
 logger = get_logger.get_logger(name='trainer')
 from visualization.save_images_gray_grid import save_images_grid
 
+
 class Trainer():
-    def __init__(self, model, optimizer, writer, device, \
-        epoch, window, gpu_id, use_rotate):
+    def __init__(self, model, optimizer, writer, device,
+                 epoch, window, gpu_id, use_rotate):
 
         self.model = model
         self.optimizer = optimizer
@@ -57,13 +57,13 @@ class Trainer():
                         batch_idx, len(train_loader.dataset),
                         100. * batch_idx / len(train_loader), loss.item()))
 
-                self.writer.add_scalar(tag="train_loss_step_batch/loss_000",\
-                    scalar_value=loss.item(), global_step=batch_idx)
+                self.writer.add_scalar(tag="train_loss_step_batch/loss_000",
+                                       scalar_value=loss.item(), global_step=batch_idx)
 
                 loss_mean_epoch += loss.item()
 
-            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000", \
-                scalar_value=loss_mean_epoch/len(train_loader.dataset), global_step=epoch)
+            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000",
+                                   scalar_value=loss_mean_epoch/len(train_loader.dataset), global_step=epoch)
 
             self.evaluate(test_loader, epoch)
 
@@ -78,12 +78,12 @@ class Trainer():
         x.to(self.device)
         recon_x, _, _ = self.model.forward(x)
 
-        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=epoch,\
-            tag_img="Input_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
-        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=epoch,\
-            tag_img="Output_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
-        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=epoch,\
-            tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=epoch,
+                         tag_img="Input_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=epoch,
+                         tag_img="Output_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=epoch,
+                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
 
     def evaluate(self, test_loader, epoch=0):
         """Evaluate model with test dataset.
@@ -113,18 +113,18 @@ class Trainer():
 
                 if batch_idx % (len(test_loader) // 10) == 0:
                     logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
-                        batch_idx , len(test_loader.dataset),
-                        100. * batch_idx / len(test_loader), loss.item()))
+                                 batch_idx, len(test_loader.dataset),
+                                 100. * batch_idx / len(test_loader), loss.item()))
 
-                self.writer.add_scalar(tag="eval_loss_step_batch/loss_000", \
-                    scalar_value=loss.item(), global_step=batch_idx)
+                self.writer.add_scalar(tag="eval_loss_step_batch/loss_000",
+                                       scalar_value=loss.item(), global_step=batch_idx)
 
                 #if batch_idx > config.MAX_LEN_EVA_LDATA:
                 #    break
                 loss_mean_epoch += loss.item()
 
-            self.writer.add_scalar(tag="eval_loss_step_epoch/loss_000", \
-                scalar_value=loss_mean_epoch/len(test_loader.dataset), global_step=epoch)
+            self.writer.add_scalar(tag="eval_loss_step_epoch/loss_000",
+                                   scalar_value=loss_mean_epoch/len(test_loader.dataset), global_step=epoch)
 
     @staticmethod
     def get_data_from_dic(data_dic):

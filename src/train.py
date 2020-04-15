@@ -3,11 +3,8 @@
 """
 from __future__ import print_function
 
-import os
-
 import torch
 import torch.optim as optim
-from torchvision import transforms
 
 # 自作
 import config
@@ -22,16 +19,15 @@ device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "c
 
 # 可視化
 from tensorboardX import SummaryWriter
-#from torch.utils.tensorboard import SummaryWriter
-#import matplotlib.pyplot as plt
+
 
 def load_processed_datasets(train_dir, window):
     """ Set dataset """
     train_set = WormDataset(root="../../data/"+train_dir, train=True,
-        transform=None, window=window)
+                            transform=None, window=window)
 
     test_set = WormDataset(root="../../data/"+train_dir, train=False,
-        transform=None, window=window)
+                           transform=None, window=window)
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(
@@ -41,6 +37,7 @@ def load_processed_datasets(train_dir, window):
         test_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
     return train_loader, test_loader
+
 
 def main():
     logger.info("Begin train")
@@ -56,8 +53,8 @@ def main():
 
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-    trainer = Trainer(model, optimizer, writer, device, \
-        args.epoch, args.window, args.gpu_id, args.use_rotate)
+    trainer = Trainer(model, optimizer, writer, device,
+                      args.epoch, args.window, args.gpu_id, args.use_rotate)
     trainer.fit(train_loader, test_loader)
 
     # end tensorboard
@@ -65,6 +62,7 @@ def main():
 
     # Save model
     torch.save(model.state_dict(), "../models/" + args.model_name + ".pkl")
+
 
 if __name__ == "__main__":
 
