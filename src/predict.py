@@ -3,14 +3,10 @@
 """
 from __future__ import print_function
 
-import os
-
 import torch
 import torch.optim as optim
-from torchvision import transforms
 
 from my_args import args
-device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
 
 # 自作
 import config
@@ -20,19 +16,22 @@ from models.cboi import CBOI
 from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='predict')
+device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
 
 # 可視化
 from tensorboardX import SummaryWriter
 
+
 def load_processed_datasets(train_dir, window):
 
     test_set = WormDataset(root="../../data/"+train_dir, train=False,
-        transform=None, window=window)
+                           transform=None, window=window)
 
     test_loader = torch.utils.data.DataLoader(
         test_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
     return test_loader
+
 
 def main():
     logger.info("Begin train")
@@ -50,7 +49,7 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
     trainer = Trainer(model, optimizer, writer, device, \
-        args.epoch, args.window, args.gpu_id, args.use_rotate)
+                      args.epoch, args.window, args.gpu_id, args.use_rotate)
 
     for batch_idx, data_dic in enumerate(test_loader):
         data_idx, data = trainer.get_data_from_dic(data_dic)
