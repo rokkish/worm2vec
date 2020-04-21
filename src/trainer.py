@@ -36,7 +36,6 @@ class Trainer():
                 data_idx, data = self.get_data_from_dic(data_dic)
 
                 if data_idx == config.error_idx:
-                    logger.debug("Skip this batch beacuse window can't load data")
                     continue
                 else:
                     target, context = self.slice_data(self.use_rotate, data)
@@ -101,7 +100,6 @@ class Trainer():
                 data_idx, data = self.get_data_from_dic(data_dic)
 
                 if data_idx == config.error_idx:
-                    logger.debug("Skip this batch beacuse window can't load data")
                     continue
                 else:
                     target, context = self.slice_data(self.use_rotate, data)
