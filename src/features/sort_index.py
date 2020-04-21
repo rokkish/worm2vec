@@ -12,10 +12,18 @@ def get_file_number(val):
     return int(file_number)
 
 
+def get_binaryfile_number(val):
+    """
+        Args:
+            val (path fo bmp file)  | ../../data/processed/alldata/date_000000.pt
+        Return:
+            file_number (int)       | 0
+    """
+    file_number = val.split("/")[-1].split("_")[1].split(".pt")[0]
+    return int(file_number)
+
+
 if __name__ == "__main__":
-    dir_path_ls = glob.glob("../../data/Tanimoto_eLife_Fig3B_cp/*")
-    for dir_path in dir_path_ls:
-        img_path_ls = glob.glob(dir_path+"/main/*.bmp")
-        img_path_ls.sort(key=get_file_number)
-        print(img_path_ls[:10])
-        break
+    img_path_ls = glob.glob("../../data/processed/alldata/*")
+    img_path_ls.sort(key=get_file_number)
+    print(img_path_ls[:10])
