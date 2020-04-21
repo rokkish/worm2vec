@@ -21,7 +21,7 @@ python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rot
 
 reconstruct image from training data
 ```
-python predict.py --logdir --gpu_id --traindir --logdir --use_rotate
+python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict
 ```
 
 ## Requirements
