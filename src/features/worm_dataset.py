@@ -23,6 +23,7 @@ class WormDataset(torch.utils.data.Dataset):
         self.window = window
         self.data = []
         self.data_index = 0
+        self.count_skip_data = 0
 
         tensor_all = glob.glob(self.root + "/*")
         tensor_all.sort(key=get_binaryfile_number)
@@ -48,13 +49,26 @@ class WormDataset(torch.utils.data.Dataset):
         """
         self.data_index = index
         if index - self.window < 0 or index + 1 + self.window > len(self.data):
-            dummy_path = self.data[index]
-            dummy = torch.load(dummy_path).type(torch.float)
+            logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
+            dummy = self.get_dummy_data(dummy_path=self.data[index])
+            self.count_skip_data += 1
             return {config.error_idx: dummy}
 
         target_path = self.data[index]
         left_context_path = self.data[index - self.window:index]
         right_context_path = self.data[index + 1:index + 1 + self.window]
+
+        path_list = left_context_path + [target_path] + right_context_path
+        if self.is_date_change(path_list) or self.is_data_drop(path_list):
+
+            tmp = []
+            for path in path_list:
+                tmp.append(path.split("/")[-1])
+            logger.debug("datachange or drop data:{}".format(tmp))
+
+            dummy = self.get_dummy_data(dummy_path=self.data[index])
+            self.count_skip_data += 1
+            return {config.error_idx: dummy}
 
         target = torch.load(target_path)
         target = target.type(torch.float)
