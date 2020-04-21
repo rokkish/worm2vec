@@ -9,7 +9,7 @@ parse.add_argument("--logdir", type=str, default="default", help="set path of lo
 parse.add_argument("--gpu_id", type=str, default="0",
             help="When you want to use 1 GPU, input 0. Using Multiple GPU, input [0, 1]")
 
-parse.add_argument("--traindir", type=str, default="processed/201302081353", help="set path of train data dir ../../data/[traindir]")
+parse.add_argument("--traindir", type=str, default="processed", help="set path of train data dir ../../data/[traindir]")
 
 parse.add_argument("-w", "--window", type=int, default=3)
 
