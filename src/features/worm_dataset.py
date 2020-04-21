@@ -2,8 +2,10 @@
 
 import glob
 import torch
+import torch.utils.data
 import config
 import get_logger
+import numpy as np
 logger = get_logger.get_logger(name='dataset')
 
 
@@ -77,3 +79,36 @@ class WormDataset(torch.utils.data.Dataset):
     @staticmethod
     def mean_context(context):
         return torch.mean(context, 0)
+
+    @staticmethod
+    def get_dummy_data(dummy_path):
+        dummy = torch.load(dummy_path).type(torch.float)
+        return dummy
+
+    @staticmethod
+    def is_date_change(path_list):
+        """Check whether path_list have a specific date.
+            Args:
+                path_list (list): date_dataid.pt [20120101_0000.pt, ]
+        """
+        date_list = [x.split("_")[0] for x in path_list]
+        if len(set(date_list)) == 1:
+            return False
+        else:
+            return True
+
+    def is_data_drop(self, path_list):
+        """Check whether path_list have continuous dataid in time.
+            Args:
+                path_list (list): date_dataid.pt [20120101_0000.pt, ]
+        """
+        dataid_list = [int(x.split("_")[1].split(".pt")[0]) for x in path_list]
+
+        if dataid_list != sorted(dataid_list):
+            #IDが時間順に並んでいることが前提なので，これの確認
+            raise ValueError("data is not sorted in time.")
+
+        if sum(np.diff(dataid_list)) / (2*self.window) == 1:
+            return False
+        else:
+            return True
