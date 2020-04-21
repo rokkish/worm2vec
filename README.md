@@ -9,9 +9,14 @@ preprocess data, and save as torch
 python preprocess.py --process_id 0~3 --save_name processed
 ```
 
+rename binary data
+```
+python features/rename.py
+```
+
 train vae model
 ```
-python train.py --epoch --logdir --gpu_id --traindir --logdir --use_rotate
+python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate
 ```
 
 reconstruct image from training data
