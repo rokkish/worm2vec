@@ -31,10 +31,10 @@ def load_processed_datasets(train_dir, window):
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=config.BATCH_SIZE, shuffle=False)
+        train_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=config.BATCH_SIZE, shuffle=False)
+        test_set, batch_size=config.BATCH_SIZE, shuffle=True)
 
     return train_loader, test_loader
 
