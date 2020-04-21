@@ -7,6 +7,7 @@ import config
 import get_logger
 import numpy as np
 logger = get_logger.get_logger(name='dataset')
+from features.sort_index import get_binaryfile_number
 
 
 class WormDataset(torch.utils.data.Dataset):
@@ -24,11 +25,13 @@ class WormDataset(torch.utils.data.Dataset):
         self.data_index = 0
 
         tensor_all = glob.glob(self.root + "/*")
+        tensor_all.sort(key=get_binaryfile_number)
         if self.train:
             self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
         else:
             self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
 
+        self.data.sort(key=get_binaryfile_number)
         if len(self.data) > config.MAX_LEN_TRAIN_DATA:
             self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
 
