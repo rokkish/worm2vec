@@ -64,6 +64,8 @@ class Trainer():
             self.writer.add_scalar(tag="train_loss_step_epoch/loss_000",
                                    scalar_value=loss_mean_epoch/len(train_loader.dataset), global_step=epoch)
 
+            torch.save(self.model.state_dict(), "../models/__" + str(epoch) + ".pkl")
+
             self.evaluate(test_loader, epoch)
 
     def predict(self, x, target, epoch=0, batch_idx=0):
