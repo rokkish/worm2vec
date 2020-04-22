@@ -51,7 +51,7 @@ class Trainer():
 
                 self.optimizer.step()
 
-                if batch_idx % (len(train_loader) // 10) == 0:
+                if batch_idx % (len(train_loader) // 20) == 0:
                     logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
                         batch_idx, len(train_loader.dataset),
                         100. * batch_idx / len(train_loader), loss.item()))
