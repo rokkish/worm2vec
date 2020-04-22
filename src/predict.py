@@ -52,6 +52,9 @@ def main():
                       args.epoch, args.window, args.gpu_id, args.use_rotate)
 
     for batch_idx, data_dic in enumerate(test_loader):
+        if batch_idx >= args.max_predict:
+            break
+
         data_idx, data = trainer.get_data_from_dic(data_dic)
         if data_idx == config.error_idx:
             logger.debug("Skip this batch beacuse window can't load data")
@@ -61,8 +64,6 @@ def main():
             target, context = target.to(device), context.to(device)
         trainer.predict(context, target, epoch=batch_idx, batch_idx=0)
 
-        if batch_idx > args.max_predict:
-            break
 
     # end tensorboard
     writer.close()
