@@ -79,12 +79,12 @@ class Trainer():
         x.to(self.device)
         recon_x, _, _ = self.model.forward(x)
 
-        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=epoch,
-                         tag_img="Input_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
-        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=epoch,
-                         tag_img="Output_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
-        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=epoch,
-                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(batch_idx), writer=self.writer)
+        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=0,
+                         tag_img="Input_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
+        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=0,
+                         tag_img="Output_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
+        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=0,
+                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
 
     def evaluate(self, test_loader, epoch=0):
         """Evaluate model with test dataset.
