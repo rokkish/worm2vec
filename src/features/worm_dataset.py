@@ -49,7 +49,7 @@ class WormDataset(torch.utils.data.Dataset):
         """
         self.data_index = index
         if index - self.window < 0 or index + 1 + self.window > len(self.data):
-            logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
+            #logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
             dummy = self.get_dummy_data(dummy_path=self.data[index])
             self.count_skip_data += 1
             return {config.error_idx: dummy}
@@ -64,7 +64,7 @@ class WormDataset(torch.utils.data.Dataset):
             tmp = []
             for path in path_list:
                 tmp.append(path.split("/")[-1])
-            logger.debug("datachange or drop data:{}".format(tmp))
+            #logger.debug("datachange or drop data:{}".format(tmp))
 
             dummy = self.get_dummy_data(dummy_path=self.data[index])
             self.count_skip_data += 1
