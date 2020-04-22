@@ -16,12 +16,12 @@ python features/rename.py
 
 train vae model
 ```
-python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate
+python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate -w
 ```
 
 reconstruct image from training data
 ```
-python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict
+python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
 ```
 
 ## Requirements
