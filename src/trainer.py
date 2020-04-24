@@ -116,7 +116,7 @@ class Trainer():
                                  batch_idx, len(test_loader.dataset),
                                  100. * batch_idx / len(test_loader), loss.item()))
 
-                self.writer.add_scalar(tag="eval_loss_step_batch/loss_000",
+                self.writer.add_scalar(tag="eval_loss_step_batch/loss_{:0=3}".format(epoch),
                                        scalar_value=loss.item(), global_step=batch_idx)
 
                 #if batch_idx > config.MAX_LEN_EVA_LDATA:
