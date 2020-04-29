@@ -16,19 +16,25 @@ Copyright (c) 2019 hirogithu
 ## Goal
 * 線虫の姿勢空間から知見獲得を目指す．
 * 貢献
-  - 回転不変技術の考案
+  -  [x] 回転不変技術の考案
+  -  [] 線虫の姿勢空間の生成と可視化
 
 ## Task
 * 実装
   - [x] Preprocessing
   - [x] Model arch
+  - [x] Evaluation
+  - [x] Visualization
+  - [] Re preprocessing
+  - [] Model arch (Bag Of Images)
   - [] Evaluation
   - [] Visualization
 
 * サーベイ
-  - [] Word2Vec
-  - [] Rotation invariant tech
+  - [x] Word2Vec
+  - [x] Rotation invariant tech
 
 ### history
   * 2019/12/19: Project started
   * 2019/12/20: Outline made
+  * 2020/03/26: New Branch to develop word2vec

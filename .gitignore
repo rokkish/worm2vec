@@ -1,5 +1,5 @@
 .vscode
-models/
+models/*.pkl
 __pycache__/
 results/training
 log/tensorboard

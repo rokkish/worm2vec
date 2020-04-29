@@ -6,23 +6,27 @@ TensorboardX
 
 preprocess data, and save as torch
 ```
-python preprocess.py --process_id 0~3
+python preprocess.py --process_id 0~3 --save_name processed
 ```
 
+rename binary data
+```
+python features/rename.py
+```
 
 train vae model
 ```
-python train.py --epoch --comment --logdir --gpu_id --traindir --rotation_invariant_rate
+python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate -w
 ```
 
-generate img from random noize
+reconstruct image from training data
 ```
-python eval.py --id
+python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
 ```
 
 ## Requirements
 ```
-pip install -r requirements.txt
+pip install -r ../documents/requirements.txt
 ```
 
 ## Dir

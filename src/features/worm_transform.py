@@ -6,12 +6,11 @@ from skimage import color, filters, util
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage.morphology import erosion, dilation
 from PIL import Image
-import config
 
 # labelling
-import matplotlib.patches as mpatches
 from skimage.measure import label, regionprops
 from torchvision.transforms import functional
+
 
 class ToBinary(object):
     def __init__(self):
@@ -30,6 +29,7 @@ class ToBinary(object):
         img_bin = img > thres #* 0.7
         #img_bin = Image.fromarray(np.uint8(img_bin))
         return img_bin
+
 
 class FillHole(object):
     def __init__(self):
@@ -62,6 +62,7 @@ class FillHole(object):
         dilated = binary_fill_holes(dilated).astype(int)
         #dilated = Image.fromarray(np.uint8(dilated))
         return dilated
+
 
 class Labelling(object):
     def __init__(self):
@@ -126,6 +127,7 @@ class Labelling(object):
 
         return labeled_img
 
+
 class Padding(object):
     def __init__(self):
         pass
@@ -152,6 +154,7 @@ class Padding(object):
         img_padded = util.pad(img, [(x_width_up, x_width), (y_width_up, y_width)], mode="constant")
 
         return img_padded
+
 
 class Rotation(object):
     def __init__(self):
@@ -180,6 +183,7 @@ class Rotation(object):
         #print("rotated", rotated_img.shape)
         return rotated_img
 
+
 class Resize(object):
     def __init__(self, size, interpolation=Image.BILINEAR):
         self.size = size
@@ -207,9 +211,9 @@ class Resize(object):
                 resized_img = np.concatenate([resized_img, img_], 0)
 
         resized_img = np.reshape(resized_img, (-1, 1, resized_img.shape[1], resized_img.shape[2]))
-        #print("resized", resized_img.shape)
 
         return resized_img
+
 
 class ToNDarray(object):
     def __init__(self):
@@ -217,5 +221,4 @@ class ToNDarray(object):
 
     def __call__(self, x):
         x = np.asarray(x)
-        x_shape = x.shape    #x=(C,H,W)
         return x

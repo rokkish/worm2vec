@@ -1,49 +1,40 @@
 """class dataset"""
 
-import os
 import glob
-from PIL import Image
 import torch
+import torch.utils.data
 import config
+import get_logger
+import numpy as np
+logger = get_logger.get_logger(name='dataset')
+from features.sort_index import get_binaryfile_number
+
 
 class WormDataset(torch.utils.data.Dataset):
     """
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None, processed=False):
+    def __init__(self, root, train=True, transform=None, window=3):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
-        self.processed = processed # Use processed data ? or raw data
+        self.window = window
         self.data = []
+        self.data_index = 0
+        self.count_skip_data = 0
 
-        if self.processed:
-            tensor_all = glob.glob(self.root + "/*")
-            if self.train:
-                self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
-            else:
-                self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
-
-            if len(self.data) > config.MAX_LEN_TRAIN_DATA:
-                self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
-
+        tensor_all = glob.glob(self.root + "/*")
+        tensor_all.sort(key=get_binaryfile_number)
+        if self.train:
+            self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
         else:
-            data_dirs_all = glob.glob(self.root + "/*")
-            if self.train:
-                #TODO:学習データ比決め内してるの修正．0.8
-                data_dirs = data_dirs_all[:int(len(data_dirs_all) * 0.8)]
-            else:
-                data_dirs = data_dirs_all[int(len(data_dirs_all) * 0.8):]
+            self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
 
-            for dir_i in data_dirs:
-                self.data.extend(glob.glob(dir_i + "/main/*"))
-
-                if len(self.data) > config.MAX_LEN_TRAIN_DATA:
-                    break
-
-        #self.targets = self.data.copy()
+        self.data.sort(key=get_binaryfile_number)
+        if len(self.data) > config.MAX_LEN_TRAIN_DATA:
+            self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
 
     def __getitem__(self, index):
         """
@@ -51,24 +42,90 @@ class WormDataset(torch.utils.data.Dataset):
             index (int): Index
 
         Returns:
-            tuple: (image, target) where image == target.
+            tuple: (context, target, OutOfRange)
+                context     : tensor(N, R, C, H, W)
+                target      : tensor(1, R, C, H, W)
+
         """
-        img = self.data[index]
-        #target = self.targets[index]
+        self.data_index = index
+        if index - self.window < 0 or index + 1 + self.window > len(self.data):
+            #logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
+            dummy = self.get_dummy_data(dummy_path=self.data[index])
+            self.count_skip_data += 1
+            return {config.error_idx: dummy}
 
-        if self.processed == True:
-            t = torch.load(img)
-            img = t[0].type(torch.float)
-            target = t[1:].type(torch.float)
-        else:
-            img = Image.open(img)
+        target_path = self.data[index]
+        left_context_path = self.data[index - self.window:index]
+        right_context_path = self.data[index + 1:index + 1 + self.window]
 
-        if self.transform is not None:
-            pass
-            #img = self.transform(img)
-            #target = self.transform(target)
+        path_list = left_context_path + [target_path] + right_context_path
+        if self.is_date_change(path_list) or self.is_data_drop(path_list):
 
-        return img, target
+            tmp = []
+            for path in path_list:
+                tmp.append(path.split("/")[-1])
+            #logger.debug("datachange or drop data:{}".format(tmp))
+
+            dummy = self.get_dummy_data(dummy_path=self.data[index])
+            self.count_skip_data += 1
+            return {config.error_idx: dummy}
+
+        target = torch.load(target_path)
+        target = target.type(torch.float)
+        target = target.unsqueeze(0)
+        context = self.load_tensor(left_context_path + right_context_path)
+        context = context.type(torch.float)
+        context = self.mean_context(context)
+        context = context.unsqueeze(0)
+
+        return {self.data_index: torch.cat([target, context], dim=0)}
 
     def __len__(self):
         return len(self.data)
+
+    def load_tensor(self, pathList):
+        for i, path in enumerate(pathList):
+            tmp = torch.load(path)
+            tmp = tmp.unsqueeze(0)
+            if i == 0:
+                tensors = tmp.clone()
+            else:
+                tensors = torch.cat([tensors, tmp], dim=0)
+        return tensors
+
+    @staticmethod
+    def mean_context(context):
+        return torch.mean(context, 0)
+
+    @staticmethod
+    def get_dummy_data(dummy_path):
+        dummy = torch.load(dummy_path).type(torch.float)
+        return dummy
+
+    @staticmethod
+    def is_date_change(path_list):
+        """Check whether path_list have a specific date.
+            Args:
+                path_list (list): date_dataid.pt [20120101_0000.pt, ]
+        """
+        date_list = [x.split("_")[0] for x in path_list]
+        if len(set(date_list)) == 1:
+            return False
+        else:
+            return True
+
+    def is_data_drop(self, path_list):
+        """Check whether path_list have continuous dataid in time.
+            Args:
+                path_list (list): date_dataid.pt [20120101_0000.pt, ]
+        """
+        dataid_list = [int(x.split("_")[1].split(".pt")[0]) for x in path_list]
+
+        if dataid_list != sorted(dataid_list):
+            #IDが時間順に並んでいることが前提なので，これの確認
+            raise ValueError("data is not sorted in time.")
+
+        if sum(np.diff(dataid_list)) / (2*self.window) == 1:
+            return False
+        else:
+            return True
