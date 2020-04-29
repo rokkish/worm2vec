@@ -55,8 +55,8 @@ class WormDataset(torch.utils.data.Dataset):
             return {config.error_idx: dummy}
 
         target_path = self.data[index]
-        left_context_path = self.data[index - self.window:index]
-        right_context_path = self.data[index + 1:index + 1 + self.window]
+        left_context_path = self.data[index - self.window]
+        right_context_path = self.data[index + self.window]
 
         path_list = left_context_path + [target_path] + right_context_path
         if self.is_date_change(path_list) or self.is_data_drop(path_list):
