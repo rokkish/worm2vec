@@ -58,7 +58,7 @@ class WormDataset(torch.utils.data.Dataset):
         left_context_path = self.data[index - self.window]
         right_context_path = self.data[index + self.window]
 
-        path_list = left_context_path + [target_path] + right_context_path
+        path_list = [left_context_path] + [target_path] + [right_context_path]
         if self.is_date_change(path_list) or self.is_data_drop(path_list):
 
             tmp = []
@@ -73,7 +73,7 @@ class WormDataset(torch.utils.data.Dataset):
         target = torch.load(target_path)
         target = target.type(torch.float)
         target = target.unsqueeze(0)
-        context = self.load_tensor(left_context_path + right_context_path)
+        context = self.load_tensor([left_context_path] + [right_context_path])
         context = context.type(torch.float)
         context = self.mean_context(context)
         context = context.unsqueeze(0)
