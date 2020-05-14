@@ -29,7 +29,7 @@ class Trainer():
 
             loss_mean_epoch = 0
 
-            logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
+            logger.info("Epoch: %d/%d GPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
             for batch_idx, data_dic in enumerate(train_loader):
 
@@ -43,9 +43,9 @@ class Trainer():
 
                 self.optimizer.zero_grad()
 
-                recon_x, _, _ = self.model.forward(context)
+                #logger.debug("context: %s, target: %s" % (context.shape, target.shape))
 
-                loss = self.model.loss_function(target, recon_x)
+                loss = self.model.forward(context, target)
 
                 loss.backward()
 
@@ -107,9 +107,7 @@ class Trainer():
                     target, context = self.slice_data(self.use_rotate, data)
                     target, context = target.to(self.device), context.to(self.device)
 
-                recon_x, _, _ = self.model.forward(context)
-
-                loss = self.model.loss_function(target, recon_x)
+                loss = self.model.forward(context, target)
 
                 if batch_idx % (len(test_loader) // 10) == 0:
                     logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
