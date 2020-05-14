@@ -17,6 +17,7 @@ from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='predict')
 device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
+import train
 
 # 可視化
 from tensorboardX import SummaryWriter
@@ -34,14 +35,15 @@ def load_processed_datasets(train_dir, window):
 
 
 def main():
-    logger.info("Begin train")
+    logger.info("Begin predict")
     test_loader = load_processed_datasets(args.traindir, args.window)
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/predict_" + args.logdir)
 
     # Load model
-    model = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
+    model = train.get_model(args.model)
+
     model.load_state_dict(torch.load("../models/" + args.model_name + ".pkl"))
     model.to(device)
 
@@ -67,6 +69,7 @@ def main():
 
     # end tensorboard
     writer.close()
+    logger.info("End predict")
 
 
 if __name__ == "__main__":
