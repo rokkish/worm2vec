@@ -12,6 +12,7 @@ import get_logger
 from my_args import args
 from models.vae import VAE
 from models.cboi import CBOI
+from models.continuous_bag_of_worm import CBOW
 from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='train')
@@ -62,6 +63,8 @@ def main():
 
     # Save model
     torch.save(model.state_dict(), "../models/" + args.model_name + ".pkl")
+
+    logger.info("End train")
 
 
 if __name__ == "__main__":
