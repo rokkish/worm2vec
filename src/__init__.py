@@ -1,2 +1,2 @@
-from .models import VAE
+from .models import VAE, CBOW
 from .features import Worm_Dataset
