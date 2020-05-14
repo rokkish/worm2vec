@@ -77,14 +77,26 @@ class Trainer():
                 batch_idx (int)             : Save result image named by BATCH_[batc_idx]
         """
         x.to(self.device)
-        recon_x, _, _ = self.model.forward(x)
+        left_x, right_x = x[0], x[1]
+        enc_left_x, enc_right_x = self.model.multi_encode(x)
+        enc_data = self.model.cat_latent_vector(enc_left_x, enc_right_x)
 
-        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=0,
-                         tag_img="Input_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
-        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=0,
-                         tag_img="Output_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
-        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=0,
-                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
+        logger.info("x:{}".format(x.shape))
+        logger.info("target:{}".format(target.shape))
+        logger.info("enc_left, right:{}, {}".format(enc_left_x.shape, enc_right_x.shape))
+        logger.info("enc_data:{}".format(enc_data.shape))
+
+        self.writer.add_embedding(mat=enc_data, label_img=target, global_step=batch_idx, tag="test")
+
+        save_images_grid(left_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Input_left", writer=self.writer)
+        save_images_grid(right_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Input_right", writer=self.writer)
+        save_images_grid(target.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Output_data", writer=self.writer)
+        """
+        save_images_grid(enc_x, nrow=6, scale_each=True, global_step=0,
+                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)"""
 
     def evaluate(self, test_loader, epoch=0):
         """Evaluate model with test dataset.

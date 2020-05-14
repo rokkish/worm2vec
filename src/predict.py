@@ -29,7 +29,7 @@ def load_processed_datasets(train_dir, window):
                            transform=None, window=window)
 
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=config.BATCH_SIZE, shuffle=True)
+        test_set, batch_size=config.BATCH_SIZE, shuffle=False)
 
     return test_loader
 
@@ -54,7 +54,7 @@ def main():
                       args.epoch, args.window, args.gpu_id, args.use_rotate)
 
     for batch_idx, data_dic in enumerate(test_loader):
-        if batch_idx >= args.max_predict:
+        if batch_idx >= args.max_predict + args.window:
             break
 
         data_idx, data = trainer.get_data_from_dic(data_dic)
@@ -64,8 +64,20 @@ def main():
         else:
             target, context = trainer.slice_data(args.use_rotate, data)
             target, context = target.to(device), context.to(device)
-        trainer.predict(context, target, epoch=batch_idx, batch_idx=0)
 
+            if batch_idx % args.num_of_tensor_to_embed == args.window:
+                left_context_cat, right_context_cat, target_cat = context[0, 0], context[1, 0], target[0]
+            else:
+                left_context_cat = torch.cat([left_context_cat, context[0, 0]])
+                right_context_cat = torch.cat([right_context_cat, context[1, 0]])
+                target_cat = torch.cat([target_cat, target[0]])
+
+            if left_context_cat.shape[0] == args.num_of_tensor_to_embed:
+                context_cat = torch.stack([left_context_cat, right_context_cat])
+                context_cat = torch.unsqueeze(context_cat, dim=2)
+                target_cat = torch.unsqueeze(target_cat, dim=1)
+                trainer.predict(context_cat, target_cat, epoch=0, batch_idx=batch_idx // args.num_of_tensor_to_embed)
+                del context_cat, target_cat
 
     # end tensorboard
     writer.close()
