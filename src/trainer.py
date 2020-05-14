@@ -141,14 +141,15 @@ class Trainer():
     def slice_data(use_rotate, data):
         """Slice data, get target, context.
             Args:
-                use_rotate  :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (R, C, H, W)
-                not         :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (1, C, H, W)
+                use_rotate  :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (2, R, C, H, W)
+                not         :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (2, C, H, W)
             Return:
                 target (Tensor)   :Image @ t[sec]
-                context (Tensor)  :Image @ t-w, ..., t-1, t+1, ..., t+w[sec]
+                context (Tensor)  :Image @ t-w, t+w[sec]
         """
         if use_rotate:
-            target, context = data[0, 0], data[0, 1]
+            target, context = data[0, 0], data[0, 1:]
         else:
-            target, context = data[:, 0, 0], data[:, 1, 0]
+            #TODO:no check
+            target, context = data[:, 0, 0], data[:, 1:, 0]
         return target, context
