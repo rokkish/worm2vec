@@ -55,22 +55,23 @@ class WormDataset(torch.utils.data.Dataset):
             return {config.error_idx: dummy}
 
         target_path = self.data[index]
-        left_context_path = self.data[index - self.window]
-        right_context_path = self.data[index + self.window]
+        left_context_path = self.data[index - self.window : index - self.window + self.window//2]
+        right_context_path = self.data[index - self.window + self.window//2 : index]
 
-        path_list = [left_context_path] + [target_path] + [right_context_path]
+        path_list = left_context_path + right_context_path + [target_path]
+
         if self.is_date_change(path_list) or self.is_data_drop(path_list):
 
             tmp = []
             for path in path_list:
                 tmp.append(path.split("/")[-1])
-            #logger.debug("datachange or drop data:{}".format(tmp))
+            logger.debug("datachange or drop data:{}".format(tmp))
 
             dummy = self.get_dummy_data(dummy_path=self.data[index])
             self.count_skip_data += 1
             return {config.error_idx: dummy}
 
-        target = self.load_tensor(target_path)
+        target = self.load_tensor([target_path])
         left_context = self.load_tensor(left_context_path)
         right_context = self.load_tensor(right_context_path)
 
@@ -84,10 +85,21 @@ class WormDataset(torch.utils.data.Dataset):
             Return:
                 tensor: (1, Rotation, Channel, Height, Width)
         """
-        tensor = torch.load(path)
-        tensor = tensor.type(torch.float)
-        tensor = tensor.unsqueeze(0)
-        return tensor
+        if len(path) > 1:
+            for i, pathi in enumerate(path):
+                tmp = torch.load(pathi)
+                tmp = tmp.unsqueeze(0)
+                if i == 0:
+                    tensors = tmp.clone()
+                else:
+                    tensors = torch.cat([tensors, tmp], dim=0)
+            return tensors.type(torch.float)
+
+        else:
+            tensor = torch.load(path[0])
+            tensor = tensor.type(torch.float)
+            tensor = tensor.unsqueeze(0)
+            return tensor
 
     @staticmethod
     def mean_context(context):
@@ -121,7 +133,7 @@ class WormDataset(torch.utils.data.Dataset):
             #IDが時間順に並んでいることが前提なので，これの確認
             raise ValueError("data is not sorted in time.")
 
-        if sum(np.diff(dataid_list)) / (2*self.window) == 1:
+        if sum(np.diff(dataid_list)) / (self.window) == 1:
             return False
         else:
             return True

@@ -13,6 +13,7 @@ from my_args import args
 from models.vae import VAE
 from models.cboi import CBOI
 from models.continuous_bag_of_worm import CBOW
+from models.convlstm import ConvLSTMCell, ConvLSTM
 from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='train')
@@ -45,6 +46,9 @@ def get_model(model):
         return VAE(zsize=args.zsize, layer_count=config.layer_count, channels=1)
     elif model == "cbow":
         return CBOW(zsize=args.zsize, loss_function_name=args.loss_function_name)
+    elif model == "clstm":
+        return ConvLSTM(input_channels=1, hidden_channels=[128, 64, 64, 32, 32], kernel_size=3, step=5,
+                        effective_step=[4], device=device, window=args.window)
     else:
         raise NameError(model + " not exist")
 
