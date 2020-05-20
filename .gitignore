@@ -5,3 +5,4 @@ results/training
 log/tensorboard
 log/logger
 *.ipynb*
+*.png
