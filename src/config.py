@@ -21,4 +21,4 @@ max_predict = 3
 zsize = 32
 # config of predict.py
 num_of_tensor_to_embed = 300
-nrow = 10
+nrow = 6
