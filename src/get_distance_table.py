@@ -14,20 +14,29 @@
             | index |  id_A(ymdhm_id_theta) |  id_A'(ymdhm_id_theta) | dist |
                 0      20120101_000000_00       20120101_000001_00     0.331
 """
-
+import os
 import time
 import glob
 import torch
+from torchvision import transforms #Need to escape error AttributeError: module 'torch.utils' has no attribute 'data'
 import torch.nn as nn
 import pandas as pd
+import numpy as np
 import argparse
+from tensorboardX import SummaryWriter
 
 import config
 import features.sort_index as sort_index
 from trainer import Trainer
+from visualization.save_images_gray_grid import save_images_grid
 import get_logger
 logger = get_logger.get_logger(name='get_distance_table')
 DUMMY = torch.zeros(36, 36, 1, config.IMG_SIZE, config.IMG_SIZE)
+
+
+def get_date_to_split_path(path):
+    #['..', '..', 'data', 'processed', 'alldata', '201302081603_000000.pt']
+    return path.split("/")[5].split(".pt")[0]
 
 
 class WormDataset_get_table(torch.utils.data.Dataset):
@@ -61,7 +70,7 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         """
         img_path = self.data[index]
         #['..', '..', 'data', 'processed', 'alldata', '201302081603_000000.pt']
-        img_date_id = img_path.split("/")[5].split(".pt")[0]
+        img_date_id = get_date_to_split_path(img_path)
 
         try:
             img = torch.load(img_path)
@@ -161,7 +170,7 @@ class Get_distance_table(object):
         for data_i, data_dic in enumerate(loader):
 
             logger.debug("allpath:{}".format(len(allpath)))
-            allpath = allpath[data_i + self.START_ID:]
+            allpath = allpath[data_i + self.START_ID + 1:]
             logger.debug("data_i:{}".format(data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
@@ -177,27 +186,43 @@ class Get_distance_table(object):
                 count_skip_img += 1
                 continue
 
-            mse = self.get_mse_epoch(data, allpath)
+            mse = self.get_mse_epoch(data, date, allpath)
             logger.debug("filename :{}".format(date))
             logger.debug("datashape:{}".format(data.shape))
 
             break
 
-        logger.debug("[%d] %d/%d \t Finish Processd :%d sec" %
+        logger.debug("GPU Used")
+        logger.debug("[%d] %d/%d \t Finish Processd :%f sec" %
                     (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
 
-    def get_mse_epoch(self, x, allpath):
+    def get_mse_epoch(self, x, x_date, allpath):
         """Get mse
             Args:
                 x.shape = (1, 36, 36, 1, 64, 64)
+                x_date = "201201021359_000000"
                 len(allpath) = DataLength:300000
         """
-        for i in range(len(allpath)):
-            target_y = torch.load(allpath[i]).type(torch.float)
+        for i, pathi in enumerate(allpath):
+
+            target_y = torch.load(pathi).type(torch.float)
+            y_date = get_date_to_split_path(pathi)
+            mse = [None]*36
+            x, target_y = x.to(self.device), target_y.to(self.device)
+
             for batch in range(x.shape[2]):
+
                 input_x = x[0, batch]
-                mse = self.get_mse_batch(input_x, target_y)
-            break
+                mse[batch] = self.get_mse_batch(input_x, target_y)
+                #if batch == 0:
+                #    self.save_as_img(input_x, target_y)
+
+            dic = self.mk_dictionary_to_save(x_date, y_date, mse)
+            self.save_as_df(dic, dir_name=x_date)
+            if i % 100 == 0:
+                logger.debug("i:{}, dic0:{}".format(i, dic["target_date"][0]))
+            if i > 10000:
+                break
 
         return mse
 
@@ -217,18 +242,62 @@ class Get_distance_table(object):
         mse = torch.sum(torch.sum(mse, dim=1), dim=1)
         return mse
 
-    def save_as_df(self, dic):
+    @staticmethod
+    def add_rotation_name_to_date(date):
+        """add rotation info to date, return date_list[0, ..., 35]
+            Args
+                date = "201201021359_000000"
+            Return
+                list = ["201201021359_000000_00", ..., "201201021359_000000_35"]
+        """
+        ls = []
+        for i in range(36):
+            ls.append(date + "_{:0=2}".format(i))
+        return ls
+
+    def mk_dictionary_to_save(self, x_date, y_date, mse):
+        """
+            Args
+                x_date  : str
+                y_date  : str
+                mse     : list(list) [36, 36]
+        """
+        x_ls = self.add_rotation_name_to_date(x_date)
+        y_ls = self.add_rotation_name_to_date(y_date)
+        original_date = []
+        targe_date = []
+        distance = []
+        for i in range(36):
+            original_date.extend([x_ls[i]]*36)
+            targe_date.extend(y_ls)
+            distance.extend(np.array(mse[i].cpu()))
+        dic = {"original_date": original_date, "target_date": targe_date, "distance": distance}
+        #logger.debug("Len of original:{}, target:{}, mse:{}".format(len(original_date), len(targe_date), len(distance)))
+        return dic
+
+    def save_as_df(self, dic, dir_name):
         """
             Args:
                 dic={
-                    original_date_i:[],
-                    target_date_i:[],
-                    dist:[],
+                    original_date:[],
+                    target_date:[],
+                    distance:[],
                 }
         """
-        start, end = min(dic), max(dic)
+        start, end = dic["target_date"][0], dic["target_date"][-1]
         df = pd.DataFrame(dic)
-        df.to_csv("../../data/processed/dist_from{}to{}.csv".format(start, end))
+#        df.to_csv("../results/dist_from{}to{}.csv".format(start, end))
+        os.makedirs("../../data/processed/distance_table/{}".format(dir_name), exist_ok=True)
+        df.to_csv("../../data/processed/distance_table/{}/dist_from{}to{}.csv".format(dir_name, start, end))
+
+    def save_as_img(self, input_x, target_y):
+        """Save data as img
+            Args
+                input_x.shape  = [36, 1, 64, 64]
+                target_y.shape = [36, 1, 64, 64]
+        """
+        save_images_grid(input_x.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/input_x", writer=None, filename="../results/input.png")
+        save_images_grid(target_y.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/target_y", writer=None, filename="../results/target.png")
 
 
 def main(args):
