@@ -181,12 +181,13 @@ class Get_distance_table(object):
         """
         init_t = time.time()
 
+        allpath = allpath[self.START_ID + 1:]
         count_skip_img = 0
 
         for data_i, data_dic in enumerate(loader):
 
-            logger.debug("allpath:{}".format(len(allpath)))
-            allpath = allpath[data_i + self.START_ID + 1:]
+            allpath_fromi = allpath[data_i:]
+            logger.debug("allpath:{}".format(len(allpath_fromi)))
             logger.debug("data_i:{}".format(data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
@@ -202,9 +203,9 @@ class Get_distance_table(object):
                 count_skip_img += 1
                 continue
 
-            mse = self.get_mse_epoch(data, date, allpath)
+            self.get_mse_epoch(data, date, allpath_fromi)
             logger.debug("filename :{}".format(date))
-            logger.debug("datashape:{}".format(data.shape))
+            logger.debug("data:{}".format(data.shape))
 
             if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
                 break
@@ -218,7 +219,7 @@ class Get_distance_table(object):
             Args:
                 x.shape = (1, 36, 36, 1, 64, 64)
                 x_date = "201201021359_000000"
-                len(allpath) = DataLength:300000
+                len(allpath) = DataLength:300000 - calc_distance.data_i
         """
         for i, pathi in enumerate(allpath):
 
