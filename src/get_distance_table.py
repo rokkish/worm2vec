@@ -301,9 +301,8 @@ class Get_distance_table(object):
         """
         start, end = dic["target_date"][0], dic["target_date"][-1]
         df = pd.DataFrame(dic)
-#        df.to_csv("../results/dist_from{}to{}.csv".format(start, end))
         os.makedirs("../../data/processed/distance_table/{}".format(dir_name), exist_ok=True)
-        df.to_csv("../../data/processed/distance_table/{}/dist_from{}to{}.csv".format(dir_name, start, end))
+        df.to_pickle("../../data/processed/distance_table/{}/dist_from{}to{}.pkl".format(dir_name, start, end))
 
     def save_as_img(self, input_x, target_y):
         """Save data as img
