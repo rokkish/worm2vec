@@ -31,7 +31,8 @@ from trainer import Trainer
 from visualization.save_images_gray_grid import save_images_grid
 import get_logger
 logger = get_logger.get_logger(name='get_distance_table')
-DUMMY = torch.zeros(36, 36, 1, config.IMG_SIZE, config.IMG_SIZE)
+DUMMY = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
+TARGET_ROTATE = list(range(0, 36))
 
 
 def zip_dir():
@@ -108,10 +109,12 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         """Copy tensor.
             Args:
                 tensor(36, 1, 64, 64)
+                      (Rotation, Channel, H, W)
             Return:
-                tensor(36, 36, 1, 64, 64)
+                tensor(36, 1, 64, 64)
+                      (Sameimg, Channel, H, W)
         """
-        for i in range(tensor.shape[0]):
+        for i in range(1):
             tensori = tensor[i].unsqueeze(dim=0)
             tensori2 = torch.cat([tensori, tensori], dim=0)
             tensori4 = torch.cat([tensori2, tensori2], dim=0)
@@ -119,12 +122,7 @@ class WormDataset_get_table(torch.utils.data.Dataset):
             tensori16 = torch.cat([tensori8, tensori8], dim=0)
             tensori32 = torch.cat([tensori16, tensori16], dim=0)
             tensori36 = torch.cat([tensori32, tensori4], dim=0)
-            tensori36 = tensori36.unsqueeze(dim=0)
-            if i == 0:
-                cat_tensor = tensori36
-            else:
-                cat_tensor = torch.cat([cat_tensor, tensori36], dim=0)
-        return cat_tensor
+        return tensori36
 
     @staticmethod
     def cat(original, copy):
@@ -218,7 +216,7 @@ class Get_distance_table(object):
     def get_mse_epoch(self, x, x_date, allpath):
         """Get mse
             Args:
-                x.shape = (1, 36, 36, 1, 64, 64)
+                x.shape = (1, 36, 1, 64, 64)
                 x_date = "201201021359_000000"
                 len(allpath) = DataLength:300000 - calc_distance.data_i
         """
@@ -226,19 +224,16 @@ class Get_distance_table(object):
 
             target_y = torch.load(pathi).type(torch.float)
             y_date = get_date_to_split_path(pathi)
-            mse = [None]*36
             x, target_y = x.to(self.device), target_y.to(self.device)
 
-            for batch in range(x.shape[2]):
-
-                input_x = x[0, batch]
-                mse[batch] = self.get_mse_batch(input_x, target_y)
+            input_x = x[0]
+            mse = self.get_mse_batch(input_x, target_y)
 
             dic = self.mk_dictionary_to_save(x_date, y_date, mse)
-            self.save_as_df(dic, dir_name=x_date)
+            self.save_as_df(dic, original_date=x_date)
 
             if i % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("i:{}, dic0:{}".format(i, dic["target_date"][0]))
+                logger.debug("i:{}, target:{}".format(i, dic["target_date"][0]))
 
             if i > self.MAX_NUM_OF_PAIR_DATA:
                 break
@@ -277,34 +272,35 @@ class Get_distance_table(object):
             Args
                 x_date  : str
                 y_date  : str
-                mse     : list(list) [36, 36]
+                mse     : list [36]
         """
-        x_ls = self.add_rotation_name_to_date(x_date)
-        y_ls = self.add_rotation_name_to_date(y_date)
         original_date = []
-        targe_date = []
+        target_date = []
         distance = []
-        for i in range(36):
-            original_date.extend([x_ls[i]]*36)
-            targe_date.extend(y_ls)
-            distance.extend(np.array(mse[i].cpu()))
-        dic = {"original_date": original_date, "target_date": targe_date, "distance": distance}
+
+        original_date.extend([x_date]*36)
+        target_date.extend([y_date]*36)
+        distance.extend(np.array(mse.cpu()).astype("int32"))
+
+        dic = {"original_date": original_date, "target_date": target_date, 
+               "target_rotate": TARGET_ROTATE, "distance": distance}
         #logger.debug("Len of original:{}, target:{}, mse:{}".format(len(original_date), len(targe_date), len(distance)))
         return dic
 
-    def save_as_df(self, dic, dir_name):
+    def save_as_df(self, dic, original_date):
         """
             Args:
                 dic={
                     original_date:[],
                     target_date:[],
+                    target_rotate:[],
                     distance:[],
                 }
         """
-        start, end = dic["target_date"][0], dic["target_date"][-1]
+        target_date = dic["target_date"][0]
         df = pd.DataFrame(dic)
-        os.makedirs("../../data/processed/distance_table/{}".format(dir_name), exist_ok=True)
-        df.to_pickle("../../data/processed/distance_table/{}/dist_from{}to{}.pkl".format(dir_name, start, end))
+        os.makedirs("../../data/processed/distance_table/{}".format(original_date), exist_ok=True)
+        df.to_pickle("../../data/processed/distance_table/{}/dist_from_{}.pkl".format(original_date, target_date))
 
     def save_as_img(self, input_x, target_y):
         """Save data as img
