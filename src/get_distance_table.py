@@ -187,8 +187,7 @@ class Get_distance_table(object):
         for data_i, data_dic in enumerate(loader):
 
             allpath_fromi = allpath[data_i:]
-            logger.debug("allpath:{}".format(len(allpath_fromi)))
-            logger.debug("data_i:{}".format(data_i + self.START_ID))
+            logger.debug("allpath:{}, data_i:{}".format(len(allpath_fromi), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
             #data = data.to(self.device)
@@ -203,15 +202,17 @@ class Get_distance_table(object):
                 count_skip_img += 1
                 continue
 
-            self.get_mse_epoch(data, date, allpath_fromi)
-            logger.debug("filename :{}".format(date))
-            logger.debug("data:{}".format(data.shape))
+            if self.is_already_calculated(date):
+                continue
 
             if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
                 break
 
-        logger.debug("GPU Used")
-        logger.debug("[%d] %d/%d \t Finish Processd :%f sec" %
+            self.get_mse_epoch(data, date, allpath_fromi)
+            logger.debug("filename :{}, data:{}".format(date, data.shape))
+            zip_dir()
+
+        logger.debug("GPU [%d] %d/%d \t Finish Processd :%f sec" %
                     (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
 
     def get_mse_epoch(self, x, x_date, allpath):
@@ -314,6 +315,19 @@ class Get_distance_table(object):
         save_images_grid(input_x.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/input_x", writer=None, filename="../results/input.png")
         save_images_grid(target_y.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/target_y", writer=None, filename="../results/target.png")
 
+    @staticmethod
+    def is_already_calculated(date):
+        """chk whether date in ~/distance_table/*.zip
+            Args
+                date = "201201021359_000000"
+            Return
+        """
+        dirs = glob.glob("../../data/processed/distance_table/*")
+        if "../../data/processed/distance_table/" + date + ".zip" in dirs:
+            logger.debug("Skip:{}".format(date))
+            return True
+        return False
+
 
 def main(args):
     """Load datasets, Do preprocess()
@@ -322,7 +336,7 @@ def main(args):
     gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
-    zip_dir()
+#    zip_dir()
     logger.info("end")
 
 
