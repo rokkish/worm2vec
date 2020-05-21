@@ -6,3 +6,4 @@ log/tensorboard
 log/logger
 *.ipynb*
 *.png
+*zip
