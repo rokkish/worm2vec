@@ -140,9 +140,11 @@ class WormDataset_get_table(torch.utils.data.Dataset):
 
 class Get_distance_table(object):
     
-    def __init__(self, process_id, save_name):
+    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data):
         self.process_id = process_id
         self.save_name = save_name
+        self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data - 1
+        self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
         self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
 
@@ -204,7 +206,8 @@ class Get_distance_table(object):
             logger.debug("filename :{}".format(date))
             logger.debug("datashape:{}".format(data.shape))
 
-            break
+            if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
+                break
 
         logger.debug("GPU Used")
         logger.debug("[%d] %d/%d \t Finish Processd :%f sec" %
@@ -228,17 +231,15 @@ class Get_distance_table(object):
 
                 input_x = x[0, batch]
                 mse[batch] = self.get_mse_batch(input_x, target_y)
-                #if batch == 0:
-                #    self.save_as_img(input_x, target_y)
 
             dic = self.mk_dictionary_to_save(x_date, y_date, mse)
             self.save_as_df(dic, dir_name=x_date)
-            if i % 100 == 0:
-                logger.debug("i:{}, dic0:{}".format(i, dic["target_date"][0]))
-            if i > 10000:
-                break
 
-        return mse
+            if i % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+                logger.debug("i:{}, dic0:{}".format(i, dic["target_date"][0]))
+
+            if i > self.MAX_NUM_OF_PAIR_DATA:
+                break
 
     def get_mse_batch(self, x, y):
         """Get mse
@@ -317,7 +318,8 @@ class Get_distance_table(object):
 def main(args):
     """Load datasets, Do preprocess()
     """
-    gettabler = Get_distance_table(args.process_id, args.save_name)
+    logger.info("start")
+    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
     zip_dir()
@@ -327,7 +329,8 @@ def main(args):
 def chk(args):
     if args.process_id > 3 or args.process_id < 0:
         raise ValueError("input [0 ~ 3] process_id")
-        return False
+    if args.max_original - 1 < 0:
+        raise ValueError("max_original under 1")
     return True
 
 
@@ -336,6 +339,8 @@ if __name__ == "__main__":
     parse.add_argument("--process_id", type=int, default=0,
                        help="input 0~3 for pararell docker container")
     parse.add_argument("--save_name", default="test")
+    parse.add_argument("--max_original", type=int, default=1)
+    parse.add_argument("--max_pair", type=int, default=10000)
 
     args = parse.parse_args()
 
