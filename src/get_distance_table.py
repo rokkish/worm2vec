@@ -34,6 +34,20 @@ logger = get_logger.get_logger(name='get_distance_table')
 DUMMY = torch.zeros(36, 36, 1, config.IMG_SIZE, config.IMG_SIZE)
 
 
+def zip_dir():
+
+    import shutil
+    root_dirs = glob.glob("../../data/processed/distance_table/*")
+
+    for i, root_dir_i in enumerate(root_dirs):
+        if ".zip" in root_dir_i or root_dir_i + ".zip" in root_dirs:
+            continue
+
+        shutil.make_archive(root_dir_i, "zip", root_dir=root_dir_i)
+        logger.debug("rm {}".format(root_dir_i))
+        shutil.rmtree(root_dir_i)
+
+
 def get_date_to_split_path(path):
     #['..', '..', 'data', 'processed', 'alldata', '201302081603_000000.pt']
     return path.split("/")[5].split(".pt")[0]
@@ -306,6 +320,8 @@ def main(args):
     gettabler = Get_distance_table(args.process_id, args.save_name)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
+    zip_dir()
+    logger.info("end")
 
 
 def chk(args):
