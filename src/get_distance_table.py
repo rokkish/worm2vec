@@ -143,7 +143,7 @@ class Get_distance_table(object):
     def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data):
         self.process_id = process_id
         self.save_name = save_name
-        self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data - 1
+        self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
         self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
@@ -329,7 +329,7 @@ def main(args):
 def chk(args):
     if args.process_id > 3 or args.process_id < 0:
         raise ValueError("input [0 ~ 3] process_id")
-    if args.max_original - 1 < 0:
+    if args.max_original < 0:
         raise ValueError("max_original under 1")
     return True
 
