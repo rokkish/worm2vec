@@ -24,6 +24,12 @@ reconstruct image from training data
 python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
 ```
 
+run jupyter notebook
+```
+jupyter notebook --allow-root --ip 0.0.0.0 --port
+```
+
+
 ## Requirements
 ```
 pip install -r ../documents/requirements.txt
