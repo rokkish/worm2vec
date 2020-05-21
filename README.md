@@ -4,27 +4,32 @@ TensorboardX
 
 ## Run
 
-preprocess data, and save as torch
+### **Preprocess** data, and save as torch
 ```
 python preprocess.py --process_id 0~3 --save_name processed
 ```
 
-rename binary data
+### **Make** distance table
+```
+python get_distance_table.py -- process_id 0~3 --max_pare 200000 --max_original 1
+```
+
+### **Rename** binary data
 ```
 python features/rename.py
 ```
 
-train vae model
+### **Train** vae model
 ```
 python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate -w
 ```
 
-reconstruct image from training data
+### **Reconstruct** image from training data
 ```
 python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
 ```
 
-run jupyter notebook
+### **Run** jupyter notebook
 ```
 jupyter notebook --allow-root --ip 0.0.0.0 --port
 ```
