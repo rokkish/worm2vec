@@ -220,20 +220,20 @@ class Get_distance_table(object):
                 x_date = "201201021359_000000"
                 len(allpath) = DataLength:300000 - calc_distance.data_i
         """
+        input_x = x[0].to(self.device)
         for i, pathi in enumerate(allpath):
 
             target_y = torch.load(pathi).type(torch.float)
+            target_y = target_y.to(self.device)
             y_date = get_date_to_split_path(pathi)
-            x, target_y = x.to(self.device), target_y.to(self.device)
 
-            input_x = x[0]
             mse = self.get_mse_batch(input_x, target_y)
 
             dic = self.mk_dictionary_to_save(x_date, y_date, mse)
             self.save_as_df(dic, original_date=x_date)
 
             if i % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("i:{}, target:{}".format(i, dic["target_date"][0]))
+                logger.debug("GPU[{}] i:{}, target:{}".format(self.process_id, i, dic["target_date"][0]))
 
             if i > self.MAX_NUM_OF_PAIR_DATA:
                 break
