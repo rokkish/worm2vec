@@ -1,3 +1,4 @@
+tsujimoto2
 ## Environments
 Pytorch
 TensorboardX
@@ -11,7 +12,7 @@ python preprocess.py --process_id 0~3 --save_name processed
 
 ### **Make** distance table
 ```
-python get_distance_table.py -- process_id 0~3 --max_pare 200000 --max_original 1
+python get_distance_table.py --process_id 0~3 --max_pair 200000 --max_original 1 --step
 ```
 
 ### **Rename** binary data
