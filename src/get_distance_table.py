@@ -138,13 +138,14 @@ class WormDataset_get_table(torch.utils.data.Dataset):
 
 class Get_distance_table(object):
     
-    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data):
+    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data, step):
         self.process_id = process_id
         self.save_name = save_name
         self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
         self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
+        self.step = step
 
     def count_img(self):
         """Count num dataset, and return (start, end) id to divide data. 
@@ -329,10 +330,10 @@ def main(args):
     """Load datasets, Do preprocess()
     """
     logger.info("start")
-    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair)
+    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair, args.step)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
-#    zip_dir()
+    zip_dir()
     logger.info("end")
 
 
@@ -351,6 +352,7 @@ if __name__ == "__main__":
     parse.add_argument("--save_name", default="test")
     parse.add_argument("--max_original", type=int, default=1)
     parse.add_argument("--max_pair", type=int, default=10000)
+    parse.add_argument("--step", type=int, default=10, help="step of images which is calculated")
 
     args = parse.parse_args()
 
