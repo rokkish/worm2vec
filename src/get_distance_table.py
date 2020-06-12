@@ -216,28 +216,45 @@ class Get_distance_table(object):
 
     def get_mse_epoch(self, x, x_date, allpath):
         """Get mse
-            Args:
-                x.shape = (1, 36, 1, 64, 64)
-                x_date = "201201021359_000000"
-                len(allpath) = DataLength:300000 - calc_distance.data_i
+
+        Args:
+            x (tensor): Input tensor (1, 36, 1, 64, 64)
+            x_date (str): To save as file name like "201201021359_000000"
+            allpath (list(str)): file paths of target tensor. Length is 300000 - calc_distance.data_i.
+
+        Returns:
+            None
         """
         input_x = x[0].to(self.device)
-        for i, pathi in enumerate(allpath):
 
-            target_y = torch.load(pathi).type(torch.float)
-            target_y = target_y.to(self.device)
+        #TODO:メモリオーバーフロー確認のための処理なので、削除予定
+        if len(allpath) > self.MAX_NUM_OF_PAIR_DATA:
+            allpath = allpath[:self.MAX_NUM_OF_PAIR_DATA]
+
+        values = [(i * self.step, pathi) for i, pathi in enumerate(allpath[::self.step])]
+
+        logger.debug("load tensors")
+        tensors_y = self.load_target_tensor(allpath)
+        tensors_y = tensors_y.to(self.device)
+        logger.debug("loaded tensors:{}".format(tensors_y.shape))
+
+        def get_mse_batch_map(values, tensors_y=tensors_y):
+            idx, pathi = values[0], values[1]
+            target_y = tensors_y[idx]
+
+            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+                logger.debug("GPU[{}] get_mse_batch_map idx:{}".format(self.process_id, idx))
+
             y_date = get_date_to_split_path(pathi)
 
             mse = self.get_mse_batch(input_x, target_y)
 
             dic = self.mk_dictionary_to_save(x_date, y_date, mse)
-            self.save_as_df(dic, original_date=x_date)
 
-            if i % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("GPU[{}] i:{}, target:{}".format(self.process_id, i, dic["target_date"][0]))
+            return dic, idx
 
-            if i > self.MAX_NUM_OF_PAIR_DATA:
-                break
+        map_object = map(get_mse_batch_map, values)
+        [self.save_as_df(dic, original_date=x_date) for dic, idx in map_object]
 
     def get_mse_batch(self, x, y):
         """Get mse
