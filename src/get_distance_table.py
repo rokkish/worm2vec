@@ -255,6 +255,30 @@ class Get_distance_table(object):
         mse = torch.sum(torch.sum(mse, dim=1), dim=1)
         return mse
 
+    def load_target_tensor(self, allpath):
+        """load tensor, concat.
+
+        Args:
+            allpath (list[str]): path of tensor
+
+        Returns:
+            newTensor (tensor): (N, 36, 1, 64, 64)
+        """
+        t = torch.load(allpath[0])
+        if len(t.shape) != 4:
+            raise ValueError("not match shape")
+
+        newTensor = torch.zeros(len(allpath), t.shape[0], t.shape[1], t.shape[2], t.shape[3])
+
+        for idx, pathi in enumerate(allpath):
+
+            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+                logger.debug("GPU[{}] load_target_tensor_map idx:{}".format(self.process_id, idx))
+
+            newTensor[idx] = torch.load(pathi).unsqueeze(0)
+
+        return newTensor.type(torch.float)
+
     @staticmethod
     def add_rotation_name_to_date(date):
         """add rotation info to date, return date_list[0, ..., 35]
