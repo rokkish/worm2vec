@@ -146,6 +146,7 @@ class Get_distance_table(object):
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
         self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
+        self.max_distance_list = []#original一枚に対する全ペア間の最大距離
 
     def count_img(self):
         """Count num dataset, and return (start, end) id to divide data. 
@@ -338,6 +339,7 @@ class Get_distance_table(object):
         """
         target_date = dic["target_date"][0]
         df = pd.DataFrame(dic)
+        self.max_distance_list.append(df["distance"].max())
         os.makedirs("../../data/processed/distance_table/{}".format(original_date), exist_ok=True)
         df.to_pickle("../../data/processed/distance_table/{}/dist_from_{}.pkl".format(original_date, target_date))
 
