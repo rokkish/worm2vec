@@ -181,22 +181,19 @@ class Get_distance_table(object):
         """
         init_t = time.time()
 
-        count_skip_img = 0
-
         for data_i, data_dic in enumerate(loader):
 
             logger.debug("allpath:{}, data_i:{}".format(len(allpath_fromi), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
 
-            if (data_i + self.START_ID) % 1000 == 0:
+            if data_i % 1000 == 0:
                 logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
-                            (process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
+                            (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
 
             if date == config.error_idx:
                 logger.debug("Skip this batch beacuse window can't load data")
                 logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
-                count_skip_img += 1
                 continue
 
             if self.is_already_calculated(date):
@@ -379,7 +376,7 @@ def main(args):
     gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair, args.step)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
-    zip_dir()
+    #zip_dir()
     logger.info("end")
 
 
