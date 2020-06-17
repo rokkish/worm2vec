@@ -146,7 +146,6 @@ class Get_distance_table(object):
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
         self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
-        self.step = step
 
     def count_img(self):
         """Count num dataset, and return (start, end) id to divide data. 
@@ -181,16 +180,13 @@ class Get_distance_table(object):
         """
         init_t = time.time()
 
-        allpath = allpath[self.START_ID + 1:]
         count_skip_img = 0
 
         for data_i, data_dic in enumerate(loader):
 
-            allpath_fromi = allpath[data_i:]
             logger.debug("allpath:{}, data_i:{}".format(len(allpath_fromi), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
-            #data = data.to(self.device)
 
             if (data_i + self.START_ID) % 1000 == 0:
                 logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
@@ -232,11 +228,7 @@ class Get_distance_table(object):
         """
         input_x = x[0].to(self.device)
 
-        #TODO:メモリオーバーフロー確認のための処理なので、削除予定
-        if len(allpath) > self.MAX_NUM_OF_PAIR_DATA:
-            allpath = allpath[:self.MAX_NUM_OF_PAIR_DATA]
-
-        values = [(i * self.step, pathi) for i, pathi in enumerate(allpath[::self.step])]
+        values = [(i, pathi) for i, pathi in enumerate(allpath)]
 
         logger.debug("load tensors")
         tensors_y = self.load_target_tensor(allpath)
@@ -404,7 +396,6 @@ if __name__ == "__main__":
     parse.add_argument("--save_name", default="test")
     parse.add_argument("--max_original", type=int, default=1)
     parse.add_argument("--max_pair", type=int, default=10000)
-    parse.add_argument("--step", type=int, default=10, help="step of images which is calculated")
 
     args = parse.parse_args()
 
