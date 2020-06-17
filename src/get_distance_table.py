@@ -24,6 +24,7 @@ import pandas as pd
 import numpy as np
 import argparse
 from tensorboardX import SummaryWriter
+import random
 
 import config
 import features.sort_index as sort_index
@@ -207,9 +208,13 @@ class Get_distance_table(object):
             if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
                 break
 
-            self.get_mse_epoch(data, date, allpath_fromi)
-            logger.debug("filename :{}, data:{}".format(date, data.shape))
-            zip_dir()
+            random_path_list = self.get_random_paths(np.array(allpath), self.MAX_NUM_OF_PAIR_DATA, data_i)
+            logger.debug("allpath:{}, data_i:{}".format(len(random_path_list), data_i))
+
+            self.get_mse_epoch(data, date, random_path_list)
+            logger.debug("GPU {}, max dist:{}".format(self.process_id, max(self.max_distance_list)))
+            self.max_distance_list = []
+            zip_dir()   #TODO:並列実行すると，予期せぬ挙動になる．
 
         logger.debug("GPU [%d] %d/%d \t Finish Processd :%f sec" %
                     (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
@@ -366,6 +371,12 @@ class Get_distance_table(object):
             return True
         return False
 
+    @staticmethod
+    def get_random_paths(allpath, N, start_index):
+        #original_imgを対象外とするため
+        start_index = start_index % 10 + 1
+        random_indexs = random.sample(range(start_index, len(allpath), 10), k=N)
+        return allpath[random_indexs]
 
 def main(args):
     """Load datasets, Do preprocess()
