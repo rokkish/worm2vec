@@ -33,14 +33,11 @@ class DatasetMaker(object):
                 continue
 
             if i % (len(self.pkl_list)//500) == 0:
-                logger.debug("i:{}, per:{}".format(i, i/len(self.pkl_list)*100))
+                logger.debug("i:{}, per:{:.1f}".format(i, i/len(self.pkl_list)*100))
             self.load_df(pkl)
             self.load_tensors()
             self.concat_tensors()
             self.save_as_pkl()
-            #TODO:debug
-            if i>1:
-                break
 
     def load_df(self, pkl):
         self.df = pd.read_pickle(pkl)
