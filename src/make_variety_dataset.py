@@ -93,10 +93,21 @@ def main(args):
     maker.make()
     logger.info("end")
 
+def chk(args):
+    if args.num_rotate < 1 or args.num_rotate > 36:
+        return False
+    if args.num_negative < 1 or args.num_negative > 5:
+        return False
+    if args.load_K < args.num_negative:
+        return False
+
+    return True
+
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("--num_negative", type=int, default=4)
     parse.add_argument("--load_K", type=int, default=5)
     parse.add_argument("--save_K", type=int, default=4)
     args = parse.parse_args()
-    main(args)
+    if chk(args):
+        main(args)
