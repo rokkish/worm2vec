@@ -29,7 +29,7 @@ class Trainer():
 
             loss_mean_epoch = 0
 
-            logger.info("Epoch: %d/%d \tGPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
+            logger.info("Epoch: %d/%d GPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
             for batch_idx, data_dic in enumerate(train_loader):
 
@@ -43,9 +43,9 @@ class Trainer():
 
                 self.optimizer.zero_grad()
 
-                recon_x, _, _ = self.model.forward(context)
+                #logger.debug("context: %s, target: %s" % (context.shape, target.shape))
 
-                loss = self.model.loss_function(target, recon_x)
+                loss = self.model.forward(context, target)
 
                 loss.backward()
 
@@ -77,14 +77,26 @@ class Trainer():
                 batch_idx (int)             : Save result image named by BATCH_[batc_idx]
         """
         x.to(self.device)
-        recon_x, _, _ = self.model.forward(x)
+        left_x, right_x = x[0], x[1]
+        enc_left_x, enc_right_x = self.model.multi_encode(x)
+        enc_data = self.model.cat_latent_vector(enc_left_x, enc_right_x)
 
-        save_images_grid(x.cpu(), nrow=6, scale_each=True, global_step=0,
-                         tag_img="Input_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
-        save_images_grid(target.cpu(), nrow=6, scale_each=True, global_step=0,
-                         tag_img="Output_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
-        save_images_grid(recon_x, nrow=6, scale_each=True, global_step=0,
-                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)
+        logger.info("x:{}".format(x.shape))
+        logger.info("target:{}".format(target.shape))
+        logger.info("enc_left, right:{}, {}".format(enc_left_x.shape, enc_right_x.shape))
+        logger.info("enc_data:{}".format(enc_data.shape))
+
+        self.writer.add_embedding(mat=enc_data, label_img=target, global_step=batch_idx, tag="test")
+
+        save_images_grid(left_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Input_left", writer=self.writer)
+        save_images_grid(right_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Input_right", writer=self.writer)
+        save_images_grid(target.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
+                         tag_img="test/Output_data", writer=self.writer)
+        """
+        save_images_grid(enc_x, nrow=6, scale_each=True, global_step=0,
+                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)"""
 
     def evaluate(self, test_loader, epoch=0):
         """Evaluate model with test dataset.
@@ -107,9 +119,7 @@ class Trainer():
                     target, context = self.slice_data(self.use_rotate, data)
                     target, context = target.to(self.device), context.to(self.device)
 
-                recon_x, _, _ = self.model.forward(context)
-
-                loss = self.model.loss_function(target, recon_x)
+                loss = self.model.forward(context, target)
 
                 if batch_idx % (len(test_loader) // 10) == 0:
                     logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
@@ -141,14 +151,15 @@ class Trainer():
     def slice_data(use_rotate, data):
         """Slice data, get target, context.
             Args:
-                use_rotate  :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (R, C, H, W)
-                not         :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (1, C, H, W)
+                use_rotate  :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (2, R, C, H, W)
+                not         :(Batchsize, ContextOrTarget, Rotation, C, H, W) into (2, C, H, W)
             Return:
                 target (Tensor)   :Image @ t[sec]
-                context (Tensor)  :Image @ t-w, ..., t-1, t+1, ..., t+w[sec]
+                context (Tensor)  :Image @ t-w, t+w[sec]
         """
         if use_rotate:
-            target, context = data[0, 0], data[0, 1]
+            target, context = data[0, 0], data[0, 1:]
         else:
-            target, context = data[:, 0, 0], data[:, 1, 0]
+            #TODO:no check
+            target, context = data[:, 0, 0], data[:, 1:, 0]
         return target, context

@@ -43,7 +43,7 @@ class WormDataset(torch.utils.data.Dataset):
 
         Returns:
             tuple: (context, target, OutOfRange)
-                context     : tensor(N, R, C, H, W)
+                *_context     : tensor(1, R, C, H, W)
                 target      : tensor(1, R, C, H, W)
 
         """
@@ -55,10 +55,10 @@ class WormDataset(torch.utils.data.Dataset):
             return {config.error_idx: dummy}
 
         target_path = self.data[index]
-        left_context_path = self.data[index - self.window:index]
-        right_context_path = self.data[index + 1:index + 1 + self.window]
+        left_context_path = self.data[index - self.window]
+        right_context_path = self.data[index + self.window]
 
-        path_list = left_context_path + [target_path] + right_context_path
+        path_list = [left_context_path] + [target_path] + [right_context_path]
         if self.is_date_change(path_list) or self.is_data_drop(path_list):
 
             tmp = []
@@ -70,28 +70,24 @@ class WormDataset(torch.utils.data.Dataset):
             self.count_skip_data += 1
             return {config.error_idx: dummy}
 
-        target = torch.load(target_path)
-        target = target.type(torch.float)
-        target = target.unsqueeze(0)
-        context = self.load_tensor(left_context_path + right_context_path)
-        context = context.type(torch.float)
-        context = self.mean_context(context)
-        context = context.unsqueeze(0)
+        target = self.load_tensor(target_path)
+        left_context = self.load_tensor(left_context_path)
+        right_context = self.load_tensor(right_context_path)
 
-        return {self.data_index: torch.cat([target, context], dim=0)}
+        return {self.data_index: torch.cat([target, left_context, right_context], dim=0)}
 
     def __len__(self):
         return len(self.data)
 
-    def load_tensor(self, pathList):
-        for i, path in enumerate(pathList):
-            tmp = torch.load(path)
-            tmp = tmp.unsqueeze(0)
-            if i == 0:
-                tensors = tmp.clone()
-            else:
-                tensors = torch.cat([tensors, tmp], dim=0)
-        return tensors
+    def load_tensor(self, path):
+        """
+            Return:
+                tensor: (1, Rotation, Channel, Height, Width)
+        """
+        tensor = torch.load(path)
+        tensor = tensor.type(torch.float)
+        tensor = tensor.unsqueeze(0)
+        return tensor
 
     @staticmethod
     def mean_context(context):

@@ -17,6 +17,7 @@ from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='predict')
 device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
+import train
 
 # 可視化
 from tensorboardX import SummaryWriter
@@ -28,20 +29,21 @@ def load_processed_datasets(train_dir, window):
                            transform=None, window=window)
 
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=config.BATCH_SIZE, shuffle=True)
+        test_set, batch_size=config.BATCH_SIZE, shuffle=False)
 
     return test_loader
 
 
 def main():
-    logger.info("Begin train")
+    logger.info("Begin predict")
     test_loader = load_processed_datasets(args.traindir, args.window)
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/predict_" + args.logdir)
 
     # Load model
-    model = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
+    model = train.get_model(args.model)
+
     model.load_state_dict(torch.load("../models/" + args.model_name + ".pkl"))
     model.to(device)
 
@@ -52,7 +54,7 @@ def main():
                       args.epoch, args.window, args.gpu_id, args.use_rotate)
 
     for batch_idx, data_dic in enumerate(test_loader):
-        if batch_idx >= args.max_predict:
+        if batch_idx >= args.max_predict + args.window:
             break
 
         data_idx, data = trainer.get_data_from_dic(data_dic)
@@ -62,11 +64,24 @@ def main():
         else:
             target, context = trainer.slice_data(args.use_rotate, data)
             target, context = target.to(device), context.to(device)
-        trainer.predict(context, target, epoch=batch_idx, batch_idx=0)
 
+            if batch_idx % args.num_of_tensor_to_embed == args.window:
+                left_context_cat, right_context_cat, target_cat = context[0, 0], context[1, 0], target[0]
+            else:
+                left_context_cat = torch.cat([left_context_cat, context[0, 0]])
+                right_context_cat = torch.cat([right_context_cat, context[1, 0]])
+                target_cat = torch.cat([target_cat, target[0]])
+
+            if left_context_cat.shape[0] == args.num_of_tensor_to_embed:
+                context_cat = torch.stack([left_context_cat, right_context_cat])
+                context_cat = torch.unsqueeze(context_cat, dim=2)
+                target_cat = torch.unsqueeze(target_cat, dim=1)
+                trainer.predict(context_cat, target_cat, epoch=0, batch_idx=batch_idx // args.num_of_tensor_to_embed)
+                del context_cat, target_cat
 
     # end tensorboard
     writer.close()
+    logger.info("End predict")
 
 
 if __name__ == "__main__":

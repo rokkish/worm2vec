@@ -1,35 +1,74 @@
-## Environments
+# Overview
+
+# Environments
 Pytorch
 TensorboardX
 
-## Run
+# Preprocess
 
-preprocess data, and save as torch
+## **Preprocess** data, and save as torch
+生データに前処理（線虫の切り出し）を施し，tensorをバイナリ形式で保存
 ```
 python preprocess.py --process_id 0~3 --save_name processed
 ```
 
-rename binary data
+## **Rename** binary data
+日付ごとに別れているデータを統合し，ファイル名に日付を追記
 ```
 python features/rename.py
 ```
 
-train vae model
+## **Make** distance table
+類似度テーブルの作成
+max_original個のデータについて，それぞれmax_pair個のデータとのMSEを取得
+max_original x max_pair行のデータが得られる．
+```
+python get_distance_table.py --process_id 0~3 --max_pair 100 --max_original 20000
+```
+
+## **Compress** distance table top K
+類似度テーブルの圧縮
+max_original x max_pair行のデータから，ネガティブサンプルとして誤差が大きいtop Kだけ選出
+max_original x K行のデータが得られる．
+```
+python compress_distance_table.py -K 1~100
+```
+
+## **Make** variety_dataset [original, rotation, negative] from compressed distance table
+類似度テーブルからネガティブサンプルデータセットの作成
+max_original x K行のデータに基づいて，データセットを作成
+load_Kは読み込みデータの指定，num_negativeは作成データセットのtopKを指定
+出力は(num_rotate + num_negative, 1, 64, 64) x データ数(max_original)
+```
+python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1~5
+```
+
+# Main
+
+## **Train** vae model
 ```
 python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate -w
 ```
 
-reconstruct image from training data
+## **Reconstruct** image from training data
 ```
 python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
 ```
 
-## Requirements
+# Vizualize
+
+## **Run** jupyter notebook
+```
+jupyter notebook --allow-root --ip 0.0.0.0 --port
+```
+
+
+# Requirements
 ```
 pip install -r ../documents/requirements.txt
 ```
 
-## Dir
+# Dir
 ```
 ├── LICENSE
 ├── Makefile           <- Makefile with commands like `make data` or `make train`

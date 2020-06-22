@@ -12,6 +12,7 @@ import get_logger
 from my_args import args
 from models.vae import VAE
 from models.cboi import CBOI
+from models.continuous_bag_of_worm import CBOW
 from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='train')
@@ -39,6 +40,15 @@ def load_processed_datasets(train_dir, window):
     return train_loader, test_loader
 
 
+def get_model(model):
+    if model == "vae":
+        return VAE(zsize=args.zsize, layer_count=config.layer_count, channels=1)
+    elif model == "cbow":
+        return CBOW(zsize=args.zsize, loss_function_name=args.loss_function_name)
+    else:
+        raise NameError(model + " not exist")
+
+
 def main():
     logger.info("Begin train")
     train_loader, test_loader = load_processed_datasets(args.traindir, args.window)
@@ -47,7 +57,7 @@ def main():
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
 
     logger.debug("define model")
-    model = VAE(zsize=config.z_size, layer_count=config.layer_count, channels=1)
+    model = get_model(args.model)
     #TODO:init_weight()
     model.to(device)
 
@@ -62,6 +72,8 @@ def main():
 
     # Save model
     torch.save(model.state_dict(), "../models/" + args.model_name + ".pkl")
+
+    logger.info("End train")
 
 
 if __name__ == "__main__":
