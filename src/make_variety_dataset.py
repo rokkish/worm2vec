@@ -18,11 +18,11 @@ import get_logger
 logger = get_logger.get_logger(name='make_variety_datasets', save_name="../log/logger/test_make_variety_datasets.log")
 
 class DatasetMaker(object):
-    def __init__(self, num_negative, load_K, save_K):
+    def __init__(self, num_negative, load_K, num_rotate):
         self.num_negative = num_negative
-        self.pkl_list = sorted(glob.glob("../../data/processed/distance_table_compress_top5/*"))
         self.load_K = load_K
-        self.save_K = save_K
+        self.num_rotate = num_rotate
+        self.pkl_list = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.load_K)))
         self.original_date_path = ""
         self.history_pkl = sorted(glob.glob("../../data/processed/varietydata/*.pkl"))
 
@@ -50,11 +50,11 @@ class DatasetMaker(object):
         self.tensors = []
         self.original_date_path = self.df["original_date"].iloc[0]
 
-        for r in range(0, 36, 9):
+        for r in range(0, 36, 36//self.num_rotate):
             self.tensors.append(self.load_tensor(self.original_date_path, r))
             #logger.debug("path{}, rotate{}".format(self.original_date_path, r))
 
-        for k in range(self.save_K):
+        for k in range(self.num_negative):
             target_date_path_i = self.df["target_date"].iloc[k]
             target_rotate_i = self.df["target_rotate"].iloc[k]
             #logger.debug("path{}, rotate{}".format(target_date_path_i, target_rotate_i))
@@ -89,7 +89,7 @@ class DatasetMaker(object):
 
 def main(args):
     logger.info("start")
-    maker = DatasetMaker(args.num_negative, load_K=args.load_K, save_K=args.save_K)
+    maker = DatasetMaker(args.num_negative, load_K=args.load_K, num_rotate=args.num_rotate)
     maker.make()
     logger.info("end")
 
@@ -105,9 +105,9 @@ def chk(args):
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
-    parse.add_argument("--num_negative", type=int, default=4)
     parse.add_argument("--load_K", type=int, default=5)
-    parse.add_argument("--save_K", type=int, default=4)
+    parse.add_argument("--num_negative", type=int, default=4)
+    parse.add_argument("--num_rotate", type=int, default=4)
     args = parse.parse_args()
     if chk(args):
         main(args)
