@@ -85,7 +85,7 @@ class DatasetMaker(object):
     def save_as_pkl(self):
         """Save self.cat_tensors as pkl
         """
-        torch.save(self.cat_tensors, "../../data/processed/varietydata/" + self.original_date_path + ".pt")
+        torch.save(self.cat_tensors.byte(), "../../data/processed/varietydata/" + self.original_date_path + ".pt")
 
 def main(args):
     logger.info("start")
