@@ -34,4 +34,7 @@ parse.add_argument("--max_predict", type=int, default=config.max_predict)
 
 parse.add_argument("--num_of_tensor_to_embed", type=int, default=config.num_of_tensor_to_embed)
 
+# analyze.py
+parse.add_argument("--max_analyze", type=int, default=config.max_analyze)
+
 args = parse.parse_args()
