@@ -32,10 +32,10 @@ def load_processed_datasets(train_dir, window, sequential, shuffle={"train":True
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=config.BATCH_SIZE, shuffle=True)
+        train_set, batch_size=config.BATCH_SIZE, shuffle=shuffle["train"])
 
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=config.BATCH_SIZE, shuffle=True)
+        test_set, batch_size=config.BATCH_SIZE, shuffle=shuffle["test"])
 
     return train_loader, test_loader
 
@@ -51,7 +51,8 @@ def get_model(model):
 
 def main():
     logger.info("Begin train")
-    train_loader, test_loader = load_processed_datasets(args.traindir, args.window)
+    train_loader, test_loader = load_processed_datasets(args.traindir,
+                                args.window, args.sequential)
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
