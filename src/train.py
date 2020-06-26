@@ -57,8 +57,7 @@ def get_model(model):
 
 def main():
     logger.info("Begin train")
-    train_loader, test_loader = load_processed_datasets(args.traindir,
-                                args.window, args.sequential)
+    train_loader, test_loader = load_processed_datasets(args.traindir, window=0, sequential=args.sequential)
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)

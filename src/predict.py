@@ -27,8 +27,8 @@ def main():
     logger.info("Begin predict")
     _, test_loader = train.load_processed_datasets(
             args.traindir,
-            args.window,
-            args.sequential,
+            window=0,
+            sequential=args.sequential,
             shuffle={"train":True, "test":args.test_shuffle}
         )
     del _
@@ -46,9 +46,7 @@ def main():
                             model,
                             writer,
                             device,
-                            args.window,
                             args.gpu_id,
-                            args.use_rotate,
                             args.max_predict
                         )
 
