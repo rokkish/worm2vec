@@ -13,7 +13,7 @@ import config
 import get_logger
 from models.vae import VAE
 from models.cboi import CBOI
-from trainer import Trainer
+from predictor import Predictor
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='predict')
 device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "cpu")
@@ -23,20 +23,15 @@ import train
 from tensorboardX import SummaryWriter
 
 
-def load_processed_datasets(train_dir, window):
-
-    test_set = WormDataset(root="../../data/"+train_dir, train=False,
-                           transform=None, window=window)
-
-    test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=config.BATCH_SIZE, shuffle=False)
-
-    return test_loader
-
-
 def main():
     logger.info("Begin predict")
-    test_loader = load_processed_datasets(args.traindir, args.window)
+    _, test_loader = train.load_processed_datasets(
+            args.traindir,
+            args.window,
+            args.sequential,
+            shuffle={"train":True, "test":args.test_shuffle}
+        )
+    del _
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/predict_" + args.logdir)
@@ -47,37 +42,17 @@ def main():
     model.load_state_dict(torch.load("../models/" + args.model_name + ".pkl"))
     model.to(device)
 
-    #TODO:delete
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    predictor = Predictor(
+                            model,
+                            writer,
+                            device,
+                            args.window,
+                            args.gpu_id,
+                            args.use_rotate,
+                            args.max_predict
+                        )
 
-    trainer = Trainer(model, optimizer, writer, device, \
-                      args.epoch, args.window, args.gpu_id, args.use_rotate)
-
-    for batch_idx, data_dic in enumerate(test_loader):
-        if batch_idx >= args.max_predict + args.window:
-            break
-
-        data_idx, data = trainer.get_data_from_dic(data_dic)
-        if data_idx == config.error_idx:
-            logger.debug("Skip this batch beacuse window can't load data")
-            continue
-        else:
-            target, context = trainer.slice_data(args.use_rotate, data)
-            target, context = target.to(device), context.to(device)
-
-            if batch_idx % args.num_of_tensor_to_embed == args.window:
-                left_context_cat, right_context_cat, target_cat = context[0, 0], context[1, 0], target[0]
-            else:
-                left_context_cat = torch.cat([left_context_cat, context[0, 0]])
-                right_context_cat = torch.cat([right_context_cat, context[1, 0]])
-                target_cat = torch.cat([target_cat, target[0]])
-
-            if left_context_cat.shape[0] == args.num_of_tensor_to_embed:
-                context_cat = torch.stack([left_context_cat, right_context_cat])
-                context_cat = torch.unsqueeze(context_cat, dim=2)
-                target_cat = torch.unsqueeze(target_cat, dim=1)
-                trainer.predict(context_cat, target_cat, epoch=0, batch_idx=batch_idx // args.num_of_tensor_to_embed)
-                del context_cat, target_cat
+    predictor.predict(test_loader)
 
     # end tensorboard
     writer.close()
@@ -86,4 +61,5 @@ def main():
 
 if __name__ == "__main__":
 
+    logger.debug(args)
     main()

@@ -68,35 +68,6 @@ class Trainer():
 
             self.evaluate(test_loader, epoch)
 
-    def predict(self, x, target, epoch=0, batch_idx=0):
-        """Predict/Reconstruct Image from batch data x.
-            Args:
-                x (Tensor)                  : context. Binary Image (Rotation, Channel, Height, Width)
-                target (Tensor)             : target. Binary Image (Rotation, Channel, Height, Width)
-                epoch - global_step (int)   : Save result image by global_step.
-                batch_idx (int)             : Save result image named by BATCH_[batc_idx]
-        """
-        x.to(self.device)
-        left_x, right_x = x[0], x[1]
-        enc_left_x, enc_right_x = self.model.multi_encode(x)
-        enc_data = self.model.cat_latent_vector(enc_left_x, enc_right_x)
-
-        logger.info("x:{}".format(x.shape))
-        logger.info("target:{}".format(target.shape))
-        logger.info("enc_left, right:{}, {}".format(enc_left_x.shape, enc_right_x.shape))
-        logger.info("enc_data:{}".format(enc_data.shape))
-
-        self.writer.add_embedding(mat=enc_data, label_img=target, global_step=batch_idx, tag="test")
-
-        save_images_grid(left_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
-                         tag_img="test/Input_left", writer=self.writer)
-        save_images_grid(right_x.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
-                         tag_img="test/Input_right", writer=self.writer)
-        save_images_grid(target.cpu(), nrow=config.nrow, scale_each=True, global_step=batch_idx,
-                         tag_img="test/Output_data", writer=self.writer)
-        """
-        save_images_grid(enc_x, nrow=6, scale_each=True, global_step=0,
-                         tag_img="Reconstruct_from_data/BATCH_{0:0=3}".format(epoch), writer=self.writer)"""
 
     def evaluate(self, test_loader, epoch=0):
         """Evaluate model with test dataset.
