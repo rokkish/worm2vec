@@ -47,12 +47,12 @@ python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1
 
 ## **Train** vae model
 ```
-python train.py --epoch --logdir --gpu_id --traindir processed/alldata --use_rotate -w
+python train.py --epoch 2 --logdir test_nce --gpu_id 1 --traindir processed/varietydata --use_rotate --model_name test_triplet --model worm2vec_nonseq --loss_function_name TripletMargin --zsize 128 -w 1
 ```
 
 ## **Reconstruct** image from training data
 ```
-python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predict -w
+python predict.py --logdir test_triplet --gpu_id 2 --traindir processed/varietydata --use_rotate --model_name test_triplet --model worm2vec_nonseq -w 1 --test_shuffle --zsize 128 --max_predict 3
 ```
 
 # Vizualize
@@ -61,7 +61,15 @@ python predict.py --logdir --gpu_id --traindir --logdir --use_rotate --max_predi
 ```
 jupyter notebook --allow-root --ip 0.0.0.0 --port
 ```
+## **Run** tensorboard
+```
+tensorboard tensorboard --logdir . --bind_all --port
+```
 
+## **Analyze** midium layers
+```
+python analyze.py --logdir test_triplet_z64_data16k --gpu_id 2 --traindir processed/varietydata --use_rotate --model_name test_triplet --model worm2vec_nonseq --zsize 128 -w 1 --max_analyze 1
+```
 
 # Requirements
 ```
