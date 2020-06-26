@@ -57,15 +57,15 @@ def main():
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/" + args.logdir)
 
-    logger.debug("define model")
     model = get_model(args.model)
     #TODO:init_weight()
     model.to(device)
 
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     trainer = Trainer(model, optimizer, writer, device,
-                      args.epoch, args.window, args.gpu_id, args.use_rotate)
+                      args.epoch, args.gpu_id)
     trainer.fit(train_loader, test_loader)
 
     # end tensorboard
@@ -79,4 +79,5 @@ def main():
 
 if __name__ == "__main__":
 
+    logger.debug(args)
     main()

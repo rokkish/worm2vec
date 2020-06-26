@@ -13,8 +13,6 @@ parse.add_argument("--gpu_id", type=str, default=config.gpu_id,
 
 parse.add_argument("--traindir", type=str, default=config.train_dir, help="set path of train data dir ../../data/[traindir]")
 
-parse.add_argument("-w", "--window", type=int, default=config.window)
-
 parse.add_argument("--use_rotate", action="store_true", \
     help="if True, train with rotate data(theta=0, 10, ..350), else train with only original data(theta=0)")
 

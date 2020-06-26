@@ -43,39 +43,17 @@ class WormDataset(torch.utils.data.Dataset):
             index (int): Index
 
         Returns:
-            tuple: (context, target, OutOfRange)
-                *_context     : tensor(1, R, C, H, W)
+            tuple: (target)
                 target      : tensor(1, R, C, H, W)
 
         """
         self.data_index = index
-        if index - self.window < 0 or index + 1 + self.window > len(self.data):
-            #logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
-            dummy = self.get_dummy_data(dummy_path=self.data[index])
-            self.count_skip_data += 1
-            return {config.error_idx: dummy}
 
         target_path = self.data[index]
-        left_context_path = self.data[index - self.window]
-        right_context_path = self.data[index + self.window]
-
-        path_list = [left_context_path] + [target_path] + [right_context_path]
-        if self.check_sequential(path_list):
-
-            tmp = []
-            for path in path_list:
-                tmp.append(path.split("/")[-1])
-            #logger.debug("datachange or drop data:{}".format(tmp))
-
-            dummy = self.get_dummy_data(dummy_path=self.data[index])
-            self.count_skip_data += 1
-            return {config.error_idx: dummy}
 
         target = self.load_tensor(target_path)
-        left_context = self.load_tensor(left_context_path)
-        right_context = self.load_tensor(right_context_path)
 
-        return {self.data_index: torch.cat([target, left_context, right_context], dim=0)}
+        return target
 
     def __len__(self):
         return len(self.data)
@@ -96,6 +74,7 @@ class WormDataset(torch.utils.data.Dataset):
 
     @staticmethod
     def get_dummy_data(dummy_path):
+        #TODO:should return tensor.zeros, more fast
         dummy = torch.load(dummy_path).type(torch.float)
         return dummy
 
