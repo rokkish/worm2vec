@@ -22,13 +22,13 @@ device = torch.device("cuda:" + args.gpu_id if torch.cuda.is_available() else "c
 from tensorboardX import SummaryWriter
 
 
-def load_processed_datasets(train_dir, window):
+def load_processed_datasets(train_dir, window, sequential, shuffle={"train":True, "test":True}):
     """ Set dataset """
     train_set = WormDataset(root="../../data/"+train_dir, train=True,
-                            transform=None, window=window)
+                            transform=None, window=window, sequential=sequential)
 
     test_set = WormDataset(root="../../data/"+train_dir, train=False,
-                           transform=None, window=window)
+                           transform=None, window=window, sequential=sequential)
 
     """ Dataloader """
     train_loader = torch.utils.data.DataLoader(

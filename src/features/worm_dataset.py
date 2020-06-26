@@ -15,12 +15,13 @@ class WormDataset(torch.utils.data.Dataset):
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None, window=3):
+    def __init__(self, root, train=True, transform=None, window=3, sequential=True):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
         self.window = window
+        self.sequential = sequential
         self.data = []
         self.data_index = 0
         self.count_skip_data = 0
@@ -59,7 +60,7 @@ class WormDataset(torch.utils.data.Dataset):
         right_context_path = self.data[index + self.window]
 
         path_list = [left_context_path] + [target_path] + [right_context_path]
-        if self.is_date_change(path_list) or self.is_data_drop(path_list):
+        if self.check_sequential(path_list):
 
             tmp = []
             for path in path_list:
@@ -125,3 +126,20 @@ class WormDataset(torch.utils.data.Dataset):
             return False
         else:
             return True
+
+    def check_sequential(self, path_list):
+        """if sequential is True, check whether data is sequential.
+        else, return True.
+
+        Args:
+            path_list ([type]): [description]
+
+        Returns:
+            [bool]: (sequential or not) or (not care about sequential)
+        """
+        if self.sequential:
+            if self.is_date_change(path_list) or self.is_data_drop(path_list):
+                return True
+            return False
+        else:
+            return False

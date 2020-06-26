@@ -26,6 +26,9 @@ parse.add_argument("--loss_function_name", type=str, default=config.loss_functio
 
 parse.add_argument("--zsize", type=int, default=config.zsize, help="Set shape of encoded.")
 
+parse.add_argument("--sequential", action="store_true", \
+    help="if True use sequential data, else non sequential data.")
+
 # predict.py
 parse.add_argument("--max_predict", type=int, default=config.max_predict)
 
