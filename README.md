@@ -50,12 +50,12 @@ python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1
 python train.py --epoch 2 --logdir test_pretext --gpu_id 2 --traindir processed/varietydata --model_name test_ce --model worm2vec_nonseq --loss_function_name CrossEntropy --zsize 128
 ```
 
-## **Reconstruct** image from training data
-```
-python predict.py --gpu_id 2 --traindir processed/varietydata --model_name test_ce_16k --model worm2vec_nonseq --test_shuffle --zsize 128 --max_predict 3 --logdir test_ce_z128_data16k
-```
-
 # Vizualize
+
+## **Embed** image into latent vector
+```
+python predict.py --gpu_id 2 --traindir processed/varietydata --model_name test_ce_16k --model worm2vec_nonseq --test_shuffle --zsize 128 --max_predict 3 --loader train --logdir test_ce_z128_data16k
+```
 
 ## **Run** jupyter notebook
 ```
