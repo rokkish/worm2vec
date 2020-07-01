@@ -14,12 +14,13 @@ from torch.autograd import Variable
 
 class Worm2vec_nonseq(nn.Module):
     """this is neural net module"""
-    def __init__(self, zsize, loss_function_name, batchsize, num_pos, tau):
+    def __init__(self, zsize, reverse):
         super(Worm2vec_nonseq, self).__init__()
 
         self.zsize = zsize
         self.inp_dim = 1
-        self.loss_function = Lossfunction(loss_function_name, num_pos, batchsize, tau)
+        self.reverse = reverse
+        #self.loss_function = Lossfunction(loss_function_name, num_pos, batchsize, tau)
         #TODO:if zsize < 2**5, error happen!
         self.mod_dim1 = self.zsize//(2**4)
         self.mod_dim2 = self.mod_dim1*2
@@ -81,8 +82,11 @@ class Worm2vec_nonseq(nn.Module):
             nn.AvgPool2d(2),
 
         )
-        self.m_original = nn.Linear(self.zsize, self.zsize//2)
-#        self.m_positive = nn.Linear(self.zsize, self.zsize//2)
+
+        self.classifier = nn.Sequential(
+            nn.Linear(self.zsize, 4),
+        )
+
 
     def encode(self, x):
         x = self.enc(x)
@@ -91,8 +95,8 @@ class Worm2vec_nonseq(nn.Module):
 
     def forward(self, x):
         enc_x = self.encode(x)
-        enc_x = self.m_original(enc_x)
-        return self.loss_function(enc_x)
+        enc_x = self.classifier(enc_x)
+        return enc_x
 
     def weight_init(self, mean, std):
         for m in self._modules:
@@ -112,7 +116,7 @@ class Lossfunction(nn.Module):
         self.batchsize = batchsize
         self.tau = tau
 
-    def forward(self, x):
+    def forward(self, x, labels):
         """return loss which is selected
 
         Args:
@@ -156,6 +160,10 @@ class Lossfunction(nn.Module):
             loss = Variable(torch.FloatTensor(loss), requires_grad=True) 
             return torch.mean(loss)
 
+        elif self.loss_function_name == "CrossEntropy":
+            ce_fn = nn.CrossEntropyLoss()
+            ce_loss = ce_fn(x, labels)
+            return ce_loss
         else:
             raise NameError("No exist")
 

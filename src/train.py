@@ -13,7 +13,7 @@ from my_args import args
 from models.vae import VAE
 from models.cboi import CBOI
 from models.continuous_bag_of_worm import CBOW
-from models.worm2vec_non_sequential import Worm2vec_nonseq
+from models.worm2vec_non_sequential import Worm2vec_nonseq, Lossfunction
 from trainer import Trainer
 from features.worm_dataset import WormDataset
 logger = get_logger.get_logger(name='train')
@@ -47,10 +47,7 @@ def get_model(model):
     elif model == "cbow":
         return CBOW(zsize=args.zsize, loss_function_name=args.loss_function_name)
     elif model == "worm2vec_nonseq":
-        return Worm2vec_nonseq(zsize=args.zsize,
-                               loss_function_name=args.loss_function_name,
-                               batchsize=config.BATCH_SIZE,
-                               num_pos=config.NUM_POSITIVE, tau=config.tau)
+        return Worm2vec_nonseq(zsize=args.zsize, reverse=args.reverse)
     else:
         raise NameError(model + " not exist")
 
@@ -67,11 +64,13 @@ def main():
     model.weight_init(mean=0, std=0.02)
     model.to(device)
 
+    loss_function = Lossfunction(args.loss_function_name, config.NUM_POSITIVE, config.BATCH_SIZE, config.tau)
+
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     trainer = Trainer(model, optimizer, writer, device,
-                      args.epoch, args.gpu_id)
+                      args.epoch, args.gpu_id, loss_function)
     trainer.fit(train_loader, test_loader)
 
     # end tensorboard
