@@ -25,13 +25,13 @@ from tensorboardX import SummaryWriter
 
 def main():
     logger.info("Begin predict")
-    _, test_loader = train.load_processed_datasets(
+    train_loader, test_loader = train.load_processed_datasets(
             args.traindir,
             window=0,
             sequential=args.sequential,
             shuffle={"train":True, "test":args.test_shuffle}
         )
-    del _
+    loader = {"train":train_loader, "test":test_loader}
 
     # start tensorboard
     writer = SummaryWriter(log_dir="../log/tensorboard/predict_" + args.logdir)
@@ -50,7 +50,7 @@ def main():
                             args.max_predict
                         )
 
-    predictor.predict(test_loader)
+    predictor.predict(loader[args.loader])
 
     # end tensorboard
     writer.close()

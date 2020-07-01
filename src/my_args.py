@@ -32,6 +32,8 @@ parse.add_argument("--reverse", action="store_true", \
 
 
 # predict.py
+parse.add_argument("--loader", default="test", choices=["train", "test"])
+
 parse.add_argument("--test_shuffle", action="store_true")
 
 parse.add_argument("--max_predict", type=int, default=config.max_predict)
