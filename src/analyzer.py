@@ -8,7 +8,7 @@ import get_logger
 logger = get_logger.get_logger(name='analyzer')
 from models.worm2vec_non_sequential import Worm2vec_nonseq
 from visualization.save_images_gray_grid import save_images_grid
-
+from trainer import Trainer
 
 class Analyzer():
     def __init__(self, model, writer, device,
@@ -27,23 +27,15 @@ class Analyzer():
         Args:
             test_loader ([type]): [description]
         """
-        for batch_idx, data_dic in enumerate(test_loader):
-            if batch_idx >= self.max_analyze + self.window:
-                break
+        with torch.no_grad():
 
-            data, current_idx = data_dic, 0
-            for i in range(data.shape[0]):
-                if sum(sum(sum(sum(sum(data[i]))))) == 0.:
-                    current_idx = config.error_idx
+            for batch_idx, data in enumerate(test_loader):
+                if batch_idx >= self.max_analyze:
                     break
 
-            if current_idx == config.error_idx:
-                continue
-            else:
-                target, context = data[:, 0], data[:, 1:]
-                target = target.contiguous().view(target.shape[0] * target.shape[1], target.shape[2], target.shape[3], target.shape[4])
+                target, labels = Trainer.slice_data(data)
                 target = target.to(self.device)
-                #context = context.to(device)
+                #labels = labels.to(device)
                 logger.debug(target.shape)
 
                 results = self.redefined_model.forward(target)

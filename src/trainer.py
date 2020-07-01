@@ -10,7 +10,7 @@ from visualization.save_images_gray_grid import save_images_grid
 
 class Trainer():
     def __init__(self, model, optimizer, writer, device,
-                 epoch, gpu_id):
+                 epoch, gpu_id, loss_function):
 
         self.model = model
         self.optimizer = optimizer
@@ -18,6 +18,7 @@ class Trainer():
         self.device = device
         self.max_epoch = epoch
         self.gpu_id = gpu_id
+        self.loss_function = loss_function
 
     def fit(self, train_loader, test_loader):
 
@@ -28,16 +29,26 @@ class Trainer():
 
             logger.info("Epoch: %d/%d GPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
+            correct = 0
+            total = 0
+
             for batch_idx, data in enumerate(train_loader):
 
-                target = self.slice_data(data)
-                target = target.to(self.device)
+                data, labels = self.slice_data(data)
+                data, labels = data.to(self.device), labels.to(self.device)
 
                 self.optimizer.zero_grad()
 
-                #logger.debug("context: %s, target: %s" % (context.shape, target.shape))
+                #logger.debug("data: %s, labels: %s" % (data.shape, len(labels)))
 
-                loss = self.model.forward(target)
+                output = self.model.forward(data)
+
+                #acc
+                _, predicted = torch.max(output.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+                loss = self.loss_function(output, labels)
 
                 loss.backward()
 
@@ -53,11 +64,15 @@ class Trainer():
 
                 loss_mean_epoch += loss.item()
 
-            self.writer.add_scalar(tag="train_loss_step_epoch/loss_000",
+            self.writer.add_scalar(tag="train_loss_step_epoch/CrossEntropyLoss",
                                    scalar_value=loss_mean_epoch/len(train_loader.dataset), global_step=epoch)
+            self.writer.add_scalar(tag="train_loss_step_epoch/Acc",
+                                   scalar_value=100 * correct / total, global_step=epoch)
 
-            torch.save(self.model.state_dict(), "../models/__" + str(epoch) + ".pkl")
+            if epoch % 10 == 0:
+                torch.save(self.model.state_dict(), "../models/__" + str(epoch) + ".pkl")
 
+            logger.info("TRAIN: Accuracy: {:.3f}".format(100 * correct / total))
             logger.debug("TRAIN STOP, EVAL START")
             self.evaluate(test_loader, epoch)
             logger.debug("EVAL STOP, ")
@@ -73,14 +88,23 @@ class Trainer():
         with torch.no_grad():
             self.model.eval()
             loss_mean_epoch = 0
+            total = 0
+            correct = 0
 
             for batch_idx, data in enumerate(test_loader):
 
-                target = self.slice_data(data)
-                target = target.to(self.device)
+                data, labels = self.slice_data(data)
+                data, labels = data.to(self.device), labels.to(self.device)
 
-                loss = self.model.forward(target)
+                output = self.model.forward(data)
 
+                #acc
+                _, predicted = torch.max(output.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                loss = self.loss_function(output, labels)
+                #logger.debug("_{}, pred:{}".format(_.shape, predicted.shape))
+        
                 if batch_idx % (len(test_loader) // 10) == 0:
                     logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
                                  batch_idx * config.BATCH_SIZE, len(test_loader.dataset),
@@ -93,8 +117,12 @@ class Trainer():
                 #    break
                 loss_mean_epoch += loss.item()
 
-            self.writer.add_scalar(tag="eval_loss_step_epoch/loss_000",
+            self.writer.add_scalar(tag="eval_loss_step_epoch/CrossEntropyLoss",
                                    scalar_value=loss_mean_epoch/len(test_loader.dataset), global_step=epoch)
+            self.writer.add_scalar(tag="eval_loss_step_epoch/Acc",
+                                   scalar_value=100 * correct / total, global_step=epoch)
+
+            logger.info(" EVAL: Accuracy: {:.3f}".format(100 * correct / total))
 
     @staticmethod
     def get_data_from_dic(data_dic):
@@ -111,10 +139,16 @@ class Trainer():
     def slice_data(data):
         """Slice data, get target
         Args:
-            data (tensor)   : (Batchsize, Rotation, C, H, W)
+            data (dic)   : target:(Batchsize, 1, C, H, W), rotation:(Batchsize, Rotation, C, H, W)
         Return:
-            target (Tensor) : (B, C, H, W)
+            data    : original, rotation : (B, R+1, C, H, W)
+            #target (Tensor)     : (B, 1, C, H, W)
+            #rotation (Tensor)   : (B, R, C, H, W)
+            labels  : onehot vector      : (B, R+1)
         """
-        target = data[:, 0]
-        target = target.contiguous().view(target.shape[0]*target.shape[1], target.shape[2], target.shape[3], target.shape[4])
-        return target
+        #target, rotation = data["target"], data["rotation"]
+        #return target, rotation
+        data, labels = data["data"], data["labels"]
+        data = data.contiguous().view(data.shape[0]*data.shape[1], data.shape[2], data.shape[3], data.shape[4])
+        labels = labels.view(labels.shape[0]*labels.shape[1])
+        return data, labels
