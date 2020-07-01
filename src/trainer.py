@@ -10,7 +10,7 @@ from visualization.save_images_gray_grid import save_images_grid
 
 class Trainer():
     def __init__(self, model, optimizer, writer, device,
-                 epoch, gpu_id):
+                 epoch, gpu_id, loss_function):
 
         self.model = model
         self.optimizer = optimizer
@@ -18,6 +18,7 @@ class Trainer():
         self.device = device
         self.max_epoch = epoch
         self.gpu_id = gpu_id
+        self.loss_function = loss_function
 
     def fit(self, train_loader, test_loader):
 
@@ -37,7 +38,8 @@ class Trainer():
 
                 #logger.debug("context: %s, target: %s" % (context.shape, target.shape))
 
-                loss = self.model.forward(target)
+                output = self.model.forward(target)
+                loss = self.loss_function(output)
 
                 loss.backward()
 
@@ -79,7 +81,8 @@ class Trainer():
                 target = self.slice_data(data)
                 target = target.to(self.device)
 
-                loss = self.model.forward(target)
+                output = self.model.forward(target)
+                loss = self.loss_function(output)
 
                 if batch_idx % (len(test_loader) // 10) == 0:
                     logger.debug("Eval batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(

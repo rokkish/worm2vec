@@ -14,12 +14,11 @@ from torch.autograd import Variable
 
 class Worm2vec_nonseq(nn.Module):
     """this is neural net module"""
-    def __init__(self, zsize, loss_function_name, batchsize, num_pos, tau):
+    def __init__(self, zsize):
         super(Worm2vec_nonseq, self).__init__()
 
         self.zsize = zsize
         self.inp_dim = 1
-        self.loss_function = Lossfunction(loss_function_name, num_pos, batchsize, tau)
         #TODO:if zsize < 2**5, error happen!
         self.mod_dim1 = self.zsize//(2**4)
         self.mod_dim2 = self.mod_dim1*2
@@ -92,7 +91,7 @@ class Worm2vec_nonseq(nn.Module):
     def forward(self, x):
         enc_x = self.encode(x)
         enc_x = self.m_original(enc_x)
-        return self.loss_function(enc_x)
+        return enc_x
 
     def weight_init(self, mean, std):
         for m in self._modules:
