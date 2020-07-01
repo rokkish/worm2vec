@@ -27,6 +27,10 @@ parse.add_argument("--zsize", type=int, default=config.zsize, help="Set shape of
 parse.add_argument("--sequential", action="store_true", \
     help="if True use sequential data, else non sequential data.")
 
+parse.add_argument("--reverse", action="store_true", \
+    help="if True model maximize loss")
+
+
 # predict.py
 parse.add_argument("--test_shuffle", action="store_true")
 
