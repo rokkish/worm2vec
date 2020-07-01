@@ -25,6 +25,7 @@ class WormDataset(torch.utils.data.Dataset):
         self.data = []
         self.data_index = 0
         self.count_skip_data = 0
+        self.labels = self.set_labels()
 
         tensor_all = glob.glob(self.root + "/*")
         tensor_all.sort(key=get_binaryfile_number)
@@ -44,16 +45,19 @@ class WormDataset(torch.utils.data.Dataset):
 
         Returns:
             tuple: (target)
-                target      : tensor(1, R, C, H, W)
-
+                data        : tensor(4, C, H, W)
+                target      : tensor(1, C, H, W)
+                rotation    : tensor(3, C, H, W)
+                labels      : tesnor(4)
         """
         self.data_index = index
 
         target_path = self.data[index]
 
-        target = self.load_tensor(target_path)
-
-        return target
+        data = self.load_tensor(target_path)[0, :4]
+        target = data[:, 0].unsqueeze(0)
+        rotation = data[:, 1:]
+        return {"data": data, "target": target, "rotation": rotation, "labels": self.labels}
 
     def __len__(self):
         return len(self.data)
@@ -122,3 +126,13 @@ class WormDataset(torch.utils.data.Dataset):
             return False
         else:
             return False
+
+    @staticmethod
+    def set_labels():
+        """
+        Returns:
+            tensor:  (4,)
+        """
+        ls = np.array(range(0, 4))
+        labels = torch.from_numpy(ls).type(torch.long)
+        return labels
