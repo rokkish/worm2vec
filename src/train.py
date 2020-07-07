@@ -64,10 +64,9 @@ def main():
     model.weight_init(mean=0, std=0.02)
     model.to(device)
 
-    loss_function = Lossfunction(args.loss_function_name, config.NUM_POSITIVE, config.BATCH_SIZE, config.tau)
+    loss_function = Lossfunction(args.loss_function_name, config.NUM_POSITIVE, config.NUM_NEGATIVE, config.BATCH_SIZE, config.tau)
 
-    #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
     trainer = Trainer(model, optimizer, writer, device,
                       args.epoch, args.gpu_id, loss_function)
