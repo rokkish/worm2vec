@@ -37,10 +37,10 @@ python compress_distance_table.py -K 1~100
 ## **Make** variety_dataset [original, rotation, negative] from compressed distance table
 類似度テーブルからネガティブサンプルデータセットの作成
 max_original x K行のデータに基づいて，データセットを作成
-load_Kは読み込みデータの指定，num_negativeは作成データセットのtopKを指定
+load_Kは読み込みデータの指定("distance_table_compress_top?")，num_negativeは作成データセットのtopKを指定
 出力は(num_rotate + num_negative, 1, 64, 64) x データ数(max_original)
 ```
-python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1~5
+python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1~5 --save_path varietydata
 ```
 
 # Main
