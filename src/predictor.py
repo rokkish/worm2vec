@@ -27,61 +27,48 @@ class Predictor():
                 epoch - global_step (int)   : Save result image by global_step.
                 batch_idx (int)             : Save result image named by BATCH_[batc_idx]
         """
-        for batch_idx, data_dic in enumerate(test_loader):
-            if batch_idx >= self.max_predict + self.window:
+        for batch_idx, (anchor, positive, negative) in enumerate(test_loader):
+            if batch_idx >= self.max_predict:
                 break
 
-            data, current_idx = data_dic, 0
-            for i in range(data.shape[0]):
-                if sum(sum(sum(sum(sum(data[i]))))) == 0.:
-                    current_idx = config.error_idx
-                    break
+            anchor, positive, negative = anchor.to(self.device), positive.to(self.device), negative.to(self.device)
+            anchor = anchor.view(anchor.shape[0]*anchor.shape[1], anchor.shape[2], anchor.shape[3], anchor.shape[4])
+            positive = positive.view(positive.shape[0]*positive.shape[1], positive.shape[2], positive.shape[3], positive.shape[4])
+            negative = negative.view(negative.shape[0]*negative.shape[1], negative.shape[2], negative.shape[3], negative.shape[4])
 
-            if current_idx == config.error_idx:
-                logger.debug("Skip this batch beacuse window can't load data")
-                continue
-            else:
-                target, context = data[:, 0], data[:, 1:]
-                target = target.contiguous().view(target.shape[0] * target.shape[1], target.shape[2], target.shape[3], target.shape[4])
-                target = target.to(self.device)
-                #context = context.to(device)
-                logger.debug(target.shape)
 
-                """
-                    if batch_idx % args.num_of_tensor_to_embed == args.window:
-                        left_context_cat, right_context_cat, target_cat = context[0, 0], context[1, 0], target[0]
-                    else:
-                        left_context_cat = torch.cat([left_context_cat, context[0, 0]])
-                        right_context_cat = torch.cat([right_context_cat, context[1, 0]])
-                        target_cat = torch.cat([target_cat, target[0]])
+            enc_x = self.model.forward(anchor, positive, negative)
+            anc_embedding = enc_x["anc_embedding"]
+            pos_embedding = enc_x["pos_embedding"]
+            neg_embedding = enc_x["neg_embedding"]
 
-                    if left_context_cat.shape[0] == args.num_of_tensor_to_embed:
-                        context_cat = torch.stack([left_context_cat, right_context_cat])
-                        context_cat = torch.unsqueeze(context_cat, dim=2)
-                        target_cat = torch.unsqueeze(target_cat, dim=1)
-                        trainer.predict(context_cat, epoch=0, batch_idx=batch_idx // args.num_of_tensor_to_embed)
-                        del context_cat, target_cat
-                """
 
-                enc_x = self.model.encode(target)
-                enc_x = self.model.m_original(enc_x)
-                #enc_x = enc_x[:4]
-                #target = target[:4]
+            cat_input = torch.cat([anchor, positive, negative])
+            cat_embedding = torch.cat([anc_embedding, pos_embedding, neg_embedding])
+            #enc_x = enc_x[:4]
+            #target = target[:4]
 
-                logger.debug("x:{}".format(enc_x.shape))
+            cat_input_reverse = torch.abs(cat_input - torch.ones(cat_input.shape).float().to(self.device))
 
-                self.writer.add_embedding(
-                    mat=enc_x,
-                    label_img=target,
-                    global_step=batch_idx,
-                    tag="test"
-                    )
+            labels = ["anchor"]*len(anchor) + ["positive"]*len(positive) + ["negative"]*len(negative)
+            time = list(range(0, cat_input.shape[0]))
+            all_labels = list(zip(time, labels))
 
-                save_images_grid(
-                    target.cpu(),
-                    nrow=config.nrow,
-                    scale_each=True,
-                    global_step=batch_idx,
-                    tag_img="test/Output_data_batch{:0=3}".format(batch_idx),
-                    writer=self.writer
-                    )
+
+            self.writer.add_embedding(
+                mat=cat_embedding,
+                metadata=all_labels,
+                metadata_header=["time", "type"],
+                label_img=cat_input_reverse,
+                global_step=batch_idx,
+                tag="test"
+                )
+
+            save_images_grid(
+                cat_input.cpu(),
+                nrow=config.nrow,
+                scale_each=True,
+                global_step=batch_idx,
+                tag_img="test/Output_data_batch{:0=3}".format(batch_idx),
+                writer=self.writer
+                )

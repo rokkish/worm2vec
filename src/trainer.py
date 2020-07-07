@@ -29,16 +29,18 @@ class Trainer():
 
             logger.info("Epoch: %d/%d GPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
-            for batch_idx, data in enumerate(train_loader):
+            for batch_idx, (anchor, positive, negative) in enumerate(train_loader):
 
-                target = self.slice_data(data)
-                target = target.to(self.device)
+                anchor, positive, negative = anchor.to(self.device), positive.to(self.device), negative.to(self.device)
+                anchor = anchor.view(anchor.shape[0]*anchor.shape[1], anchor.shape[2], anchor.shape[3], anchor.shape[4])
+                positive = positive.view(positive.shape[0]*positive.shape[1], positive.shape[2], positive.shape[3], positive.shape[4])
+                negative = negative.view(negative.shape[0]*negative.shape[1], negative.shape[2], negative.shape[3], negative.shape[4])
 
                 self.optimizer.zero_grad()
 
-                #logger.debug("context: %s, target: %s" % (context.shape, target.shape))
+                #logger.debug("anc: %s, pos: %s, neg:%s" % (anchor.shape, positive.shape, negative.shape))
 
-                output = self.model.forward(target)
+                output = self.model.forward(anchor, positive, negative)
                 loss = self.loss_function(output)
 
                 loss.backward()
@@ -76,12 +78,14 @@ class Trainer():
             self.model.eval()
             loss_mean_epoch = 0
 
-            for batch_idx, data in enumerate(test_loader):
+            for batch_idx, (anchor, positive, negative) in enumerate(test_loader):
 
-                target = self.slice_data(data)
-                target = target.to(self.device)
+                anchor, positive, negative = anchor.to(self.device), positive.to(self.device), negative.to(self.device)
+                anchor = anchor.view(anchor.shape[0]*anchor.shape[1], anchor.shape[2], anchor.shape[3], anchor.shape[4])
+                positive = positive.view(positive.shape[0]*positive.shape[1], positive.shape[2], positive.shape[3], positive.shape[4])
+                negative = negative.view(negative.shape[0]*negative.shape[1], negative.shape[2], negative.shape[3], negative.shape[4])
 
-                output = self.model.forward(target)
+                output = self.model.forward(anchor, positive, negative)
                 loss = self.loss_function(output)
 
                 if batch_idx % (len(test_loader) // 10) == 0:
@@ -109,15 +113,3 @@ class Trainer():
         for k, v in data_dic.items():
             data_idx, data = k, v
         return data_idx, data
-
-    @staticmethod
-    def slice_data(data):
-        """Slice data, get target
-        Args:
-            data (tensor)   : (Batchsize, Rotation, C, H, W)
-        Return:
-            target (Tensor) : (B, C, H, W)
-        """
-        target = data[:, 0]
-        target = target.contiguous().view(target.shape[0]*target.shape[1], target.shape[2], target.shape[3], target.shape[4])
-        return target

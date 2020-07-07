@@ -57,8 +57,11 @@ class WormDataset(torch.utils.data.Dataset):
         target_path = self.data[index]
 
         target = self.load_tensor(target_path)
+        anchor = target[0].unsqueeze(0)
+        positive = target[1: 1 + config.NUM_POSITIVE]
+        negative = target[1 + config.NUM_POSITIVE:]
 
-        return target
+        return anchor, positive, negative
 
     def __len__(self):
         return len(self.data)
@@ -66,11 +69,10 @@ class WormDataset(torch.utils.data.Dataset):
     def load_tensor(self, path):
         """
             Return:
-                tensor: (1, Rotation, Channel, Height, Width)
+                tensor: (Rotation, Channel, Height, Width)
         """
         tensor = torch.load(path)
         tensor = tensor.type(torch.float)
-        tensor = tensor.unsqueeze(0)
         return tensor
 
     @staticmethod
