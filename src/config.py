@@ -1,10 +1,13 @@
 # hypara of model
 IMG_SIZE = 64
-BATCH_SIZE = 10 #256
+BATCH_SIZE = 1 #256
 tau = 10
+# hypara of loss
+MARGIN_TRIPLET = 10.0
 # DATA
-MAX_LEN_TRAIN_DATA = 16000
-NUM_POSITIVE = 3
+MAX_LEN_TRAIN_DATA = 60000
+NUM_POSITIVE = 35
+NUM_NEGATIVE = 5
 
 # set default of args
 epoch = 15
@@ -18,5 +21,4 @@ max_predict = 3
 max_analyze = 2
 zsize = 32
 # config of predict.py
-num_of_tensor_to_embed = 300
-nrow = 2
+nrow = 20
