@@ -32,8 +32,13 @@ class WormDataset(torch.utils.data.Dataset):
             self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
         else:
             self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
-            self.data = self.data[:-(len(self.data) % config.BATCH_SIZE)] # BATCH_SIZEの定数倍のデータ数に調整
+            if config.BATCH_SIZE == 1:
+                self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
+            else:
+                self.data = self.data[:-(len(self.data) % config.BATCH_SIZE)] # BATCH_SIZEの定数倍のデータ数に調整
+
         self.data.sort(key=get_binaryfile_number)
+
         if len(self.data) > config.MAX_LEN_TRAIN_DATA:
             self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
 
