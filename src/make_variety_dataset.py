@@ -18,10 +18,11 @@ import get_logger
 logger = get_logger.get_logger(name='make_variety_datasets', save_name="../log/logger/test_make_variety_datasets.log")
 
 class DatasetMaker(object):
-    def __init__(self, num_negative, load_K, num_rotate):
+    def __init__(self, num_negative, load_K, num_rotate, save_path="varietydata"):
         self.num_negative = num_negative
         self.load_K = load_K
         self.num_rotate = num_rotate
+        self.save_path = save_path
         self.pkl_list = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.load_K)))
         self.original_date_path = ""
         self.history_pkl = sorted(glob.glob("../../data/processed/varietydata/*.pkl"))
@@ -82,11 +83,13 @@ class DatasetMaker(object):
     def save_as_pkl(self):
         """Save self.cat_tensors as pkl
         """
-        torch.save(self.cat_tensors.byte(), "../../data/processed/varietydata/" + self.original_date_path + ".pt")
+        torch.save(self.cat_tensors.byte(), "../../data/processed/" + self.save_path+ "/" + self.original_date_path + ".pt")
 
 def main(args):
     logger.info("start")
-    maker = DatasetMaker(args.num_negative, load_K=args.load_K, num_rotate=args.num_rotate)
+    import os
+    os.makedirs("../../data/processed/" + args.save_path, exist_ok=True)
+    maker = DatasetMaker(args.num_negative, load_K=args.load_K, num_rotate=args.num_rotate, save_path=args.save_path)
     maker.make()
     logger.info("end")
 
@@ -105,6 +108,7 @@ if __name__ == "__main__":
     parse.add_argument("--load_K", type=int, default=5)
     parse.add_argument("--num_negative", type=int, default=4)
     parse.add_argument("--num_rotate", type=int, default=4)
+    parse.add_argument("--save_path")
     args = parse.parse_args()
     if chk(args):
         main(args)
