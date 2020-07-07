@@ -10,14 +10,12 @@ from visualization.save_images_gray_grid import save_images_grid
 
 class Predictor():
     def __init__(self, model, writer, device,
-                 window, gpu_id, use_rotate, max_predict):
+                 gpu_id, max_predict):
 
         self.model = model
         self.writer = writer
         self.device = device
-        self.window = window
         self.gpu_id = gpu_id
-        self.use_rotate = use_rotate
         self.max_predict = max_predict
 
     def predict(self, test_loader):
