@@ -6,6 +6,7 @@ import config
 import get_logger
 logger = get_logger.get_logger(name='predictor')
 from visualization.save_images_gray_grid import save_images_grid
+import numpy as np
 
 
 class Predictor():
@@ -25,7 +26,9 @@ class Predictor():
                 epoch - global_step (int)   : Save result image by global_step.
                 batch_idx (int)             : Save result image named by BATCH_[batc_idx]
         """
-        for batch_idx, (anchor, positive, negative) in enumerate(test_loader):
+        logger.debug("start predict")
+
+        for batch_idx, (anchor, positive, negative, labels_batch) in enumerate(test_loader):
             if batch_idx >= self.max_predict:
                 break
 
@@ -34,6 +37,25 @@ class Predictor():
             positive = positive.view(positive.shape[0]*positive.shape[1], positive.shape[2], positive.shape[3], positive.shape[4])
             negative = negative.view(negative.shape[0]*negative.shape[1], negative.shape[2], negative.shape[3], negative.shape[4])
 
+            #logger.debug("labels_batch:{}".format(labels_batch))
+
+            labels = []
+
+            num_pos = int(positive.shape[0] / anchor.shape[0])
+
+            anchor_labels = np.array(labels_batch[0])
+            positive_labels = np.array(labels_batch[1: 1 + num_pos]).T
+            negative_labels = np.array(labels_batch[1 + num_pos:]).T
+
+            for label in anchor_labels:
+                labels.append(label)
+            for tuple_idxs in positive_labels:
+                for label in tuple_idxs:
+                    labels.append(label)
+            for tuple_idxs in negative_labels:
+                for label in tuple_idxs:
+                    labels.append(label)
+            #logger.debug("flatten labels_batch:{}".format(labels))
 
             enc_x = self.model.forward(anchor, positive, negative)
             anc_embedding = enc_x["anc_embedding"]
@@ -48,15 +70,17 @@ class Predictor():
 
             cat_input_reverse = torch.abs(cat_input - torch.ones(cat_input.shape).float().to(self.device))
 
-            labels = ["anchor"]*len(anchor) + ["positive"]*len(positive) + ["negative"]*len(negative)
-            time = list(range(0, cat_input.shape[0]))
-            all_labels = list(zip(time, labels))
+            #labels = ["anchor"]*len(anchor) + ["positive"]*len(positive) + ["negative"]*len(negative)
+            idx = list(range(0, cat_input.shape[0]))
+            if len(idx) != len(labels):
+                raise ValueError("not match len of labels and data size. idx:{}, labels:{}".format(len(idx), len(labels)))
+            all_labels = list(zip(idx, labels))
 
 
             self.writer.add_embedding(
                 mat=cat_embedding,
                 metadata=all_labels,
-                metadata_header=["time", "type"],
+                metadata_header=["idx", "labels"],
                 label_img=cat_input_reverse,
                 global_step=batch_idx,
                 tag="test"

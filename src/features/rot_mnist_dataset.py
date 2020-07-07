@@ -113,8 +113,8 @@ class RotMnistDataset(torch.utils.data.Dataset):
         positive = torch.from_numpy(positive).type(torch.float)
         negative = torch.from_numpy(negative).type(torch.float)
 
-
-        return anchor, positive, negative
+        labels_batch = self.get_labels_batch(index, pos_idxs, neg_idxs)
+        return anchor, positive, negative, labels_batch
 
     def __len__(self):
         return len(self.data)
@@ -123,11 +123,12 @@ class RotMnistDataset(torch.utils.data.Dataset):
         """ランダムサンプリングしたpos, negのidxを返す
 
         Args:
-            anchor_label ([type]): [description]
-            anchor_idx ([type]): [description]
+            anchor_label ([int]): [description]
+            anchor_idx ([int]): [description]
 
         Returns:
-            pos_idxs: [description]
+            pos_idxs [list]: [description]
+            neg_idxs [list]: [description]
         """
         import random
         pos_idxs, neg_idxs = [], []
@@ -152,3 +153,7 @@ class RotMnistDataset(torch.utils.data.Dataset):
                 break
 
         return pos_idxs, neg_idxs
+
+    def get_labels_batch(self, anc_idx, pos_idxs, neg_idxs):
+        return [str(self.labels[idx]) for idx in [anc_idx] + pos_idxs + neg_idxs]
+

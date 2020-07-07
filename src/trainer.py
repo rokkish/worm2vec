@@ -29,7 +29,7 @@ class Trainer():
 
             logger.info("Epoch: %d/%d GPU: %d" % (epoch, self.max_epoch, int(self.gpu_id)))
 
-            for batch_idx, (anchor, positive, negative) in enumerate(train_loader):
+            for batch_idx, (anchor, positive, negative, _) in enumerate(train_loader):
 
                 anchor, positive, negative = anchor.to(self.device), positive.to(self.device), negative.to(self.device)
                 anchor = anchor.view(anchor.shape[0]*anchor.shape[1], anchor.shape[2], anchor.shape[3], anchor.shape[4])
@@ -47,7 +47,7 @@ class Trainer():
 
                 self.optimizer.step()
 
-                if batch_idx % (len(train_loader) // 10) == 0:
+                if batch_idx % (len(train_loader) // 5) == 0:
                     logger.debug("Train batch: [{:0=4}/{} ({:0=2.0f}%)]\tLoss: {:.5f}".format(
                         batch_idx * config.BATCH_SIZE, len(train_loader.dataset),
                         100. * batch_idx / len(train_loader), loss.item()))
@@ -78,7 +78,7 @@ class Trainer():
             self.model.eval()
             loss_mean_epoch = 0
 
-            for batch_idx, (anchor, positive, negative) in enumerate(test_loader):
+            for batch_idx, (anchor, positive, negative, _) in enumerate(test_loader):
 
                 anchor, positive, negative = anchor.to(self.device), positive.to(self.device), negative.to(self.device)
                 anchor = anchor.view(anchor.shape[0]*anchor.shape[1], anchor.shape[2], anchor.shape[3], anchor.shape[4])
