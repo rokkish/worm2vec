@@ -50,12 +50,19 @@ class RotMnistDataset(torch.utils.data.Dataset):
         self.data_index = 0
         self.count_skip_data = 0
 
+        if self.root == "../../data/MNIST/mnist/":
+            train_mat = "mnist_train.amat"
+            test_mat = "mnist_test.amat"
+        elif self.root == "../../data/rotatedMNIST/mnist_rotation_new/":
+            train_mat = "mnist_all_rotation_normalized_float_train_valid.amat"
+            test_mat = "mnist_all_rotation_normalized_float_test.amat"
+
         if self.train:
-            self.load_data = np.loadtxt(self.root + "mnist_all_rotation_normalized_float_train_valid.amat")
+            self.load_data = np.loadtxt(self.root + train_mat)
             self.data, self.labels = self.load_data[:, :-1], self.load_data[:, -1]
 
         else:
-            self.load_data = np.loadtxt(self.root + "mnist_all_rotation_normalized_float_test.amat")
+            self.load_data = np.loadtxt(self.root + test_mat)
             self.data, self.labels = self.load_data[:, :-1], self.load_data[:, -1]
 
             # BATCH_SIZEの定数倍のデータ数に調整(test dataのみ)
@@ -92,13 +99,13 @@ class RotMnistDataset(torch.utils.data.Dataset):
 
         for i, p in enumerate(pos_idxs):
             data_i = self.data[p]
-            positive[i, :, :] = np.reshape(data_i, (28, 28)).T
+            positive[i, :, :] = np.reshape(data_i, (28, 28))
         for i, n in enumerate(neg_idxs):
             data_i = self.data[n]
-            negative[i, :, :] = np.reshape(data_i, (28, 28)).T
+            negative[i, :, :] = np.reshape(data_i, (28, 28))
 
         # reshape, new axis
-        anchor = np.reshape(anchor, (28, 28)).T
+        anchor = np.reshape(anchor, (28, 28))
         anchor = np.reshape(anchor, (1, 28, 28))
 
         if self.transform is not None:
