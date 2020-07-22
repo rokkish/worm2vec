@@ -62,7 +62,7 @@ class WormDataset(torch.utils.data.Dataset):
         negative = target[1 + config.NUM_POSITIVE:]
 
         #TODO:rotmnist用の変数
-        labels = None
+        labels = []
         return anchor, positive, negative, labels
 
     def __len__(self):

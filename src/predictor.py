@@ -37,31 +37,33 @@ class Predictor():
             positive = positive.view(positive.shape[0]*positive.shape[1], positive.shape[2], positive.shape[3], positive.shape[4])
             negative = negative.view(negative.shape[0]*negative.shape[1], negative.shape[2], negative.shape[3], negative.shape[4])
 
-            #logger.debug("labels_batch:{}".format(labels_batch))
+            logger.debug("labels_batch:{}".format(labels_batch))
 
             labels = []
 
             num_pos = int(positive.shape[0] / anchor.shape[0])
 
-            anchor_labels = np.array(labels_batch[0])
-            positive_labels = np.array(labels_batch[1: 1 + num_pos]).T
-            negative_labels = np.array(labels_batch[1 + num_pos:]).T
+            try:
+                anchor_labels = np.array(labels_batch[0])
+                positive_labels = np.array(labels_batch[1: 1 + num_pos]).T
+                negative_labels = np.array(labels_batch[1 + num_pos:]).T
 
-            for label in anchor_labels:
-                labels.append(label)
-            for tuple_idxs in positive_labels:
-                for label in tuple_idxs:
+                for label in anchor_labels:
                     labels.append(label)
-            for tuple_idxs in negative_labels:
-                for label in tuple_idxs:
-                    labels.append(label)
-            #logger.debug("flatten labels_batch:{}".format(labels))
+                for tuple_idxs in positive_labels:
+                    for label in tuple_idxs:
+                        labels.append(label)
+                for tuple_idxs in negative_labels:
+                    for label in tuple_idxs:
+                        labels.append(label)
+                #logger.debug("flatten labels_batch:{}".format(labels))
+            except:
+                labels = ["anchor"]*len(anchor) + ["positive"]*len(positive) + ["negative"]*len(negative)
 
             enc_x = self.model.forward(anchor, positive, negative)
             anc_embedding = enc_x["anc_embedding"]
             pos_embedding = enc_x["pos_embedding"]
             neg_embedding = enc_x["neg_embedding"]
-
 
             cat_input = torch.cat([anchor, positive, negative])
             cat_embedding = torch.cat([anc_embedding, pos_embedding, neg_embedding])
@@ -70,7 +72,6 @@ class Predictor():
 
             cat_input_reverse = torch.abs(cat_input - torch.ones(cat_input.shape).float().to(self.device))
 
-            #labels = ["anchor"]*len(anchor) + ["positive"]*len(positive) + ["negative"]*len(negative)
             idx = list(range(0, cat_input.shape[0]))
             if len(idx) != len(labels):
                 raise ValueError("not match len of labels and data size. idx:{}, labels:{}".format(len(idx), len(labels)))
