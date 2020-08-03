@@ -1,7 +1,7 @@
 import logging
 
 
-def get_logger(name, level=logging.DEBUG, save_name="./logs/test_harmony.log"):
+def get_logger(name, level=logging.DEBUG, save_name="./logs/logger/test_harmony.log"):
     # create logger
     logger = logging.getLogger(name)
     logger.setLevel(level)
