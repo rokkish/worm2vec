@@ -66,7 +66,7 @@ def settings(args):
    # Other options
    if args.default_settings:
       args.n_epochs = 100
-      args.batch_size = 46
+      args.batch_size = 1000
       args.learning_rate = 0.0076
       args.std_mult = 0.7
       args.delay = 12
@@ -127,7 +127,8 @@ def main(args):
    tf.reset_default_graph()
    ##### SETUP AND LOAD DATA #####
    args, data = settings(args)
-   
+   logger.debug(args)
+
    ##### BUILD MODEL #####
    ## Placeholders
    x = tf.placeholder(tf.float32, [args.batch_size,784], name='x')
@@ -199,10 +200,10 @@ def main(args):
             sys.stdout.write('Validating\r')
             sys.stdout.flush()
          valid_acc /= (i+1.)
-         print('[{:04d} | {:0.1f}] Loss: {:04f}, Train Acc.: {:04f}, Validation Acc.: {:04f}, Learning rate: {:.2e}'.format(epoch,
+         logger.debug('[{:04d} | {:0.1f}] Loss: {:04f}, Train Acc.: {:04f}, Validation Acc.: {:04f}, Learning rate: {:.2e}'.format(epoch,
             time.time()-start, train_loss, train_acc, valid_acc, lr))
       else:
-         print('[{:04d} | {:0.1f}] Loss: {:04f}, Train Acc.: {:04f}, Learning rate: {:.2e}'.format(epoch,
+         logger.debug('[{:04d} | {:0.1f}] Loss: {:04f}, Train Acc.: {:04f}, Learning rate: {:.2e}'.format(epoch,
             time.time()-start, train_loss, train_acc, lr))
             
       # Save model
@@ -226,7 +227,7 @@ def main(args):
       sys.stdout.flush()
    test_acc /= (i+1.)
    
-   print('Test Acc.: {:04f}'.format(test_acc))
+   logger.debug('Test Acc.: {:04f}'.format(test_acc))
    sess.close()
       
 
