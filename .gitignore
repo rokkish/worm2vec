@@ -9,3 +9,13 @@ src/.ipynb_checkpoints
 *.png
 *zip
 *.pkl
+
+test/harmonic/MNIST-rot/checkpoints
+test/harmonic/MNIST-rot/data
+#tfboard projector log
+*/logs/tensorboard/*
+*.tsv
+*.pbtxt
+*.csv
+*.log
+*events.out*
