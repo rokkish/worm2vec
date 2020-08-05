@@ -61,7 +61,7 @@ def main(args):
    init_local = tf.local_variables_initializer()
    config = tf.ConfigProto()
    config.gpu_options.allow_growth = False
-   config.gpu_options.visible_device_list = "3"
+   config.gpu_options.visible_device_list = "0"
    config.log_device_placement = True
 
    lr = args.learning_rate
@@ -110,6 +110,8 @@ def main(args):
       "block3/hconv5/Reshape_1:0", 
       "block4/hconv7/Reshape_1:0", 
       "block4/hconv7/Reshape:0", 
+      "block4/Mean:0",
+      "block4/Maximum:0"
    ]
    medium_op = list(map(lambda tname:tf.get_default_graph().get_tensor_by_name(tname), layers_name))
 
