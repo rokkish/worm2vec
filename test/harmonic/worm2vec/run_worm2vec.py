@@ -5,6 +5,7 @@ import hydra
 import tensorflow as tf
 from omegaconf import DictConfig
 from models.worm_model import deep_worm, triplet_loss
+from trainer import Trainer
 import get_logger
 logger = get_logger.get_logger(name='run')
 
@@ -71,6 +72,8 @@ def main(cfg: DictConfig):
     grads_and_vars = optim.compute_gradients(loss)
     trian_op = set_train_op(grads_and_vars, optim, cfg.nn)
     # train
+    trainer = Trainer(cfg, loss, optim, trian_op, placeholders)
+    trainer.fit(data)
     # test
 
     logger.info("End run")
