@@ -68,3 +68,20 @@ def deep_worm(args, x, train_phase):
         real = hn_lite.sum_magnitudes(cv7)
         cv7 = tf.reduce_mean(real, axis=[1, 2, 3, 4])
         return tf.nn.bias_add(cv7, bias)
+
+
+def triplet_loss(preds, margin):
+    anchor = preds["x"]
+    positive = preds["positive"]
+    negative = preds["negative"]
+
+    if len(anchor.shape) != 2:
+        raise ValueError("tensor shape should be [batch, dim]")
+
+    def compute_euclidian_distance(x, y):
+        return tf.reduce_sum(tf.square(x - y), 1)
+    dist_pos = compute_euclidian_distance(anchor, positive)
+    dist_neg = compute_euclidian_distance(anchor, negative)
+
+    loss = tf.reduce_mean(tf.maximum(0., margin + dist_pos - dist_neg))
+    return loss

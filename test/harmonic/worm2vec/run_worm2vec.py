@@ -4,7 +4,7 @@ import os
 import hydra
 import tensorflow as tf
 from omegaconf import DictConfig
-from models.worm_model import deep_worm
+from models.worm_model import deep_worm, triplet_loss
 import get_logger
 logger = get_logger.get_logger(name='run')
 
@@ -19,10 +19,18 @@ def add_folder(folder_name):
 def set_placeholders(batch_size, dim):
     x = tf.placeholder(tf.float32,
                        [batch_size, dim**2], name='x')
+    positive = tf.placeholder(tf.float32,
+                              [batch_size, dim**2],
+                              name='positive')
+    negative = tf.placeholder(tf.float32,
+                              [batch_size, dim**2],
+                              name='negative')
     learning_rate = tf.placeholder(tf.float32,
                                    name='learning_rate')
     train_phase = tf.placeholder(tf.bool, name='train_phase')
     return {"x": x,
+            "positive": positive,
+            "negative": negative,
             "learning_rate": learning_rate,
             "train_phase": train_phase}
 
@@ -39,6 +47,7 @@ def main(cfg: DictConfig):
         preds[input_key] = deep_worm(cfg.nn,
                                      placeholders[input_key],
                                      placeholders["train_phase"])
+    loss = triplet_loss(preds, cfg.loss.margin)
     # train
     # test
 
