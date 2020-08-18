@@ -17,6 +17,8 @@ optimizer:
     learning_rate: 0.0076
     delay: 12
     lr_div: 10.
+loss:
+    margin: 0.1
 path:
     log: "./logs"
     checkpoint: "./checkpoints"
