@@ -3,6 +3,7 @@
 import os
 import hydra
 import tensorflow as tf
+import numpy as np
 from omegaconf import DictConfig
 from models.worm_model import deep_worm, triplet_loss
 from trainer import Trainer
@@ -15,6 +16,32 @@ def add_folder(folder_name):
         os.mkdir(folder_name)
         print('Created {:s}'.format(folder_name))
     return folder_name
+
+
+def load_data(params):
+    # Load dataset (N, ~)
+    dataset = np.load(params.path.worm_data)
+
+    # Split
+    N = dataset.shape[0]
+    valid_rate = params.preprocess.valid_rate
+    test_rate = params.preprocess.test_rate
+    train_valid_rate = 1. - test_rate
+    train_rate = 1. - valid_rate
+    N_trval = int(N * train_valid_rate)
+    N_tr = int(N_trval * train_rate)
+
+    train_valid = dataset[:N_trval]
+    train = train_valid[:N_tr]
+    valid = train_valid[N_tr:]
+    test = dataset[N_trval:]
+
+    # Format
+    data = {}
+    data['train_x'] = train
+    data['valid_x'] = valid
+    data['test_x'] = test
+    return data
 
 
 def set_placeholders(batch_size, dim):
@@ -63,7 +90,10 @@ def set_train_op(grads_and_vars, optim, params):
 def main(cfg: DictConfig):
     logger.info("Begin run")
 
+    tf.reset_default_graph()
+
     # load_data
+    data = load_data(cfg)
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
     preds = construct_model(cfg.nn, placeholders)

@@ -23,3 +23,7 @@ path:
     log: "./logs"
     checkpoint: "./checkpoints"
     checkpoint_model: "./checkpoints/model.ckpt"
+    worm_data: "../../../../data/.npz"
+preprocess:
+    test_rate: 0.1
+    valid_rate: 0.1
