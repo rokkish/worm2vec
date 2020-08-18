@@ -35,6 +35,15 @@ def set_placeholders(batch_size, dim):
             "train_phase": train_phase}
 
 
+def construct_model(params, placeholders):
+    preds = {}
+    for input_key in ["x", "positive", "negative"]:
+        preds[input_key] = deep_worm(params,
+                                     placeholders[input_key],
+                                     placeholders["train_phase"])
+    return preds
+
+
 @hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig):
     logger.info("Begin run")
@@ -42,11 +51,7 @@ def main(cfg: DictConfig):
     # load_data
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
-    preds = {}
-    for input_key in ["x", "positive", "negative"]:
-        preds[input_key] = deep_worm(cfg.nn,
-                                     placeholders[input_key],
-                                     placeholders["train_phase"])
+    preds = construct_model(cfg.nn, placeholders)
     loss = triplet_loss(preds, cfg.loss.margin)
     # train
     # test
