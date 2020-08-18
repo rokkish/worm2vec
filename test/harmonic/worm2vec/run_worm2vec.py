@@ -4,6 +4,7 @@ import os
 import hydra
 import tensorflow as tf
 from omegaconf import DictConfig
+from models.worm_model import deep_worm
 import get_logger
 logger = get_logger.get_logger(name='run')
 
@@ -33,6 +34,11 @@ def main(cfg: DictConfig):
     # load_data
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
+    preds = {}
+    for input_key in ["x", "positive", "negative"]:
+        preds[input_key] = deep_worm(cfg.nn,
+                                     placeholders[input_key],
+                                     placeholders["train_phase"])
     # train
     # test
 
