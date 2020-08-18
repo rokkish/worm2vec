@@ -44,6 +44,20 @@ def construct_model(params, placeholders):
     return preds
 
 
+def set_optimizer(params):
+    return tf.train.AdamOptimizer(learning_rate=params.learning_rate)
+
+
+def set_train_op(grads_and_vars, optim, params):
+    modified_gvs = []
+    # We precondition the phases, for faster descent, in the same way as biases
+    for g, v in grads_and_vars:
+        if 'psi' in v.name:
+            g = params.phase_preconditioner*g
+        modified_gvs.append((g, v))
+    return optim.apply_gradients(modified_gvs)
+
+
 @hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig):
     logger.info("Begin run")
@@ -53,6 +67,9 @@ def main(cfg: DictConfig):
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
     preds = construct_model(cfg.nn, placeholders)
     loss = triplet_loss(preds, cfg.loss.margin)
+    optim = set_optimizer(cfg.optimizer)
+    grads_and_vars = optim.compute_gradients(loss)
+    trian_op = set_train_op(grads_and_vars, optim, cfg.nn)
     # train
     # test
 
