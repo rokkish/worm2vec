@@ -19,3 +19,5 @@ test/harmonic/MNIST-rot/data
 *.csv
 *.log
 *events.out*
+# output of yaml
+test/harmonic/worm2vec/outputs
