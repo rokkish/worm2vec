@@ -77,7 +77,7 @@ class Trainer():
                     data['valid_x'],
                     self.batch_size)
             valid_loss = 0.
-            for i, (X, Y) in enumerate(batcher):
+            for i, (X, Pos, Neg) in enumerate(batcher):
                 feed_dict = {self.x: X,
                              self.positive: Pos,
                              self.negative: Neg,
