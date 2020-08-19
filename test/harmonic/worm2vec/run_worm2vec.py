@@ -12,8 +12,11 @@ logger = get_logger.get_logger(name='run')
 
 
 def load_data(params):
-    # Load dataset (N, ~)
-    dataset = np.load(params.path.worm_data)
+    # Load dataset (N, rot+neg, 1, H, W)
+    if not os.path.exists(params.path.worm_data):
+        logger.debug(os.getcwd())
+        raise ValueError("no exist")
+    dataset = np.load(params.path.worm_data)["arr_0"]
 
     # Split
     N = dataset.shape[0]
@@ -86,6 +89,7 @@ def main(cfg: DictConfig):
 
     # load_data
     data = load_data(cfg)
+    logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
     preds = construct_model(cfg.nn, placeholders)
