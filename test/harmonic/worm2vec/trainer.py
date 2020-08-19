@@ -121,6 +121,16 @@ class Trainer():
 
     @staticmethod
     def minibatcher(inputs, batchsize, shuffle=False):
+        """
+
+        Args:
+            inputs (ndarray): (N, 41, 1, 64, 64)
+            batchsize (int): [description]
+            shuffle (bool, optional): [description]. Defaults to False.
+
+        Yields:
+            anchor, positive, negative (ndarray): for triplet loss.
+        """
         if shuffle:
             indices = np.arange(len(inputs))
             np.random.shuffle(indices)
@@ -129,4 +139,6 @@ class Trainer():
                 excerpt = indices[start_idx:start_idx + batchsize]
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
-            yield inputs[excerpt, 0], inputs[excerpt, 1], inputs[excerpt, 2]
+            rotation = 17 #1~35
+            negative = rotation + 1 #1~5
+            yield inputs[excerpt, 0, 0], inputs[excerpt, rotation, 0], inputs[excerpt, negative, 0]
