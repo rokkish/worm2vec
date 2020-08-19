@@ -98,7 +98,7 @@ class Trainer():
             self.lr = self.lr * np.power(0.1, epoch / 50)
             epoch += 1
 
-            logger.debug('[{:04d} | {:0.1f}] Loss: {:04f}, Validation Loss.: {:04f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, valid_loss, self.lr))
+            logger.info('[{:04d} | {:04.1f}] Loss: {:04.4f}, Validation Loss.: {:04.4f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, valid_loss, self.lr))
 
         # Test
         batcher = self.minibatcher(data['test_x'],
@@ -116,7 +116,7 @@ class Trainer():
             sys.stdout.flush()
         test_loss /= (i+1.)
 
-        logger.debug('Test Acc.: {:04f}'.format(test_loss))
+        logger.info('Test Loss.: {:04f}'.format(test_loss))
         sess.close()
 
     @staticmethod
