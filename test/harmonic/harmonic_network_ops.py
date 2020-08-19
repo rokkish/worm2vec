@@ -9,7 +9,7 @@ import get_logger
 logger = get_logger.get_logger(name='ops')
 
 
-def h_conv(X, W, strides=(1,1,1,1), padding='VALID', max_order=1, name='h_conv'):
+def h_conv(X, W, strides=(1, 1, 1, 1), padding='VALID', max_order=1, name='h_conv'):
     """Inter-order (cross-stream) convolutions can be implemented as single
     convolution. For this we store data as 6D tensors and filters as 8D
     tensors, at convolution, we reshape down to 4D tensors and expand again.
@@ -23,10 +23,10 @@ def h_conv(X, W, strides=(1,1,1,1), padding='VALID', max_order=1, name='h_conv')
     max_order: (default 1)
     name: (default h_conv)
     """
-    with tf.name_scope('hconv'+str(name)) as scope:
+    with tf.name_scope('hconv'+str(name)):
         # Build data tensor: reshape it as [mbatch,h,w,order*complex*channels]
         Xsh = X.get_shape().as_list()
-        X_ = tf.reshape(X, tf.concat(axis=0,values=[Xsh[:3],[-1]]))
+        X_ = tf.reshape(X, tf.concat(axis=0, values=[Xsh[:3], [-1]]))
 
         # The script below constructs the stream-convolutions as one big filter
         # W_. For each output order, run through each input order and
@@ -45,8 +45,8 @@ def h_conv(X, W, strides=(1,1,1,1), padding='VALID', max_order=1, name='h_conv')
                 # We have the arbitrary convention that negative orders use the
                 # conjugate weights.
                 if Xsh[4] == 2:
-                    Wr += [weights[0],-sign*weights[1]]
-                    Wi += [sign*weights[1],weights[0]]
+                    Wr += [weights[0], -sign*weights[1]]
+                    Wi += [sign*weights[1], weights[0]]
                 else:
                     Wr += [weights[0]]
                     Wi += [weights[1]]
@@ -57,12 +57,12 @@ def h_conv(X, W, strides=(1,1,1,1), padding='VALID', max_order=1, name='h_conv')
         Y = tf.nn.conv2d(X_, W_, strides=strides, padding=padding, name=name)
         # Reshape result into appropriate format
         Ysh = Y.get_shape().as_list()
-        new_shape = tf.concat(axis=0, values=[Ysh[:3],[max_order+1,2],[int(Ysh[3]/(2*(max_order+1)))]])
+        new_shape = tf.concat(axis=0, values=[Ysh[:3], [max_order+1, 2], [int(Ysh[3]/(2*(max_order+1)))]])
         return tf.reshape(Y, new_shape)
 
 
-def h_range_conv(X, W, strides=(1,1,1,1), padding='VALID', in_range=(0,1),
-                      out_range=(0,1), name='r_conv'):
+def h_range_conv(X, W, strides=(1, 1, 1, 1), padding='VALID', in_range=(0, 1),
+                 out_range=(0, 1), name='r_conv'):
     """Inter-order (cross-stream) convolutions can be implemented as single
     convolution. For this we store data as 6D tensors and filters as 8D
     tensors, at convolution, we reshape down to 4D tensors and expand again.
@@ -77,10 +77,10 @@ def h_range_conv(X, W, strides=(1,1,1,1), padding='VALID', in_range=(0,1),
     out_range: (default (0,1))
     name: (default r_conv)
     """
-    with tf.name_scope('hconv'+str(name)) as scope:
+    with tf.name_scope('hconv'+str(name)):
         # Build data tensor: reshape it as [mbatch,h,w,order*complex*channels]
         Xsh = X.get_shape().as_list()
-        X_ = tf.reshape(X, tf.concat(axis=0,values=[Xsh[:3],[-1]]))
+        X_ = tf.reshape(X, tf.concat(axis=0, values=[Xsh[: 3],[-1]]))
 
         # The script below constructs the stream-convolutions as one big filter
         # W_. For each output order, run through each input order and copy-paste
@@ -98,7 +98,7 @@ def h_range_conv(X, W, strides=(1,1,1,1), padding='VALID', in_range=(0,1),
                 # have the arbitrary convention that negative orders use the
                 # conjugate weights.
                 if Xsh[4] == 2:
-                    Wr += [weights[0],-weights[1]]
+                    Wr += [weights[0], -weights[1]]
                     Wi += [weights[1], weights[0]]
                 else:
                     Wr += [weights[0]]
@@ -111,7 +111,7 @@ def h_range_conv(X, W, strides=(1,1,1,1), padding='VALID', in_range=(0,1),
         # Reshape result into appropriate format
         Ysh = Y.get_shape().as_list()
         diff = out_range[1] - out_range[0] + 1
-        new_shape = tf.concat(axis=0, values=[Ysh[:3],[diff,2],[Ysh[3]/(2*diff)]])
+        new_shape = tf.concat(axis=0, values=[Ysh[:3], [diff, 2], [Ysh[3]/(2*diff)]])
         return tf.reshape(Y, new_shape)
 
 
@@ -131,7 +131,7 @@ def h_nonlin(X, fnc, eps=1e-12, name='b', reuse=False):
     magnitude = stack_magnitudes(X, eps)
     msh = magnitude.get_shape()
     with tf.variable_scope("h_nonlin", reuse=reuse):
-        b = tf.get_variable('b'+name, shape=[1,1,1,msh[3],1,msh[5]])
+        b = tf.get_variable('b'+name, shape=[1, 1, 1, msh[3], 1, msh[5]])
 
     Rb = tf.add(magnitude, b)
     c = tf.div(fnc(Rb), magnitude)
@@ -148,7 +148,7 @@ def h_batch_norm(X, fnc, train_phase, decay=0.99, eps=1e-12, name='hbn', reuse=F
     eps: regularization since grad |Z| is infinite at zero (default 1e-8)
     name: (default complexBatchNorm)
     """
-    with tf.name_scope(name) as scope:
+    with tf.name_scope(name):
         magnitude = stack_magnitudes(X, eps)
         Rb = bn(magnitude, train_phase, decay=decay, name=name, reuse=reuse)
         c = tf.div(fnc(Rb), magnitude)
@@ -194,7 +194,7 @@ def bn(X, train_phase, decay=0.99, name='batchNorm', reuse=False):
     return normed
 
 
-def mean_pooling(x, ksize=(1,1,1,1), strides=(1,1,1,1)):
+def mean_pooling(x, ksize=(1, 1, 1, 1), strides=(1, 1, 1, 1)):
     """Implement mean pooling on complex-valued feature maps. The complex mean
     on a local receptive field, is performed as mean(real) + i*mean(imag)
 
@@ -204,11 +204,11 @@ def mean_pooling(x, ksize=(1,1,1,1), strides=(1,1,1,1)):
     """
     Xsh = x.get_shape()
     # Collapse output the order, complex, and channel dimensions
-    X_ = tf.reshape(x, tf.concat(axis=0,values=[Xsh[:3],[-1]]))
+    X_ = tf.reshape(x, tf.concat(axis=0, values=[Xsh[:3], [-1]]))
     Y = tf.nn.avg_pool(X_, ksize=ksize, strides=strides, padding='VALID',
                        name='mean_pooling')
     Ysh = Y.get_shape()
-    new_shape = tf.concat(axis=0, values=[Ysh[:3],Xsh[3:]])
+    new_shape = tf.concat(axis=0, values=[Ysh[:3], Xsh[3:]])
     return tf.reshape(Y, new_shape)
 
 
@@ -221,7 +221,7 @@ def stack_magnitudes(X, eps=1e-12, keep_dims=True):
     eps: regularization since grad |Z| is infinite at zero (default 1e-12)
     """
     R = tf.reduce_sum(tf.square(X), axis=[4], keep_dims=keep_dims)
-    return tf.sqrt(tf.maximum(R,eps))
+    return tf.sqrt(tf.maximum(R, eps))
 
 
 ##### CREATING VARIABLES #####
@@ -267,9 +267,9 @@ def get_interpolation_weights(filter_size, m, n_rings=None):
     # Create interpolation coefficient coordinates
     coords = L2_grid(foveal_center, filter_size)
     # Sample positions wrt patch center IJ-coords
-    radii = radii[:,np.newaxis,np.newaxis,np.newaxis]
-    ring_locations = ring_locations[np.newaxis,:,:,np.newaxis]
-    diff = radii*ring_locations - coords[np.newaxis,:,np.newaxis,:]
+    radii = radii[:, np.newaxis, np.newaxis, np.newaxis]
+    ring_locations = ring_locations[np.newaxis, :, :, np.newaxis]
+    diff = radii*ring_locations - coords[np.newaxis, :, np.newaxis, :]
     dist2 = np.sum(diff**2, axis=1)
     # Convert distances to weightings
     bandwidth = 0.5
@@ -288,7 +288,7 @@ def get_filters(R, filter_size, P=None, n_rings=None):
         rsh = r.get_shape().as_list()
         # Get the basis matrices
         weights = get_interpolation_weights(k, m, n_rings=n_rings)
-        DFT = dft(N)[m,:]
+        DFT = dft(N)[m, :]
         LPF = np.dot(DFT, weights).T
 
         cosine = np.real(LPF).astype(np.float32)
@@ -297,7 +297,7 @@ def get_filters(R, filter_size, P=None, n_rings=None):
         cosine = tf.constant(cosine)
         sine = tf.constant(sine)
         # Project taps on to rotational basis
-        r = tf.reshape(r, tf.stack([rsh[0],rsh[1]*rsh[2]]))
+        r = tf.reshape(r, tf.stack([rsh[0], rsh[1]*rsh[2]]))
         ucos = tf.reshape(tf.matmul(cosine, r), tf.stack([k, k, rsh[1], rsh[2]]))
         usin = tf.reshape(tf.matmul(sine, r), tf.stack([k, k, rsh[1], rsh[2]]))
         if P is not None:
@@ -310,7 +310,7 @@ def get_filters(R, filter_size, P=None, n_rings=None):
 
 
 def n_samples(filter_size):
-    return np.maximum(np.ceil(np.pi*filter_size),101) ############## <--- One source of instability
+    return np.maximum(np.ceil(np.pi*filter_size), 101) ############## <--- One source of instability
 
 
 def L2_grid(center, shape):
@@ -341,7 +341,7 @@ def get_weights_dict(shape, max_order, std_mult=0.4, n_rings=None, name='W', reu
     for i in orders:
         if n_rings is None:
             n_rings = np.maximum(shape[0]/2, 2)
-        sh = [n_rings,] + shape[2:]
+        sh = [n_rings, ] + shape[2:]
         nm = name + '_' + str(i)
         weights_dict[i] = get_weights(sh, std_mult=std_mult, name=nm, reuse=reuse)
     return weights_dict
@@ -357,10 +357,11 @@ def get_phase_dict(n_in, n_out, max_order, name='b', reuse=False):
     phase_dict = {}
     with tf.variable_scope("get_phase_dict", reuse=reuse):
         for i in orders:
-            init = np.random.rand(1,1,n_in,n_out) * 2. *np.pi
+            init = np.random.rand(1, 1, n_in, n_out) * 2. * np.pi
             init = np.float32(init)
-            phase = tf.get_variable(name+'_'+str(i), dtype=tf.float32,
-                                    shape=[1,1,n_in,n_out],
-                initializer=tf.constant_initializer(init))
+            phase = \
+                tf.get_variable(name+'_'+str(i), dtype=tf.float32,
+                                shape=[1, 1, n_in, n_out],
+                                initializer=tf.constant_initializer(init))
             phase_dict[i] = phase
     return phase_dict
