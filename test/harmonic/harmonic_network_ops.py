@@ -117,7 +117,7 @@ def h_range_conv(X, W, strides=(1,1,1,1), padding='VALID', in_range=(0,1),
 
 
 ##### NONLINEARITIES #####
-def h_nonlin(X, fnc, eps=1e-12, name='b'):
+def h_nonlin(X, fnc, eps=1e-12, name='b', reuse=False):
     """Apply the nonlinearity described by the function handle fnc: R -> R+ to
     the magnitude of X. CAVEAT: fnc must map to the non-negative reals R+.
 
@@ -130,14 +130,15 @@ def h_nonlin(X, fnc, eps=1e-12, name='b'):
     """
     magnitude = stack_magnitudes(X, eps)
     msh = magnitude.get_shape()
-    b = tf.get_variable('b'+name, shape=[1,1,1,msh[3],1,msh[5]])
+    with tf.variable_scope("h_nonlin", reuse=reuse):
+        b = tf.get_variable('b'+name, shape=[1,1,1,msh[3],1,msh[5]])
 
     Rb = tf.add(magnitude, b)
     c = tf.div(fnc(Rb), magnitude)
     return c*X
 
 
-def h_batch_norm(X, fnc, train_phase, decay=0.99, eps=1e-12, name='hbn'):
+def h_batch_norm(X, fnc, train_phase, decay=0.99, eps=1e-12, name='hbn', reuse=False):
     """Batch normalization for the magnitudes of X
 
     X: dict of channels {rotation order: (real, imaginary)}
@@ -149,12 +150,12 @@ def h_batch_norm(X, fnc, train_phase, decay=0.99, eps=1e-12, name='hbn'):
     """
     with tf.name_scope(name) as scope:
         magnitude = stack_magnitudes(X, eps)
-        Rb = bn(magnitude, train_phase, decay=decay, name=name)
+        Rb = bn(magnitude, train_phase, decay=decay, name=name, reuse=reuse)
         c = tf.div(fnc(Rb), magnitude)
         return c*X
 
 
-def bn(X, train_phase, decay=0.99, name='batchNorm'):
+def bn(X, train_phase, decay=0.99, name='batchNorm', reuse=False):
     """Batch normalization module.
 
     X: tf tensor
@@ -167,7 +168,7 @@ def bn(X, train_phase, decay=0.99, name='batchNorm'):
     Xsh = X.get_shape().as_list()
     n_out = Xsh[-3:]
 
-    with tf.name_scope(name) as scope:
+    with tf.variable_scope(name, reuse=reuse):
         beta = tf.get_variable(name+'_beta', dtype=tf.float32, shape=n_out,
                                       initializer=tf.constant_initializer(0.0))
         gamma = tf.get_variable(name+'_gamma', dtype=tf.float32, shape=n_out,
@@ -233,7 +234,7 @@ def to_constant_float(Q):
     return tf.to_float(Q)
 
 
-def get_weights(filter_shape, W_init=None, std_mult=0.4, name='W'):
+def get_weights(filter_shape, W_init=None, std_mult=0.4, name='W', reuse=False):
     """Initialize weights variable with He method
 
     filter_shape: list of filter dimensions
@@ -245,7 +246,8 @@ def get_weights(filter_shape, W_init=None, std_mult=0.4, name='W'):
     if W_init == None:
         stddev = std_mult*np.sqrt(2.0 / np.prod(filter_shape[:3]))
         W_init = tf.random_normal_initializer(stddev=stddev)
-    return tf.get_variable(name, dtype=tf.float32, shape=filter_shape,
+    with tf.variable_scope("get_weights", reuse=reuse):
+        return tf.get_variable(name, dtype=tf.float32, shape=filter_shape,
             initializer=W_init)
 
 
@@ -320,7 +322,7 @@ def L2_grid(center, shape):
     return np.vstack((np.reshape(I, -1), np.reshape(J, -1)))
 
 
-def get_weights_dict(shape, max_order, std_mult=0.4, n_rings=None, name='W'):
+def get_weights_dict(shape, max_order, std_mult=0.4, n_rings=None, name='W', reuse=False):
     """Return a dict of weights.
 
     shape: list of filter shape [h,w,i,o] --- note we use h=w
@@ -341,11 +343,11 @@ def get_weights_dict(shape, max_order, std_mult=0.4, n_rings=None, name='W'):
             n_rings = np.maximum(shape[0]/2, 2)
         sh = [n_rings,] + shape[2:]
         nm = name + '_' + str(i)
-        weights_dict[i] = get_weights(sh, std_mult=std_mult, name=nm)
+        weights_dict[i] = get_weights(sh, std_mult=std_mult, name=nm, reuse=reuse)
     return weights_dict
 
 
-def get_phase_dict(n_in, n_out, max_order, name='b'):
+def get_phase_dict(n_in, n_out, max_order, name='b', reuse=False):
     """Return a dict of phase offsets"""
     if isinstance(max_order, int):
         orders = range(-max_order, max_order+1)
@@ -353,11 +355,12 @@ def get_phase_dict(n_in, n_out, max_order, name='b'):
         diff = max_order[1]-max_order[0]
         orders = range(-diff, diff+1)
     phase_dict = {}
-    for i in orders:
-        init = np.random.rand(1,1,n_in,n_out) * 2. *np.pi
-        init = np.float32(init)
-        phase = tf.get_variable(name+'_'+str(i), dtype=tf.float32,
-                                shape=[1,1,n_in,n_out],
-            initializer=tf.constant_initializer(init))
-        phase_dict[i] = phase
+    with tf.variable_scope("get_phase_dict", reuse=reuse):
+        for i in orders:
+            init = np.random.rand(1,1,n_in,n_out) * 2. *np.pi
+            init = np.float32(init)
+            phase = tf.get_variable(name+'_'+str(i), dtype=tf.float32,
+                                    shape=[1,1,n_in,n_out],
+                initializer=tf.constant_initializer(init))
+            phase_dict[i] = phase
     return phase_dict

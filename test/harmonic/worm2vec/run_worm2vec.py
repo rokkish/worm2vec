@@ -61,10 +61,11 @@ def set_placeholders(batch_size, dim):
 
 def construct_model(params, placeholders):
     preds = {}
-    for input_key in ["x", "positive", "negative"]:
+    for input_key, reuse in [("x", False), ("positive", True), ("negative", True)]:
         preds[input_key] = deep_worm(params,
                                      placeholders[input_key],
-                                     placeholders["train_phase"])
+                                     placeholders["train_phase"],
+                                     reuse)
     return preds
 
 

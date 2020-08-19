@@ -14,7 +14,7 @@ logger = get_logger.get_logger(name='lite')
 
 
 def conv2d(x, n_channels, ksize, strides=(1,1,1,1), padding='VALID', phase=True,
-             max_order=1, stddev=0.4, n_rings=None, name='conv2d'):
+             max_order=1, stddev=0.4, n_rings=None, name='conv2d', reuse=False):
     """Harmonic Convolution lite
 
     x: input tf tensor, shape [batchsize,height,width,order,complex,channels],
@@ -33,9 +33,9 @@ def conv2d(x, n_channels, ksize, strides=(1,1,1,1), padding='VALID', phase=True,
     """
     xsh = x.get_shape().as_list()
     shape = [ksize, ksize, xsh[5], n_channels]
-    Q = get_weights_dict(shape, max_order, std_mult=stddev, n_rings=n_rings, name='W'+name)
+    Q = get_weights_dict(shape, max_order, std_mult=stddev, n_rings=n_rings, name='W'+name, reuse=reuse)
     if phase == True:
-        P = get_phase_dict(xsh[5], n_channels, max_order, name='phase'+name)
+        P = get_phase_dict(xsh[5], n_channels, max_order, name='phase'+name, reuse=reuse)
     else:
         P = None
     W = get_filters(Q, filter_size=ksize, P=P, n_rings=n_rings)
@@ -44,14 +44,14 @@ def conv2d(x, n_channels, ksize, strides=(1,1,1,1), padding='VALID', phase=True,
     return R
 
 
-def batch_norm(x, train_phase, fnc=tf.nn.relu, decay=0.99, eps=1e-4, name='hbn'):
+def batch_norm(x, train_phase, fnc=tf.nn.relu, decay=0.99, eps=1e-4, name='hbn', reuse=False):
     """Batch normalization for the magnitudes of X"""
-    return h_batch_norm(x, fnc, train_phase, decay=decay, eps=eps, name=name)
+    return h_batch_norm(x, fnc, train_phase, decay=decay, eps=eps, name=name, reuse=reuse)
 
 
-def non_linearity(x, fnc=tf.nn.relu, eps=1e-4, name='nl'):
+def non_linearity(x, fnc=tf.nn.relu, eps=1e-4, name='nl', reuse=False):
     """Alter nonlinearity for the complex domains"""
-    return h_nonlin(x, fnc, eps=eps, name=name)
+    return h_nonlin(x, fnc, eps=eps, name=name, reuse=reuse)
 
 
 def mean_pool(x, ksize=(1,1,1,1), strides=(1,1,1,1), name='mp'):
