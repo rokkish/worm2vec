@@ -6,7 +6,7 @@ nn:
     n_classes: 10
     std_mult: 0.7
     n_rings: 4
-    dim: 28
+    dim: 64
     phase_preconditioner: 7.8
     n_epochs: 100
     # display_step: len(data['train_x'])/46
