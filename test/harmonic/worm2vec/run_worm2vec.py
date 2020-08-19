@@ -42,12 +42,12 @@ def load_data(params):
 
 def set_placeholders(batch_size, dim):
     x = tf.placeholder(tf.float32,
-                       [batch_size, dim**2], name='x')
+                       [batch_size, dim, dim], name='x')
     positive = tf.placeholder(tf.float32,
-                              [batch_size, dim**2],
+                              [batch_size, dim, dim],
                               name='positive')
     negative = tf.placeholder(tf.float32,
-                              [batch_size, dim**2],
+                              [batch_size, dim, dim],
                               name='negative')
     learning_rate = tf.placeholder(tf.float32,
                                    name='learning_rate')
