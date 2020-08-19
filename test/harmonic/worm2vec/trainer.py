@@ -95,7 +95,7 @@ class Trainer():
                 print('Model saved')
 
             # Updates to the training scheme
-            self.lr = self.learning_rate * np.power(0.1, epoch / 50)
+            self.lr = self.lr * np.power(0.1, epoch / 50)
             epoch += 1
 
             logger.debug('[{:04d} | {:0.1f}] Loss: {:04f}, Validation Loss.: {:04f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, valid_loss, self.lr))
