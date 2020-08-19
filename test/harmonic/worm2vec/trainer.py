@@ -34,9 +34,9 @@ class Trainer():
         self.init_global = tf.global_variables_initializer()
         self.init_local = tf.local_variables_initializer()
         self.config = tf.ConfigProto()
-        self.config.gpu_options.allow_growth = False
-        self.config.gpu_options.visible_device_list = "2"
-        self.config.log_device_placement = True
+        self.config.gpu_options.allow_growth = params.gpu.allow_growth
+        self.config.gpu_options.visible_device_list = params.gpu.id
+        self.config.log_device_placement = params.gpu.log_device_placement
 
     def fit(self, data):
         saver = tf.train.Saver()

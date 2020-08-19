@@ -27,3 +27,7 @@ path:
 preprocess:
     test_rate: 0.1
     valid_rate: 0.1
+gpu:
+    id: "0"
+    allow_growth: False
+    log_device_placement: True
