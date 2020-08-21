@@ -7,6 +7,7 @@ import numpy as np
 from omegaconf import DictConfig
 from models.worm_model import deep_worm, triplet_loss
 from trainer import Trainer
+from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
 
@@ -98,10 +99,14 @@ def main(cfg: DictConfig):
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)
     modified_gvs = modify_gvs(grads_and_vars, cfg.nn)
-    trian_op = optim.apply_gradients(modified_gvs)
-    # train
-    trainer = Trainer(cfg, loss, optim, trian_op, placeholders)
-    trainer.fit(data)
+    train_op = optim.apply_gradients(modified_gvs)
+    # train or predict
+    if cfg.train_mode:
+        trainer = Trainer(cfg, loss, optim, train_op, placeholders)
+        trainer.fit(data)
+    else:
+        predictor = Predictor(cfg, loss, optim, train_op, placeholders)
+        predictor.fit(data)
 
 
 if __name__ == "__main__":

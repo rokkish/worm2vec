@@ -23,7 +23,10 @@ path:
     log: "./logs"
     checkpoint: "./checkpoints"
     checkpoint_model: "./checkpoints/model.ckpt"
+    checkpoint_fullpath: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/outputs/2020-08-19/16-18-38/checkpoints/model.ckpt"
+    tensorboard: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/tensorboard/"
     worm_data: "../../../../data/.npz"
+train_mode: True
 preprocess:
     test_rate: 0.1
     valid_rate: 0.1
