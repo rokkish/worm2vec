@@ -115,15 +115,10 @@ class WormDataset_get_table(torch.utils.data.Dataset):
                 tensor(36, 1, 64, 64)
                       (Sameimg, Channel, H, W)
         """
-        for i in range(1):
-            tensori = tensor[i].unsqueeze(dim=0)
-            tensori2 = torch.cat([tensori, tensori], dim=0)
-            tensori4 = torch.cat([tensori2, tensori2], dim=0)
-            tensori8 = torch.cat([tensori4, tensori4], dim=0)
-            tensori16 = torch.cat([tensori8, tensori8], dim=0)
-            tensori32 = torch.cat([tensori16, tensori16], dim=0)
-            tensori36 = torch.cat([tensori32, tensori4], dim=0)
-        return tensori36
+        tensors = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
+        for i in range(tensors.shape[0]):
+            tensors[i] = tensor[0]
+        return tensors
 
     @staticmethod
     def cat(original, copy):
@@ -183,7 +178,7 @@ class Get_distance_table(object):
 
         for data_i, data_dic in enumerate(loader):
 
-            logger.debug("allpath:{}, data_i:{}".format(len(allpath), data_i + self.START_ID))
+            #logger.debug("allpath:{}, data_i:{}".format(len(allpath), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
 
@@ -203,10 +198,10 @@ class Get_distance_table(object):
                 break
 
             random_path_list = self.get_random_paths(np.array(allpath), self.MAX_NUM_OF_PAIR_DATA, data_i)
-            logger.debug("allpath:{}, data_i:{}".format(len(random_path_list), data_i))
+            #logger.debug("allpath:{}, data_i:{}".format(len(random_path_list), data_i))
 
             self.get_mse_epoch(data, date, random_path_list)
-            logger.debug("GPU {}, max dist:{}".format(self.process_id, max(self.max_distance_list)))
+            #logger.debug("GPU {}, max dist:{}".format(self.process_id, max(self.max_distance_list)))
             self.max_distance_list = []
             zip_dir()   #TODO:並列実行すると，予期せぬ挙動になる．
 
@@ -228,17 +223,17 @@ class Get_distance_table(object):
 
         values = [(i, pathi) for i, pathi in enumerate(allpath)]
 
-        logger.debug("load tensors")
+        #logger.debug("load tensors")
         tensors_y = self.load_target_tensor(allpath)
         tensors_y = tensors_y.to(self.device)
-        logger.debug("loaded tensors:{}".format(tensors_y.shape))
+        #logger.debug("loaded tensors:{}".format(tensors_y.shape))
 
         def get_mse_batch_map(values, tensors_y=tensors_y):
             idx, pathi = values[0], values[1]
             target_y = tensors_y[idx]
 
-            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("GPU[{}] get_mse_batch_map idx:{}".format(self.process_id, idx))
+            #if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+            #logger.debug("GPU[{}] get_mse_batch_map idx:{}".format(self.process_id, idx))
 
             y_date = get_date_to_split_path(pathi)
 
@@ -284,8 +279,8 @@ class Get_distance_table(object):
 
         for idx, pathi in enumerate(allpath):
 
-            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("GPU[{}] load_target_tensor_map idx:{}".format(self.process_id, idx))
+            #if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+            #logger.debug("GPU[{}] load_target_tensor_map idx:{}".format(self.process_id, idx))
 
             newTensor[idx] = torch.load(pathi).unsqueeze(0)
 
@@ -358,7 +353,7 @@ class Get_distance_table(object):
         """
         dirs = glob.glob("../../data/processed/distance_table/*")
         if "../../data/processed/distance_table/" + date + ".zip" in dirs:
-            logger.debug("Skip:{}".format(date))
+            #logger.debug("Skip:{}".format(date))
             return True
         return False
 

@@ -37,7 +37,8 @@ class Compressor(object):
         self.K = K
         self.zip_list = sorted(glob.glob("../../data/processed/distance_table/*"))
         self.unzip_dir = "../../data/processed/distance_table/temp/"
-        self.history_pkl = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.K)))
+        self.history_dir = "../../data/processed/distance_table_compress_top{}/".format(self.K)
+        self.history_pkl = sorted(glob.glob(self.history_dir + "*"))
         logger.debug("zip list:{}".format(len(self.zip_list)))
 
     def compress_all(self):
@@ -45,13 +46,13 @@ class Compressor(object):
             zip_name = zip_i.split("/")[-1].split(".")[0]
 
             #TODO:skip
-            if "../../data/processed/distance_table_compress_top{}/".format(self.K) + zip_name + ".pkl" in self.history_pkl:
+            if "{}{}.pkl".format(self.history_dir, zip_name) in self.history_pkl:
                 continue
 
             self.compress(zip_i)
 
-            if i % (len(self.zip_list)//500) == 0:
-                logger.debug("i:{}, per:{}".format(i, i/len(self.zip_list)*100))
+            if i % 100 == 0:
+                logger.debug("i:{}, per:{:3f}".format(i, i/len(self.zip_list)*100))
 
             self.save_df_as_pickle(zip_name)
 

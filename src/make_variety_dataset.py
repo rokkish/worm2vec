@@ -25,16 +25,21 @@ class DatasetMaker(object):
         self.save_path = save_path
         self.pkl_list = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.load_K)))
         self.original_date_path = ""
-        self.history_pkl = sorted(glob.glob("../../data/processed/varietydata/*.pkl"))
+        self.history_dir = "../../data/processed/varietydata_r36_n5/"
+        self.history_pkl = sorted(glob.glob("{}*.pt".format(self.history_dir)))
 
     def make(self):
+        skip_count = 0
         for i, pkl in enumerate(self.pkl_list):
             pkl_name = pkl.split("/")[-1].split(".")[0]
-            if "../../data/processed/varietydata/{}" + pkl_name + ".pkl" in self.history_pkl:
+
+            if "{}{}.pt".format(self.history_dir, pkl_name) in self.history_pkl:
+                skip_count += 1
                 continue
 
-            if i % (len(self.pkl_list)//500) == 0:
-                logger.debug("i:{}, per:{:.1f}".format(i, i/len(self.pkl_list)*100))
+            if i % 200 == 0:
+                logger.debug("i:{}, per:{:.1f}, skip:{}".format(i, i/len(self.pkl_list)*100, skip_count))
+
             self.load_df(pkl)
             self.load_tensors()
             self.concat_tensors()
