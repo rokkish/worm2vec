@@ -27,18 +27,19 @@ class DatasetMaker(object):
         self.original_date_path = ""
         self.history_dir = "../../data/processed/varietydata_r36_n5/"
         self.history_pkl = sorted(glob.glob("{}*.pt".format(self.history_dir)))
-
+        logger.debug("load: {}".format(len(self.pkl_list)))
+        logger.debug("history: {}".format(len(self.history_pkl)))
     def make(self):
         skip_count = 0
         for i, pkl in enumerate(self.pkl_list):
             pkl_name = pkl.split("/")[-1].split(".")[0]
 
+            if i % 500 == 0:
+                logger.debug("i:{}, per:{:.1f}, skip:{}".format(i, i/len(self.pkl_list)*100, skip_count))
+
             if "{}{}.pt".format(self.history_dir, pkl_name) in self.history_pkl:
                 skip_count += 1
                 continue
-
-            if i % 200 == 0:
-                logger.debug("i:{}, per:{:.1f}, skip:{}".format(i, i/len(self.pkl_list)*100, skip_count))
 
             self.load_df(pkl)
             self.load_tensors()

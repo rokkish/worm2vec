@@ -20,10 +20,14 @@ python features/rename.py
 
 ## **Make** distance table
 類似度テーブルの作成
+
+* process_id: データの選択
+* gpu_id: GPUの選択
+
 max_original個のデータについて，それぞれmax_pair個のデータとのMSEを取得
 max_original x max_pair行のデータが得られる．
 ```
-python get_distance_table.py --process_id 0~3 --max_pair 100 --max_original 20000
+python get_distance_table.py --process_id 0~3 --max_pair 100 --max_original 20000 --gpu_id 0
 ```
 
 ## **Compress** distance table top K

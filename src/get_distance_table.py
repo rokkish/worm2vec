@@ -31,7 +31,7 @@ import features.sort_index as sort_index
 from trainer import Trainer
 from visualization.save_images_gray_grid import save_images_grid
 import get_logger
-logger = get_logger.get_logger(name='get_distance_table')
+logger = get_logger.get_logger(name='get_distance_table', save_name="../log/logger/get_distance_table.log")
 DUMMY = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
 TARGET_ROTATE = list(range(0, 36))
 
@@ -46,7 +46,7 @@ def zip_dir():
             continue
 
         shutil.make_archive(root_dir_i, "zip", root_dir=root_dir_i)
-        logger.debug("rm {}".format(root_dir_i))
+        #logger.debug("rm {}".format(root_dir_i))
         shutil.rmtree(root_dir_i)
 
 
@@ -72,6 +72,7 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         self.alldata = glob.glob(self.root+"/*.pt")
         self.alldata.sort(key=sort_index.get_binaryfile_number)
         self.data = self.alldata[self.START_ID:self.END_ID]
+        self.history_zip = glob.glob("../../data/processed/distance_table/*")
 
         logger.debug("head of self.data %s" % (self.data[:2]))
         logger.debug("tail of self.data %s" % (self.data[-2:]))
@@ -87,6 +88,9 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         img_path = self.data[index]
         #['..', '..', 'data', 'processed', 'alldata', '201302081603_000000.pt']
         img_date_id = get_date_to_split_path(img_path)
+
+        if self.is_already_calculated(img_date_id):
+            return {config.error_idx: DUMMY}
 
         try:
             img = torch.load(img_path)
@@ -131,16 +135,27 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         tensor = torch.cat([original, copy], dim=0)
         return tensor
 
+    #@staticmethod
+    def is_already_calculated(self, date):
+        """chk whether date in ~/distance_table/*.zip
+            Args
+                date = "201201021359_000000"
+            Return
+        """
+        if "../../data/processed/distance_table/" + date + ".zip" in self.history_zip:
+            return True
+        return False
 
 class Get_distance_table(object):
     
-    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data):
+    def __init__(self, process_id, gpu_id, save_name, max_num_of_original_data, max_num_of_pair_data):
         self.process_id = process_id
+        self.gpu_id = gpu_id
         self.save_name = save_name
         self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
         self.START_ID, self.END_ID = self.count_img()
-        self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:" + str(self.gpu_id) if torch.cuda.is_available() else "cpu")
         self.max_distance_list = []#original一枚に対する全ペア間の最大距離
 
     def count_img(self):
@@ -175,24 +190,27 @@ class Get_distance_table(object):
                 allpath(list)   :[path, ..., path]
         """
         init_t = time.time()
-
+        skip_count = 0
         for data_i, data_dic in enumerate(loader):
 
             #logger.debug("allpath:{}, data_i:{}".format(len(allpath), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
 
+            print("\r [process] {}/{}".format(data_i + self.START_ID, self.END_ID), end="")
+
             if data_i % 1000 == 0:
-                logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
-                            (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
+                logger.debug("[{}] {}/{} \t Processd :{:.3f} sec, skip:{}".format
+                            (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t, skip_count))
 
             if date == config.error_idx:
-                logger.debug("Skip this batch beacuse window can't load data")
-                logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
+                skip_count += 1
+                #logger.debug("Skip this batch beacuse window can't load data")
+                #logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
                 continue
 
-            if self.is_already_calculated(date):
-                continue
+            #if self.is_already_calculated(date):
+            #    continue
 
             if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
                 break
@@ -368,7 +386,7 @@ def main(args):
     """Load datasets, Do preprocess()
     """
     logger.info("start")
-    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair)
+    gettabler = Get_distance_table(args.process_id, args.gpu_id, args.save_name, args.max_original, args.max_pair)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
     #zip_dir()
@@ -386,7 +404,8 @@ def chk(args):
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("--process_id", type=int, default=0,
-                       help="input 0~3 for pararell docker container")
+                       help="input 0~3 for pararell docker container to select splited data")
+    parse.add_argument("--gpu_id", default="0")
     parse.add_argument("--save_name", default="test")
     parse.add_argument("--max_original", type=int, default=1)
     parse.add_argument("--max_pair", type=int, default=10000)
