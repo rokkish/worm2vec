@@ -21,12 +21,16 @@ loss:
     margin: 0.1
 path:
     log: "./logs"
+    # save
     checkpoint: "./checkpoints"
     checkpoint_model: "./checkpoints/model.ckpt"
+    # load
     checkpoint_fullpath: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/outputs/2020-08-19/16-18-38/checkpoints/model.ckpt"
     tensorboard: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/tensorboard/"
     worm_data: "../../../../data/.npz"
 train_mode: True
+train:
+    restart_train: False
 preprocess:
     test_rate: 0.1
     valid_rate: 0.1

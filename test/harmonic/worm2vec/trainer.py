@@ -38,12 +38,19 @@ class Trainer():
         self.config.gpu_options.visible_device_list = params.gpu.id
         self.config.log_device_placement = params.gpu.log_device_placement
 
+        # Restart train
+        self.restart_train = params.train.restart_train
+        self.checkpoint_fullpath = params.path.checkpoint_fullpath
+
     def fit(self, data):
         saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
         sess.run([self.init_global,
                   self.init_local],
                  feed_dict={self.train_phase: True})
+
+        if self.restart_train:
+            saver.restore(sess, self.checkpoint_fullpath)
 
         start = time.time()
         epoch = 0
