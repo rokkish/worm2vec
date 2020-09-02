@@ -5,9 +5,12 @@ This folder contains project that run Worm2vec with harmonic network.
 To train network, Run this code.
 ```
 # train
-python run_worm2vec.py path.worm_data=/root/worm2vec/data/varietydata_r36_n5_0.npz nn.n_epochs=3 nn.batch_size=100
+python run_worm2vec.py path.worm_data=/root/worm2vec/data/variety_data_r36_n5_np_0/01.npz nn.n_epochs=3 nn.batch_size=100 train.restart_train=True
 
 # predict
-python run_worm2vec.py path.worm_data=/root/worm2vec/data/varietydata_r36_n5_0.npz train_mode=False
+python run_worm2vec.py path.worm_data=/root/worm2vec/data/variety_data_r36_n5_np_0/00.npz train_mode=False path.tensorboard=./
+
+# project
+tensorboard tensorboard  --logdir . --bind_all --port 8888
 
 ```
