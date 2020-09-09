@@ -5,7 +5,8 @@ import hydra
 import tensorflow as tf
 import numpy as np
 from omegaconf import DictConfig
-from models.worm_model import deep_worm, triplet_loss
+from models.worm_model import deep_worm
+from models.losses import triplet_loss, proxy_anchor_loss
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
@@ -70,6 +71,10 @@ def construct_model(params, placeholders):
     return preds
 
 
+def construct_loss(preds, params, sample_size):
+    return proxy_anchor_loss(preds, sample_size, params.nn.batch_size, params.nn.n_classes, params.loss.alpha, params.loss.delta)
+
+
 def set_optimizer(params):
     return tf.train.AdamOptimizer(learning_rate=params.learning_rate)
 
@@ -95,7 +100,7 @@ def main(cfg: DictConfig):
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
     preds = construct_model(cfg.nn, placeholders)
-    loss = triplet_loss(preds, cfg.loss.margin)
+    loss = construct_loss(preds, cfg, data["train_x"].shape[0])
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)
     modified_gvs = modify_gvs(grads_and_vars, cfg.nn)

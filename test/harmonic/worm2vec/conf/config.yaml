@@ -19,6 +19,8 @@ optimizer:
     lr_div: 10.
 loss:
     margin: 0.1
+    alpha: 64
+    delta: 0.1
 path:
     log: "./logs"
     # save
