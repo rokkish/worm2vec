@@ -42,6 +42,10 @@ class Trainer():
         self.restart_train = params.train.restart_train
         self.checkpoint_fullpath = params.path.checkpoint_fullpath
 
+        # num of pos, neg
+        self.n_positive = params.nn.n_positive
+        self.n_negative = params.nn.n_negative
+
     def fit(self, data):
         saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
