@@ -41,16 +41,11 @@ def proxy_anchor_loss(embeddings, n_classes, n_unique, input_dim, alpha, delta):
     neg_embeddings_l2 = tf.nn.l2_normalize(embeddings["negative"], axis=1)
     proxy_l2 = tf.nn.l2_normalize(proxy, axis=1)
 
-    logger.debug("proxy shape: {}".format(proxy_l2.shape))
-    logger.debug("  pos shape: {}".format(pos_embeddings_l2.shape))
-
     pos_sim_mat = tf.matmul(pos_embeddings_l2, proxy_l2, transpose_b=True)
     neg_sim_mat = tf.matmul(neg_embeddings_l2, proxy_l2, transpose_b=True)
 
     pos_mat = tf.exp(-alpha * (pos_sim_mat - delta))
     neg_mat = tf.exp(alpha * (neg_sim_mat + delta))
-
-    logger.debug("sim_mat shape: {}".format(pos_sim_mat.shape))
 
     # n_unique = batch_size // n_instance
     pos_term = 1.0 / n_unique * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(pos_mat, axis=0)))
