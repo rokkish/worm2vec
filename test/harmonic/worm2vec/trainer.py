@@ -24,7 +24,6 @@ class Trainer():
         self.optim = optim
         self.train_op = train_op
 
-        self.x = placeholders["x"]
         self.positive = placeholders["positive"]
         self.negative = placeholders["negative"]
         self.learning_rate = placeholders["learning_rate"]
