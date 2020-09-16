@@ -20,5 +20,9 @@ loss_function_name = "binarycrossentropyLoss"
 max_predict = 3
 max_analyze = 2
 zsize = 32
+
 # config of predict.py
 nrow = 20
+
+# config of get_distance_table.py
+error_idx = -1

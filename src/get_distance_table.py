@@ -139,7 +139,7 @@ class WormDataset_get_table(torch.utils.data.Dataset):
 
 class Get_distance_table(object):
     
-    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data, step):
+    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data):
         self.process_id = process_id
         self.save_name = save_name
         self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data
@@ -183,7 +183,7 @@ class Get_distance_table(object):
 
         for data_i, data_dic in enumerate(loader):
 
-            logger.debug("allpath:{}, data_i:{}".format(len(allpath_fromi), data_i + self.START_ID))
+            logger.debug("allpath:{}, data_i:{}".format(len(allpath), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
 
@@ -373,7 +373,7 @@ def main(args):
     """Load datasets, Do preprocess()
     """
     logger.info("start")
-    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair, args.step)
+    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
     #zip_dir()
