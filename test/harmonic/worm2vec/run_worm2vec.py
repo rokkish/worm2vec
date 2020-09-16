@@ -107,7 +107,7 @@ def main(cfg: DictConfig):
     data = load_data(cfg)
     logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
     # build model
-    placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
+    placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
     preds = construct_model(cfg.nn, placeholders)
     loss = construct_loss(preds, cfg, data["train_x"].shape[0])
     optim = set_optimizer(cfg.optimizer)
