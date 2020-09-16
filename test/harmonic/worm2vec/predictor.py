@@ -28,15 +28,12 @@ class Predictor(Trainer):
         self.dim = params.nn.dim
         self.checkpoint_fullpath = params.path.checkpoint_fullpath
         self.logdir = params.path.tensorboard
+        self.n_classes = params.nn.n_classes
         self.layers_name = [
-            "block1/hconv1/Reshape_1:0",
-            "block2/hconv3/Reshape_1:0",
-            "block3/hconv5/Reshape_1:0",
-            "block4/hconv7/Reshape_1:0",
-            "block4/hconv7/Reshape:0",
+            "block4_1/Mean:0",
             "block4/Mean:0",
-            "block4/Maximum:0"
         ]
+        self.n_embedding = 8
 
     def fit(self, data):
         saver = tf.train.Saver()
