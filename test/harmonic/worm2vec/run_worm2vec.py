@@ -72,7 +72,16 @@ def construct_model(params, placeholders):
 
 
 def construct_loss(preds, params, sample_size):
-    return proxy_anchor_loss(preds, sample_size, params.nn.batch_size, params.nn.n_classes, params.loss.alpha, params.loss.delta)
+    if params.nn.batch_size != 1:
+        assert ValueError("batchsize must be 1. If not, calculating Proxy-anchor-loss is wrong.")
+
+    return proxy_anchor_loss(
+            embeddings=preds,
+            n_classes=sample_size,
+            n_unique=params.nn.n_positive,
+            input_dim=params.nn.n_classes,
+            alpha=params.loss.alpha,
+            delta=params.loss.delta)
 
 
 def set_optimizer(params):
