@@ -76,21 +76,18 @@ class Trainer():
                                       self.loss],
                                      feed_dict=feed_dict)
                 train_loss += loss_
-                sys.stdout.write('{}/{}\r'.format(i, data['train_x'].shape[0]/self.batch_size))
-                sys.stdout.flush()
             train_loss /= (i+1.)
 
             # Save model
-            if epoch % 10 == 0:
+            if epoch % 10 == 0 or epoch == self.n_epochs - 1:
                 saver.save(sess, self.checkpoint_path)
-                print('Model saved')
+                logger.debug('Model saved: {}'.format(self.checkpoint_path))
 
             # Updates to the training scheme
             self.lr = self.lr * np.power(0.1, epoch / 50)
             epoch += 1
 
-            logger.info('[{:04d} | {:04.1f}] Loss: {:04.4f}, Validation Loss.: {:04.4f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, valid_loss, self.lr))
-
+            logger.info('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
 
         sess.close()
 
