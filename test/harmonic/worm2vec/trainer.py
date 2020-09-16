@@ -84,7 +84,8 @@ class Trainer():
                 logger.debug('Model saved: {}'.format(self.checkpoint_path))
 
             # Updates to the training scheme
-            self.lr = self.lr * np.power(0.1, epoch / 50)
+            if epoch % 4 == 0:
+                self.lr = self.lr * np.power(0.1, epoch / 50)
             epoch += 1
 
             logger.info('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
