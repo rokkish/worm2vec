@@ -9,6 +9,8 @@ nn:
     dim: 64
     phase_preconditioner: 7.8
     n_epochs: 100
+    n_positive: 36
+    n_negative: 5
     # display_step: len(data['train_x'])/46
     # is_classification: True
     # crop_shape: 0
