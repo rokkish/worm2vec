@@ -78,24 +78,6 @@ class Trainer():
                 sys.stdout.flush()
             train_loss /= (i+1.)
 
-            # Validation steps
-            batcher = \
-                self.minibatcher(
-                    data['valid_x'],
-                    self.batch_size)
-            valid_loss = 0.
-            for i, (X, Pos, Neg) in enumerate(batcher):
-                feed_dict = {self.x: X,
-                             self.positive: Pos,
-                             self.negative: Neg,
-                             self.learning_rate: self.lr,
-                             self.train_phase: False}
-                loss_ = sess.run(self.loss, feed_dict=feed_dict)
-                valid_loss += loss_
-                sys.stdout.write('Validating\r')
-                sys.stdout.flush()
-            valid_loss /= (i+1.)
-
             # Save model
             if epoch % 10 == 0:
                 saver.save(sess, self.checkpoint_path)
@@ -107,23 +89,7 @@ class Trainer():
 
             logger.info('[{:04d} | {:04.1f}] Loss: {:04.4f}, Validation Loss.: {:04.4f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, valid_loss, self.lr))
 
-        # Test
-        batcher = self.minibatcher(data['test_x'],
-                                   self.batch_size)
-        test_loss = 0.
-        for i, (X, Pos, Neg) in enumerate(batcher):
-            feed_dict = {self.x: X,
-                         self.positive: Pos,
-                         self.negative: Neg,
-                         self.learning_rate: self.lr,
-                         self.train_phase: False}
-            loss_ = sess.run(self.loss, feed_dict=feed_dict)
-            test_loss += loss_
-            sys.stdout.write('Testing\r')
-            sys.stdout.flush()
-        test_loss /= (i+1.)
 
-        logger.info('Test Loss.: {:04f}'.format(test_loss))
         sess.close()
 
     @staticmethod
