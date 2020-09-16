@@ -77,24 +77,40 @@ class Predictor(Trainer):
             # select last layer output
             summary_np = np.array(summary[-1])
             summary_np = np.reshape(summary_np, (summary_np.shape[0], -1))
-            variables = tf.Variable(summary_np, trainable=False, name="embedding_lastlayer")
 
-            # make tensor.tsv
-            df = pd.DataFrame(summary_np).astype("float64")
-            df.to_csv(self.logdir + "tensor.csv", header=False, index=False, sep="\t")
+            # cat batch_embedding
+            cat_summary_np[i*self.n_positive: (i+1)*self.n_positive] = summary_np
+            cat_Pos[i*self.n_positive: (i+1)*self.n_positive] = Pos
 
-            # make metadata.tsv (labels)
-            with open(self.logdir + "metadata.tsv", "w") as f:
-                f.write("Index\tLabel\n")
-                for index, label in enumerate(X):
-                    # FIXME:label dont exist in worm data.
-                    f.write("%d\t%d\n" % (index, int(index)))
+            # select  first layer output
+            summary_np = np.array(summary[0])
+            summary_np = np.reshape(summary_np, (summary_np.shape[0], -1))
 
-            # make sprite image (labels)
-            # X = (Batch, H, W)
-            # TODO:X, Pos, Negを一緒にEmbeddingして可視化する．
-            save_sprite_image(create_sprite_image(X), path=self.logdir + "sprite.png")
-            break
+            # cat batch_embedding
+            cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np
+            cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
+
+        cat = np.concatenate([cat_summary_np, cat_neg_summary_np], axis=0)
+        cat_img = np.concatenate([cat_Pos, cat_Neg], axis=0)
+        variables = tf.Variable(cat, trainable=False, name="embedding_lastlayer")
+
+        # make tensor.tsv
+        df = pd.DataFrame(cat).astype("float64")
+        df.to_csv(self.logdir + "tensor.csv", header=False, index=False, sep="\t")
+
+        # make metadata.tsv (labels)
+        with open(self.logdir + "metadata.tsv", "w") as f:
+            f.write("Index\tLabel\n")
+            for index, label in enumerate(cat_img):
+                # label means ID of image.
+                if index >= self.n_positive * self.n_embedding:
+                    custmom_label = self.n_positive + (index - self.n_positive * self.n_embedding) // self.n_negative
+                else:
+                    custmom_label = index//self.n_positive
+                f.write("%d\t%d\n" % (index, custmom_label))
+
+        # make sprite image (labels)
+        save_sprite_image(create_sprite_image(cat_img), path=self.logdir + "sprite.png")
 
         # config of projector
         config_projector = projector.ProjectorConfig()
