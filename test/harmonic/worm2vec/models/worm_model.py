@@ -10,7 +10,7 @@ import tensorflow as tf
 import harmonic_network_lite as hn_lite
 
 
-def deep_worm(args, x, train_phase, reuse=False):
+def deep_worm(args, x, train_phase, n_sample, reuse=False):
     """The MNIST-rot model similar to the one in Cohen & Welling, 2016"""
     # Sure layers weight & bias
     # order = 1
@@ -28,7 +28,7 @@ def deep_worm(args, x, train_phase, reuse=False):
     with tf.variable_scope("final_layer", reuse=reuse):
         bias = tf.get_variable('b7', shape=[args.n_classes],
                             initializer=initializer)
-    x = tf.reshape(x, shape=[bs, args.dim, args.dim, 1, 1, 1])
+    x = tf.reshape(x, shape=[n_sample, args.dim, args.dim, 1, 1, 1])
 
     # Convolutional Layers with pooling
     with tf.name_scope('block1'):
