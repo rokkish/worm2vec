@@ -8,7 +8,7 @@ To train network, Run this code.
 python run_worm2vec.py path.worm_data=/root/worm2vec/data/variety_data_r36_n5_np_0/01.npz nn.n_epochs=3 nn.batch_size=100 train.restart_train=True
 
 # predict
-python run_worm2vec.py path.worm_data=/root/worm2vec/data/variety_data_r36_n5_np_0/00.npz train_mode=False path.tensorboard=./ checkpoint_fullpath=
+python run_worm2vec.py path.worm_data=/root/worm2vec/data/variety_data_r36_n5_np_0/00.npz train_mode=False path.tensorboard=./ path.checkpoint_fullpath=
 
 # project
 tensorboard tensorboard  --logdir . --bind_all --port 8888
