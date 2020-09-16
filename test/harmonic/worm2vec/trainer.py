@@ -68,9 +68,8 @@ class Trainer():
                     self.batch_size,
                     shuffle=True)
             train_loss = 0.
-            for i, (X, Pos, Neg) in enumerate(batcher):
-                feed_dict = {self.x: X,
-                             self.positive: Pos,
+            for i, (Pos, Neg) in enumerate(batcher):
+                feed_dict = {self.positive: Pos,
                              self.negative: Neg,
                              self.learning_rate: self.lr,
                              self.train_phase: True}
@@ -96,8 +95,7 @@ class Trainer():
 
         sess.close()
 
-    @staticmethod
-    def minibatcher(inputs, batchsize, shuffle=False):
+    def minibatcher(self, inputs, batchsize, shuffle=False):
         """
 
         Args:
@@ -106,16 +104,15 @@ class Trainer():
             shuffle (bool, optional): [description]. Defaults to False.
 
         Yields:
-            anchor, positive, negative (ndarray): for triplet loss.
+            positive, negative (ndarray): for proxy-anchor loss.
         """
         if shuffle:
             indices = np.arange(len(inputs))
             np.random.shuffle(indices)
         for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
             if shuffle:
-                excerpt = indices[start_idx:start_idx + batchsize]
+                excerpt = indices[start_idx]
             else:
-                excerpt = slice(start_idx, start_idx + batchsize)
-            rotation = 17 #1~35
-            negative = rotation + 1 #1~5
-            yield inputs[excerpt, 0, 0], inputs[excerpt, rotation, 0], inputs[excerpt, negative, 0]
+                excerpt = start_idx
+
+            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0]
