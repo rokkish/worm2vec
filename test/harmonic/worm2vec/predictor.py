@@ -50,12 +50,25 @@ class Predictor(Trainer):
                 self.layers_name)
             )
 
-        batcher = self.minibatcher(data['test_x'],
-                                   self.batch_size)
+        batcher = self.minibatcher(data['train_x'],
+                                   self.batch_size,
+                                   shuffle=True)
 
-        for i, (X, Pos, Neg) in enumerate(batcher):
-            feed_dict = {self.x: X,
-                         self.positive: Pos,
+        cat_summary_np = np.zeros((self.n_positive * self.n_embedding,
+                                   self.n_classes))
+        cat_Pos = np.zeros((self.n_positive * self.n_embedding,
+                            self.dim, self.dim))
+
+        cat_neg_summary_np = np.zeros((self.n_negative * self.n_embedding,
+                                       self.n_classes))
+        cat_Neg = np.zeros((self.n_negative * self.n_embedding,
+                            self.dim, self.dim))
+
+        for i, (Pos, Neg) in enumerate(batcher):
+            if i == self.n_embedding:
+                break
+
+            feed_dict = {self.positive: Pos,
                          self.negative: Neg,
                          self.learning_rate: self.lr,
                          self.train_phase: False}
