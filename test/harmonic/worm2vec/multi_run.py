@@ -26,21 +26,16 @@ if __name__ == "__main__":
     logger.info("prev dir: {}".format(glob_prev_datetime()))
 
     # glob data
-    data = glob.glob("/root/worm2vec/data/variety_data_r36_n5_np_*_*/*.npz")
+    data = glob.glob("/root/worm2vec/data/variety_data_r36_n50_np/*.npz")
     data = sorted(data)
     if len(data) == 0:
         raise ValueError("data not found")
 
     epoch = 10
 
-    prev_date = glob_prev_datetime()
-
     for i, data_i in enumerate(data):
 
         logger.info("train: {}/{}".format(i+1, len(data)))
-        # skip
-        if i < 12:
-            continue
         # run
         if i == 0:
             subprocess.call(["python", "run_worm2vec.py",
@@ -48,6 +43,7 @@ if __name__ == "__main__":
                 "nn.n_epochs={}".format(epoch),
                 "nn.batch_size=1",
                 "train.restart_train=False",
+                "nn.n_negative=50",
             ])
             prev_date = glob_prev_datetime()
         # reload params
@@ -57,7 +53,8 @@ if __name__ == "__main__":
                 "nn.n_epochs={}".format(epoch),
                 "nn.batch_size=1",
                 "train.restart_train=True",
-                "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date)
+                "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
+                "nn.n_negative=50",
             ])
             prev_date = glob_prev_datetime()
 
