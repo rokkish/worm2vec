@@ -1,6 +1,7 @@
 """run run_worm2vec.py with multi-dataset"""
 import subprocess
 import glob
+from post_slack import post
 import get_logger
 logger = get_logger.get_logger(name="multi_run")
 
@@ -32,10 +33,17 @@ if __name__ == "__main__":
         raise ValueError("data not found")
 
     epoch = 10
+    prev_date = glob_prev_datetime()
 
     for i, data_i in enumerate(data):
 
         logger.info("train: {}/{}".format(i+1, len(data)))
+        post("train: {}/{}".format(i+1, len(data)))
+
+        # skip
+        if i == 0:
+            continue
+
         # run
         if i == 0:
             subprocess.call(["python", "run_worm2vec.py",
@@ -57,4 +65,3 @@ if __name__ == "__main__":
                 "nn.n_negative=50",
             ])
             prev_date = glob_prev_datetime()
-

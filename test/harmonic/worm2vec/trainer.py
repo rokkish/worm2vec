@@ -4,6 +4,7 @@ import sys
 import time
 import tensorflow as tf
 import numpy as np
+from post_slack import post
 import get_logger
 logger = get_logger.get_logger(name="trainer")
 
@@ -89,6 +90,8 @@ class Trainer():
             epoch += 1
 
             logger.info('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
+
+            post('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
 
         sess.close()
 
