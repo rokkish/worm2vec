@@ -13,6 +13,21 @@ import get_logger
 logger = get_logger.get_logger(name='run')
 
 
+def np_load(path):
+    """Check path and Return data(np.array)
+    """
+    if not os.path.exists(path):
+        logger.debug(os.getcwd())
+        raise ValueError("no exist")
+    return np.load(path)["arr_0"]
+
+
+def load_fixedtestdata():
+    """When multi_run.py is running, test data must be fixed.
+    """
+    return np_load("/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz")
+
+
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
     if not os.path.exists(params.path.worm_data):
@@ -29,10 +44,9 @@ def load_data(params):
     N_trval = int(N * train_valid_rate)
     N_tr = int(N_trval * train_rate)
 
-    train_valid = dataset[:N_trval]
-    train = train_valid[:N_tr]
-    valid = train_valid[N_tr:]
-    test = dataset[N_trval:]
+    train = dataset[:N_trval]
+    valid = dataset[N_trval:]
+    test = load_fixedtestdata()
 
     # Format
     data = {}
