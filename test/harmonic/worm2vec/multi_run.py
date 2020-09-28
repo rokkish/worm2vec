@@ -33,7 +33,6 @@ if __name__ == "__main__":
         raise ValueError("data not found")
 
     epoch = 10
-    prev_date = glob_prev_datetime()
 
     for i, data_i in enumerate(data):
 
@@ -41,7 +40,8 @@ if __name__ == "__main__":
         post("train: {}/{}".format(i+1, len(data)))
 
         # skip
-        if i == 0:
+        if i in []:
+            prev_date = glob_prev_datetime()
             continue
 
         # run
