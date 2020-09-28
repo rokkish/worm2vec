@@ -33,7 +33,9 @@ class Predictor(Trainer):
             "block4_1/Mean:0",
             "block4/Mean:0",
         ]
-        self.n_embedding = 8
+        self.n_embedding = 10
+        self.view_pos_and_neg = False
+        self.view_pos = True # if True view only pos,
 
     def fit(self, data):
         saver = tf.train.Saver()
@@ -50,7 +52,7 @@ class Predictor(Trainer):
                 self.layers_name)
             )
 
-        batcher = self.minibatcher(data['train_x'],
+        batcher = self.minibatcher(data['test_x'],
                                    self.batch_size,
                                    shuffle=True)
 
@@ -90,8 +92,17 @@ class Predictor(Trainer):
             cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np
             cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
-        cat = np.concatenate([cat_summary_np, cat_neg_summary_np], axis=0)
-        cat_img = np.concatenate([cat_Pos, cat_Neg], axis=0)
+        if self.view_pos_and_neg:
+            cat = np.concatenate([cat_summary_np, cat_neg_summary_np], axis=0)
+            cat_img = np.concatenate([cat_Pos, cat_Neg], axis=0)
+        else:
+            if self.view_pos:
+                cat = cat_summary_np
+                cat_img = cat_Pos
+            else:
+                cat = cat_neg_summary_np
+                cat_img = cat_Neg
+
         variables = tf.Variable(cat, trainable=False, name="embedding_lastlayer")
 
         # make tensor.tsv
