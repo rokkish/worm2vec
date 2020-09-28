@@ -109,7 +109,7 @@ class Trainer():
         if shuffle:
             indices = np.arange(len(inputs))
             np.random.shuffle(indices)
-        for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
+        for start_idx in range(0, len(inputs), 1):
             if shuffle:
                 excerpt = indices[start_idx]
             else:
