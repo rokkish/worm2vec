@@ -13,6 +13,7 @@ class Trainer():
     def __init__(self,
                  params,
                  loss,
+                 valid_loss,
                  optim,
                  train_op,
                  placeholders):
@@ -46,6 +47,14 @@ class Trainer():
         self.n_positive = params.nn.n_positive
         self.n_negative = params.nn.n_negative
 
+        # validation loss not trainable
+        self.valid_loss = valid_loss
+
+        # summary_writer
+        self.train_summary_writer = tf.summary.FileWriter("./tensorboard/train")
+        self.valid_summary_writer = tf.summary.FileWriter("./tensorboard/valid")
+        self.test_summary_writer = tf.summary.FileWriter("./tensorboard/test")
+
     def fit(self, data):
         saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
@@ -60,6 +69,23 @@ class Trainer():
         epoch = 0
         logger.debug('Starting training loop...')
 
+        anchor_loss_sum = tf.summary.scalar("anchor_loss/pos_neg", self.loss)
+        loss_sum0 = tf.summary.scalar("train_loss/all", self.valid_loss["all"])
+        loss_sum1 = tf.summary.scalar("train_loss/pp", self.valid_loss["pp"])
+        loss_sum2 = tf.summary.scalar("train_loss/pn", self.valid_loss["pn"])
+        loss_sum3 = tf.summary.scalar("train_loss/nn", self.valid_loss["nn"])
+        train_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
+        loss_sum0 = tf.summary.scalar("valid_loss/all", self.valid_loss["all"])
+        loss_sum1 = tf.summary.scalar("valid_loss/pp", self.valid_loss["pp"])
+        loss_sum2 = tf.summary.scalar("valid_loss/pn", self.valid_loss["pn"])
+        loss_sum3 = tf.summary.scalar("valid_loss/nn", self.valid_loss["nn"])
+        valid_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
+        loss_sum0 = tf.summary.scalar("test_loss/all", self.valid_loss["all"])
+        loss_sum1 = tf.summary.scalar("test_loss/pp", self.valid_loss["pp"])
+        loss_sum2 = tf.summary.scalar("test_loss/pn", self.valid_loss["pn"])
+        loss_sum3 = tf.summary.scalar("test_loss/nn", self.valid_loss["nn"])
+        test_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
+
         while epoch < self.n_epochs:
             # Training steps
             batcher = \
@@ -67,17 +93,54 @@ class Trainer():
                     data['train_x'],
                     self.batch_size,
                     shuffle=True)
-            train_loss = 0.
+            anchor_loss = 0.
             for i, (Pos, Neg) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
-                             self.negative: Neg,
-                             self.learning_rate: self.lr,
-                             self.train_phase: True}
-                __, loss_ = sess.run([self.train_op,
-                                      self.loss],
-                                     feed_dict=feed_dict)
-                train_loss += loss_
-            train_loss /= (i+1.)
+                            self.negative: Neg,
+                            self.learning_rate: self.lr,
+                            self.train_phase: True}
+                __, loss, loss_ = sess.run([
+                                    self.train_op,
+                                    self.loss,
+                                    anchor_loss_sum],
+                                    feed_dict=feed_dict)
+                anchor_loss += loss
+                self.train_summary_writer.add_summary(loss_, i)
+            anchor_loss /= (i+1.)
+
+            # Validation steps
+            batcher = \
+                self.minibatcher(
+                    data['valid_x'],
+                    self.batch_size)
+            for i, (Pos, Neg) in enumerate(batcher):
+                feed_dict = {self.positive: Pos,
+                            self.negative: Neg,
+                            self.learning_rate: self.lr,
+                            self.train_phase: False}
+                loss_, result = sess.run([self.valid_loss, valid_loss_sum], feed_dict=feed_dict)
+
+                sys.stdout.write('Validating\r')
+                sys.stdout.flush()
+
+                self.valid_summary_writer.add_summary(result, i)
+
+            # Test steps
+            batcher = \
+                self.minibatcher(
+                    data['test_x'],
+                    self.batch_size)
+            for i, (Pos, Neg) in enumerate(batcher):
+                feed_dict = {self.positive: Pos,
+                            self.negative: Neg,
+                            self.learning_rate: self.lr,
+                            self.train_phase: False}
+                loss_, result = sess.run([self.valid_loss, test_loss_sum], feed_dict=feed_dict)
+
+                sys.stdout.write('Testing\r')
+                sys.stdout.flush()
+
+                self.test_summary_writer.add_summary(result, i)
 
             # Save model
             if epoch % 10 == 0 or epoch == self.n_epochs - 1:
@@ -89,9 +152,9 @@ class Trainer():
                 self.lr = self.lr * np.power(0.1, epoch / 50)
             epoch += 1
 
-            logger.info('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
-
-            post('[{:04d} | {:04.1f}] Loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, train_loss, self.lr))
+            log_tmp = '[{:04d} | {:04.1f}] Train anchor loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, anchor_loss, self.lr)
+            logger.info(log_tmp)
+            post(log_tmp)
 
         sess.close()
 

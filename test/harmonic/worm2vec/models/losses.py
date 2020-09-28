@@ -4,8 +4,35 @@ import sys
 sys.path.append('../')
 
 import tensorflow as tf
+import numpy as np
 import get_logger
 logger = get_logger.get_logger(name='losses')
+
+
+def cosine_similarity(a, b):
+    return a * b / (tf.nn.l2_normalize(a, axis=1) * tf.nn.l2_normalize(b, axis=1))
+
+
+def cosine_similarity_pos_neg(embeddings):
+    pos = embeddings["positive"]
+    neg = embeddings["negative"]
+    arr = tf.concat([pos, neg], axis=0)
+
+    norm_arr = tf.nn.l2_normalize(arr, axis=1)
+    expand1 = tf.expand_dims(norm_arr, axis=0)
+    expand2 = tf.expand_dims(norm_arr, axis=1)
+    cos_matrix = tf.reduce_sum(expand1 * expand2, axis=-1)
+
+    cos_matrix_pp = cos_matrix[: pos.shape[0],              : pos.shape[0]]
+    cos_matrix_pn = cos_matrix[: pos.shape[0],  pos.shape[0]:             ]
+    cos_matrix_nn = cos_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
+
+    loss = tf.reduce_mean(tf.matrix_band_part(cos_matrix, -1, 0))
+    loss_pp = tf.reduce_mean(tf.matrix_band_part(cos_matrix_pp, -1, 0))
+    loss_pn = tf.reduce_mean(tf.matrix_band_part(cos_matrix_pn, -1, 0))
+    loss_nn = tf.reduce_mean(tf.matrix_band_part(cos_matrix_nn, -1, 0))
+
+    return {"all": loss, "pp": loss_pp, "pn": loss_pn, "nn": loss_nn}
 
 
 def compute_euclidian_distance(x, y):

@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 from omegaconf import DictConfig
 from models.worm_model import deep_worm
-from models.losses import triplet_loss, proxy_anchor_loss
+from models.losses import triplet_loss, proxy_anchor_loss, cosine_similarity_pos_neg
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
@@ -84,6 +84,10 @@ def construct_loss(preds, params, sample_size):
             delta=params.loss.delta)
 
 
+def construct_validloss(preds):
+    return cosine_similarity_pos_neg(embeddings=preds)
+
+
 def set_optimizer(params):
     return tf.train.AdamOptimizer(learning_rate=params.learning_rate)
 
@@ -110,13 +114,14 @@ def main(cfg: DictConfig):
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
     preds = construct_model(cfg.nn, placeholders)
     loss = construct_loss(preds, cfg, data["train_x"].shape[0])
+    valid_loss = construct_validloss(preds)
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)
     modified_gvs = modify_gvs(grads_and_vars, cfg.nn)
     train_op = optim.apply_gradients(modified_gvs)
     # train or predict
     if cfg.train_mode:
-        trainer = Trainer(cfg, loss, optim, train_op, placeholders)
+        trainer = Trainer(cfg, loss, valid_loss, optim, train_op, placeholders)
         trainer.fit(data)
     else:
         predictor = Predictor(cfg, loss, optim, train_op, placeholders)
