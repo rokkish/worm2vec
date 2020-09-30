@@ -1,9 +1,11 @@
 """Trainer class mainly train model
 """
+import os
 import sys
 import time
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 from post_slack import post
 import get_logger
 logger = get_logger.get_logger(name="trainer")
@@ -54,6 +56,9 @@ class Trainer():
         self.train_summary_writer = tf.summary.FileWriter("./tensorboard/train")
         self.valid_summary_writer = tf.summary.FileWriter("./tensorboard/valid")
         self.test_summary_writer = tf.summary.FileWriter("./tensorboard/test")
+
+        # save test_score
+        self.loss_tocsv = {"train_loss": [], "valid_pp": [], "valid_pn": [], "test_pp": [], "test_pn": []}
 
     def fit(self, data):
         saver = tf.train.Saver()
@@ -113,34 +118,55 @@ class Trainer():
                 self.minibatcher(
                     data['valid_x'],
                     self.batch_size)
+            valid_cossimloss = {}
+            valid_cossimloss["pp"], valid_cossimloss["pn"] = 0., 0.
             for i, (Pos, Neg) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: False}
                 loss_, result = sess.run([self.valid_loss, valid_loss_sum], feed_dict=feed_dict)
+                valid_cossimloss["pp"] += loss_["pp"]
+                valid_cossimloss["pn"] += loss_["pn"]
 
                 sys.stdout.write('Validating\r')
                 sys.stdout.flush()
 
                 self.valid_summary_writer.add_summary(result, i)
 
+            valid_cossimloss["pp"] /= (i+1.)
+            valid_cossimloss["pn"] /= (i+1.)
+
             # Test steps
             batcher = \
                 self.minibatcher(
                     data['test_x'],
                     self.batch_size)
+            test_cossimloss = {}
+            test_cossimloss["pp"], test_cossimloss["pn"] = 0., 0.
             for i, (Pos, Neg) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: False}
                 loss_, result = sess.run([self.valid_loss, test_loss_sum], feed_dict=feed_dict)
+                test_cossimloss["pp"] += loss_["pp"]
+                test_cossimloss["pn"] += loss_["pn"]
 
                 sys.stdout.write('Testing\r')
                 sys.stdout.flush()
 
                 self.test_summary_writer.add_summary(result, i)
+
+            test_cossimloss["pp"] /= (i+1.)
+            test_cossimloss["pn"] /= (i+1.)
+
+            # save loss
+            self.loss_tocsv["train_loss"].append(anchor_loss)
+            self.loss_tocsv["valid_pp"].append(valid_cossimloss["pp"])
+            self.loss_tocsv["valid_pn"].append(valid_cossimloss["pn"])
+            self.loss_tocsv["test_pp"].append(test_cossimloss["pp"])
+            self.loss_tocsv["test_pn"].append(test_cossimloss["pn"])
 
             # Save model
             if epoch % 10 == 0 or epoch == self.n_epochs - 1:
@@ -154,7 +180,11 @@ class Trainer():
 
             log_tmp = '[{:04d} | {:04.1f}] Train anchor loss: {:04.8f}, Learning rate: {:.2e}'.format(epoch, time.time()-start, anchor_loss, self.lr)
             logger.info(log_tmp)
-            post(log_tmp)
+
+        # Save loss
+        df = pd.DataFrame(self.loss_tocsv)
+        csv_path = "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/cossim.csv"
+        df.to_csv(csv_path, mode="a", header=not os.path.exists(csv_path))
 
         sess.close()
 
