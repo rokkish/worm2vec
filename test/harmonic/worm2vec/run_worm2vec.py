@@ -30,22 +30,16 @@ def load_fixedtestdata():
 
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
-    if not os.path.exists(params.path.worm_data):
-        logger.debug(os.getcwd())
-        raise ValueError("no exist")
-    dataset = np.load(params.path.worm_data)["arr_0"]
+    dataset = np_load(params.path.worm_data)
 
     # Split
     N = dataset.shape[0]
     valid_rate = params.preprocess.valid_rate
-    test_rate = params.preprocess.test_rate
-    train_valid_rate = 1. - test_rate
     train_rate = 1. - valid_rate
-    N_trval = int(N * train_valid_rate)
-    N_tr = int(N_trval * train_rate)
+    N_tr = int(N * train_rate)
 
-    train = dataset[:N_trval]
-    valid = dataset[N_trval:]
+    train = dataset[:N_tr]
+    valid = dataset[N_tr:]
     test = load_fixedtestdata()
 
     # Format
