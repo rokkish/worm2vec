@@ -13,6 +13,12 @@ def cosine_similarity(a, b):
     return a * b / (tf.nn.l2_normalize(a, axis=1) * tf.nn.l2_normalize(b, axis=1))
 
 
+def mean_nondiag(matrix, matrix_shape):
+    sum_lower = tf.reduce_sum(tf.matrix_band_part(matrix, -1, 0))
+    sum_diag = tf.reduce_sum(tf.matrix_diag_part(matrix))
+    return (sum_lower - sum_diag) / (matrix_shape**2 - matrix_shape) * 2
+
+
 def cosine_similarity_pos_neg(embeddings):
     pos = embeddings["positive"]
     neg = embeddings["negative"]
@@ -27,10 +33,13 @@ def cosine_similarity_pos_neg(embeddings):
     cos_matrix_pn = cos_matrix[: pos.shape[0],  pos.shape[0]:             ]
     cos_matrix_nn = cos_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
 
-    loss = tf.reduce_mean(tf.matrix_band_part(cos_matrix, -1, 0))
-    loss_pp = tf.reduce_mean(tf.matrix_band_part(cos_matrix_pp, -1, 0))
-    loss_pn = tf.reduce_mean(tf.matrix_band_part(cos_matrix_pn, -1, 0))
-    loss_nn = tf.reduce_mean(tf.matrix_band_part(cos_matrix_nn, -1, 0))
+    loss = tf.reduce_mean(cos_matrix)
+    loss_pp = mean_nondiag(cos_matrix_pp, int(pos.shape[0]))
+    loss_pn = tf.reduce_mean(cos_matrix_pn)
+    loss_nn = mean_nondiag(cos_matrix_nn, int(neg.shape[0]))
+    #ret = {"pp": tf.matrix_band_part(cos_matrix_pp, -1, 0),
+    #       "nn":tf.matrix_band_part(cos_matrix_nn, -1, 0),
+    #       "nn_diag": tf.matrix_diag_part(cos_matrix_nn)}
 
     return {"all": loss, "pp": loss_pp, "pn": loss_pn, "nn": loss_nn}
 
@@ -81,3 +90,52 @@ def proxy_anchor_loss(embeddings, n_classes, n_unique, input_dim, alpha, delta):
     loss = pos_term + neg_term
 
     return loss
+
+
+def test_cosine_similarity_pos_neg():
+
+    def set_placeholders(n_positive, n_negative, dim):
+        positive = tf.placeholder(tf.float32,
+                                [n_positive, dim],
+                                name='positive')
+        negative = tf.placeholder(tf.float32,
+                                [n_negative, dim],
+                                name='negative')
+        return positive, negative
+
+    def set_values(n_positive, n_negative, dim):
+        if False:
+            positive = np.zeros((n_positive, dim))
+            negative = np.zeros((n_negative, dim))
+            positive += 1
+            negative += 1
+        else:
+            positive = np.random.normal(1.0, 0.1, (n_positive, dim))
+            positive += np.random.gamma(2., 5., (n_positive, dim))
+            negative = np.random.normal(1.0, 0.1, (n_negative, dim))
+            negative += np.random.gamma(2., 5., (n_negative, dim))
+        return positive, negative
+
+    sess = tf.InteractiveSession()
+    pos_shape, neg_shape, dim = 36, 50, 1000
+    pos, neg = set_placeholders(pos_shape, neg_shape, dim)
+    embeddings = {"positive": pos, "negative": neg}
+    loss = cosine_similarity_pos_neg(embeddings)
+    loss_log = {"pp": 0., "pn": 0., "nn": 0.}
+
+    n_test = 100
+    for i in range(n_test):
+        Pos, Neg = set_values(pos_shape, neg_shape, dim)
+        ret, loss_ = sess.run(loss, feed_dict={pos: Pos, neg: Neg})
+        loss_log["pp"] += loss_["pp"] / n_test
+        loss_log["pn"] += loss_["pn"] / n_test
+        loss_log["nn"] += loss_["nn"] / n_test
+    print("mean", loss_log)
+
+    import pandas as pd
+    df1 = pd.DataFrame(ret["pp"]).astype("float64")
+    df2 = pd.DataFrame(ret["nn"]).astype("float64")
+    df3 = pd.DataFrame(ret["nn_diag"]).astype("float64")
+    df1.to_csv("./test_band_apart_pp.csv")
+    df2.to_csv("./test_band_apart_nn.csv")
+    df3.to_csv("./test_band_apart_nndiag.csv")
