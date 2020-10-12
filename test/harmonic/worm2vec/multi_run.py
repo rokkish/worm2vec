@@ -1,4 +1,6 @@
 """run run_worm2vec.py with multi-dataset"""
+import os
+import datetime
 import subprocess
 import glob
 from post_slack import post
@@ -34,6 +36,9 @@ if __name__ == "__main__":
 
     epoch = 10
 
+    runned_datetime = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
+    os.makedirs("/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}".format(runned_datetime))
+
     for i, data_i in enumerate(data):
 
         logger.info("train: {}/{}".format(i+1, len(data)))
@@ -52,6 +57,7 @@ if __name__ == "__main__":
                 "nn.batch_size=1",
                 "train.restart_train=False",
                 "nn.n_negative=50",
+                "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
             ])
             prev_date = glob_prev_datetime()
         # reload params
@@ -63,5 +69,6 @@ if __name__ == "__main__":
                 "train.restart_train=True",
                 "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
                 "nn.n_negative=50",
+                "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
             ])
             prev_date = glob_prev_datetime()

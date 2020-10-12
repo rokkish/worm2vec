@@ -58,7 +58,8 @@ class Trainer():
         self.test_summary_writer = tf.summary.FileWriter("./tensorboard/test")
 
         # save test_score
-        self.loss_tocsv = {"train_loss": [], "valid_pp": [], "valid_pn": [], "test_pp": [], "test_pn": []}
+        self.loss_tocsv = {"train_loss": [], "valid_pp": [], "valid_pn": [], "test_pp": [], "test_pn": [], "train_pp": [], "train_pn": []}
+        self.csv_path = params.path.test_score
 
     def fit(self, data):
         saver = tf.train.Saver()
@@ -75,21 +76,18 @@ class Trainer():
         logger.debug('Starting training loop...')
 
         anchor_loss_sum = tf.summary.scalar("anchor_loss/pos_neg", self.loss)
-        loss_sum0 = tf.summary.scalar("train_loss/all", self.valid_loss["all"])
         loss_sum1 = tf.summary.scalar("train_loss/pp", self.valid_loss["pp"])
         loss_sum2 = tf.summary.scalar("train_loss/pn", self.valid_loss["pn"])
         loss_sum3 = tf.summary.scalar("train_loss/nn", self.valid_loss["nn"])
-        train_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
-        loss_sum0 = tf.summary.scalar("valid_loss/all", self.valid_loss["all"])
+        train_loss_sum = tf.summary.merge([loss_sum1, loss_sum2, loss_sum3])
         loss_sum1 = tf.summary.scalar("valid_loss/pp", self.valid_loss["pp"])
         loss_sum2 = tf.summary.scalar("valid_loss/pn", self.valid_loss["pn"])
         loss_sum3 = tf.summary.scalar("valid_loss/nn", self.valid_loss["nn"])
-        valid_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
-        loss_sum0 = tf.summary.scalar("test_loss/all", self.valid_loss["all"])
+        valid_loss_sum = tf.summary.merge([loss_sum1, loss_sum2, loss_sum3])
         loss_sum1 = tf.summary.scalar("test_loss/pp", self.valid_loss["pp"])
         loss_sum2 = tf.summary.scalar("test_loss/pn", self.valid_loss["pn"])
         loss_sum3 = tf.summary.scalar("test_loss/nn", self.valid_loss["nn"])
-        test_loss_sum = tf.summary.merge([loss_sum0, loss_sum1, loss_sum2, loss_sum3])
+        test_loss_sum = tf.summary.merge([loss_sum1, loss_sum2, loss_sum3])
 
         while epoch < self.n_epochs:
             # Training steps
@@ -99,19 +97,29 @@ class Trainer():
                     self.batch_size,
                     shuffle=True)
             anchor_loss = 0.
+            train_cossimloss = {}
+            train_cossimloss["pp"], train_cossimloss["pn"] = 0., 0.
             for i, (Pos, Neg) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: True}
-                __, loss, loss_ = sess.run([
+                __, loss, loss_, vloss_, summary = sess.run([
                                     self.train_op,
                                     self.loss,
-                                    anchor_loss_sum],
+                                    anchor_loss_sum,
+                                    self.valid_loss,
+                                    train_loss_sum],
                                     feed_dict=feed_dict)
                 anchor_loss += loss
                 self.train_summary_writer.add_summary(loss_, i)
+                train_cossimloss["pp"] += vloss_["pp"]
+                train_cossimloss["pn"] += vloss_["pn"]
+                self.train_summary_writer.add_summary(summary, i)
+
             anchor_loss /= (i+1.)
+            train_cossimloss["pp"] /= (i+1.)
+            train_cossimloss["pn"] /= (i+1.)
 
             # Validation steps
             batcher = \
@@ -163,6 +171,8 @@ class Trainer():
 
             # save loss
             self.loss_tocsv["train_loss"].append(anchor_loss)
+            self.loss_tocsv["train_pp"].append(train_cossimloss["pp"])
+            self.loss_tocsv["train_pn"].append(train_cossimloss["pn"])
             self.loss_tocsv["valid_pp"].append(valid_cossimloss["pp"])
             self.loss_tocsv["valid_pn"].append(valid_cossimloss["pn"])
             self.loss_tocsv["test_pp"].append(test_cossimloss["pp"])
@@ -183,8 +193,7 @@ class Trainer():
 
         # Save loss
         df = pd.DataFrame(self.loss_tocsv)
-        csv_path = "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/cossim.csv"
-        df.to_csv(csv_path, mode="a", header=not os.path.exists(csv_path))
+        df.to_csv(self.csv_path, mode="a", header=not os.path.exists(self.csv_path))
 
         sess.close()
 
