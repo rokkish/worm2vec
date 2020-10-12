@@ -17,11 +17,13 @@ class Predictor(Trainer):
     def __init__(self,
                  params,
                  loss,
+                 valid_loss,
                  optim,
                  train_op,
                  placeholders):
         super().__init__(params,
                          loss,
+                         valid_loss,
                          optim,
                          train_op,
                          placeholders)

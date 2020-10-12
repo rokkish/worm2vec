@@ -132,7 +132,7 @@ def main(cfg: DictConfig):
         trainer = Trainer(cfg, loss, valid_loss, optim, train_op, placeholders)
         trainer.fit(data)
     else:
-        predictor = Predictor(cfg, loss, optim, train_op, placeholders)
+        predictor = Predictor(cfg, loss, valid_loss, optim, train_op, placeholders)
         predictor.fit(data)
 
 
