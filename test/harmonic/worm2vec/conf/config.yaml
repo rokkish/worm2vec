@@ -28,6 +28,7 @@ path:
     # save
     checkpoint: "./checkpoints"
     checkpoint_model: "./checkpoints/model.ckpt"
+    test_score: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/cossim.csv"
     # load
     checkpoint_fullpath: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/outputs/2020-08-19/16-18-38/checkpoints/model.ckpt"
     tensorboard: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/tensorboard/"
