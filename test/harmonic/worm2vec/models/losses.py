@@ -44,6 +44,30 @@ def cosine_similarity_pos_neg(embeddings):
     return {"all": loss, "pp": loss_pp, "pn": loss_pn, "nn": loss_nn}
 
 
+def euclidian_distance_pos_neg(embeddings):
+    pos = embeddings["positive"]
+    neg = embeddings["negative"]
+    arr = tf.concat([pos, neg], axis=0)
+
+    expand1 = tf.expand_dims(arr, axis=0)
+    expand2 = tf.expand_dims(arr, axis=1)
+    euclid_matrix = tf.reduce_sum(tf.square(expand1 - expand2), axis=-1)
+
+    euclid_matrix_pp = euclid_matrix[: pos.shape[0],              : pos.shape[0]]
+    euclid_matrix_pn = euclid_matrix[: pos.shape[0],  pos.shape[0]:             ]
+    euclid_matrix_nn = euclid_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
+
+    loss = tf.reduce_mean(euclid_matrix)
+    loss_pp = mean_nondiag(euclid_matrix_pp, int(pos.shape[0]))
+    loss_pn = tf.reduce_mean(euclid_matrix_pn)
+    loss_nn = mean_nondiag(euclid_matrix_nn, int(neg.shape[0]))
+    #ret = {"pp": tf.matrix_band_part(euclid_matrix_pp, -1, 0),
+    #       "nn":tf.matrix_band_part(euclid_matrix_nn, -1, 0),
+    #       "nn_diag": tf.matrix_diag_part(euclid_matrix_nn)}
+
+    return {"all": loss, "pp": loss_pp, "pn": loss_pn, "nn": loss_nn}
+
+
 def compute_euclidian_distance(x, y):
     return tf.reduce_sum(tf.square(x - y), 1)
 
@@ -110,17 +134,15 @@ def test_cosine_similarity_pos_neg():
             positive += 1
             negative += 1
         else:
-            positive = np.random.normal(1.0, 0.1, (n_positive, dim))
-            positive += np.random.gamma(2., 5., (n_positive, dim))
+            positive = np.random.normal(1.0, 0.001, (n_positive, dim))
             negative = np.random.normal(1.0, 0.1, (n_negative, dim))
-            negative += np.random.gamma(2., 5., (n_negative, dim))
         return positive, negative
 
     sess = tf.InteractiveSession()
     pos_shape, neg_shape, dim = 36, 50, 1000
     pos, neg = set_placeholders(pos_shape, neg_shape, dim)
     embeddings = {"positive": pos, "negative": neg}
-    loss = cosine_similarity_pos_neg(embeddings)
+    loss = euclidian_distance_pos_neg(embeddings)
     loss_log = {"pp": 0., "pn": 0., "nn": 0.}
 
     n_test = 100

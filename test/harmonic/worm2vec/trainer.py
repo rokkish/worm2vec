@@ -50,7 +50,8 @@ class Trainer():
         self.n_negative = params.nn.n_negative
 
         # validation loss not trainable
-        self.cossim = valid_loss
+        self.cossim = valid_loss["cossim"]
+        self.eucliddist = valid_loss["eucliddist"]
 
         # summary_writer
         self.train_summary_writer = tf.summary.FileWriter("./tensorboard/train")
@@ -58,7 +59,9 @@ class Trainer():
         self.test_summary_writer = tf.summary.FileWriter("./tensorboard/test")
 
         # save test_score
-        self.loss_tocsv = {"train_loss": [], "valid_pp": [], "valid_pn": [], "test_pp": [], "test_pn": [], "train_pp": [], "train_pn": []}
+        self.loss_tocsv = {"train_loss": [],
+                           "valid_pp": [], "valid_pn": [], "test_pp": [], "test_pn": [], "train_pp": [], "train_pn": [],
+                           "valid_eucliddist_pp": [], "valid_eucliddist_pn": [], "test_eucliddist_pp": [], "test_eucliddist_pn": [], "train_eucliddist_pp": [], "train_eucliddist_pn": []}
         self.csv_path = params.path.test_score
 
     def fit(self, data):
@@ -76,9 +79,12 @@ class Trainer():
         logger.debug('Starting training loop...')
 
         anchorloss_sum = tf.summary.scalar("anchor_loss/pos_neg", self.loss)
-        train_cossim_sum = self.cossim_summary("train")
-        valid_cossim_sum = self.cossim_summary("valid")
-        test_cossim_sum  = self.cossim_summary("test")
+        train_cossim_sum = self.notrainloss_summary("train", self.cossim)
+        valid_cossim_sum = self.notrainloss_summary("valid", self.cossim)
+        test_cossim_sum  = self.notrainloss_summary("test", self.cossim)
+        train_eucliddist_sum = self.notrainloss_summary("train", self.eucliddist, "euclid_")
+        valid_eucliddist_sum = self.notrainloss_summary("valid", self.eucliddist, "euclid_")
+        test_eucliddist_sum  = self.notrainloss_summary("test", self.eucliddist, "euclid_")
 
         while epoch < self.n_epochs:
             # init
@@ -86,9 +92,15 @@ class Trainer():
             train_cossim_dict = {}
             valid_cossim_dict = {}
             test_cossim_dict  = {}
+            train_eucliddist_dict = {}
+            valid_eucliddist_dict = {}
+            test_eucliddist_dict  = {}
             train_cossim_dict["pp"], train_cossim_dict["pn"] = 0., 0.
             valid_cossim_dict["pp"], valid_cossim_dict["pn"] = 0., 0.
             test_cossim_dict["pp"],  test_cossim_dict["pn"]  = 0., 0.
+            train_eucliddist_dict["pp"], train_eucliddist_dict["pn"] = 0., 0.
+            valid_eucliddist_dict["pp"], valid_eucliddist_dict["pn"] = 0., 0.
+            test_eucliddist_dict["pp"],  test_eucliddist_dict["pn"]  = 0., 0.
 
             # Training steps
             batcher = \
@@ -101,18 +113,23 @@ class Trainer():
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: True}
-                __, loss, anchor_summary, cossim, cossim_summary = sess.run([
+                __, loss, anchor_summary, cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
                                     self.train_op,
                                     self.loss,
                                     anchorloss_sum,
                                     self.cossim,
-                                    train_cossim_sum],
+                                    train_cossim_sum,
+                                    self.eucliddist,
+                                    train_eucliddist_sum],
                                     feed_dict=feed_dict)
                 anchor_loss += loss
                 self.train_summary_writer.add_summary(anchor_summary, train_i)
                 train_cossim_dict["pp"] += cossim["pp"]
                 train_cossim_dict["pn"] += cossim["pn"]
                 self.train_summary_writer.add_summary(cossim_summary, train_i)
+                train_eucliddist_dict["pp"] += eucliddist["pp"]
+                train_eucliddist_dict["pn"] += eucliddist["pn"]
+                self.train_summary_writer.add_summary(eucliddist_summary, train_i)
 
             # Validation steps
             batcher = \
@@ -124,10 +141,18 @@ class Trainer():
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: False}
-                cossim, cossim_summary = sess.run([self.cossim, valid_cossim_sum], feed_dict=feed_dict)
+                cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
+                                self.cossim,
+                                valid_cossim_sum,
+                                self.eucliddist,
+                                valid_eucliddist_sum],
+                                feed_dict=feed_dict)
                 valid_cossim_dict["pp"] += cossim["pp"]
                 valid_cossim_dict["pn"] += cossim["pn"]
                 self.valid_summary_writer.add_summary(cossim_summary, valid_i)
+                valid_eucliddist_dict["pp"] += eucliddist["pp"]
+                valid_eucliddist_dict["pn"] += eucliddist["pn"]
+                self.valid_summary_writer.add_summary(eucliddist_summary, valid_i)
 
             # Test steps
             batcher = \
@@ -139,10 +164,18 @@ class Trainer():
                             self.negative: Neg,
                             self.learning_rate: self.lr,
                             self.train_phase: False}
-                cossim, cossim_summary = sess.run([self.cossim, test_cossim_sum], feed_dict=feed_dict)
+                cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
+                                self.cossim,
+                                test_cossim_sum,
+                                self.eucliddist,
+                                test_eucliddist_sum],
+                                feed_dict=feed_dict)
                 test_cossim_dict["pp"] += cossim["pp"]
                 test_cossim_dict["pn"] += cossim["pn"]
                 self.test_summary_writer.add_summary(cossim_summary, test_i)
+                test_eucliddist_dict["pp"] += eucliddist["pp"]
+                test_eucliddist_dict["pn"] += eucliddist["pn"]
+                self.test_summary_writer.add_summary(eucliddist_summary, test_i)
 
             anchor_loss /= (train_i+1.)
             train_cossim_dict["pp"] /= (train_i+1.)
@@ -160,6 +193,12 @@ class Trainer():
             self.loss_tocsv["valid_pn"].append(valid_cossim_dict["pn"])
             self.loss_tocsv["test_pp"].append(test_cossim_dict["pp"])
             self.loss_tocsv["test_pn"].append(test_cossim_dict["pn"])
+            self.loss_tocsv["train_eucliddist_pp"].append(train_eucliddist_dict["pp"])
+            self.loss_tocsv["train_eucliddist_pn"].append(train_eucliddist_dict["pn"])
+            self.loss_tocsv["valid_eucliddist_pp"].append(valid_eucliddist_dict["pp"])
+            self.loss_tocsv["valid_eucliddist_pn"].append(valid_eucliddist_dict["pn"])
+            self.loss_tocsv["test_eucliddist_pp"].append(test_eucliddist_dict["pp"])
+            self.loss_tocsv["test_eucliddist_pn"].append(test_eucliddist_dict["pn"])
 
             # Save model
             if epoch % 10 == 0 or epoch == self.n_epochs - 1:
@@ -202,17 +241,19 @@ class Trainer():
 
             yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0]
 
-    def cossim_summary(self, mode):
+    def notrainloss_summary(self, mode, notrainloss, lossname=""):
         """
         Args:
-            mode: [train, valid, test]
+            mode (str): [train, valid, test]
+            notrainloss (placeholder): [cossim, eucliddist]
+            lossname (str): euclid_
         Return:
             tf.summary
         """
         if mode not in ["train", "valid", "test"]:
             raise ValueError("mode must be [train, valid, test]")
 
-        cossim_sum1 = tf.summary.scalar(mode + "_loss/pp", self.cossim["pp"])
-        cossim_sum2 = tf.summary.scalar(mode + "_loss/pn", self.cossim["pn"])
-        cossim_sum3 = tf.summary.scalar(mode + "_loss/nn", self.cossim["nn"])
-        return tf.summary.merge([cossim_sum1, cossim_sum2, cossim_sum3])
+        notrainloss_sum1 = tf.summary.scalar("{}_loss/{}pp".format(mode, lossname), notrainloss["pp"])
+        notrainloss_sum2 = tf.summary.scalar("{}_loss/{}pn".format(mode, lossname), notrainloss["pn"])
+        notrainloss_sum3 = tf.summary.scalar("{}_loss/{}nn".format(mode, lossname), notrainloss["nn"])
+        return tf.summary.merge([notrainloss_sum1, notrainloss_sum2, notrainloss_sum3])

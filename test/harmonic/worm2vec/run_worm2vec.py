@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 from omegaconf import DictConfig
 from models.worm_model import deep_worm
-from models.losses import triplet_loss, proxy_anchor_loss, cosine_similarity_pos_neg
+from models.losses import proxy_anchor_loss, cosine_similarity_pos_neg, euclidian_distance_pos_neg
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
@@ -44,9 +44,9 @@ def load_data(params):
 
     # Format
     data = {}
-    data['train_x'] = train
-    data['valid_x'] = valid
-    data['test_x'] = test
+    data['train_x'] = train#[:1000]
+    data['valid_x'] = valid#[:1000]
+    data['test_x'] = test#[:1000]
     return data
 
 
@@ -93,7 +93,10 @@ def construct_loss(preds, params, sample_size):
 
 
 def construct_validloss(preds):
-    return cosine_similarity_pos_neg(embeddings=preds)
+    """construct loss NOT for train.
+    """
+    return {"cossim": cosine_similarity_pos_neg(embeddings=preds),
+            "eucliddist": euclidian_distance_pos_neg(embeddings=preds)}
 
 
 def set_optimizer(params):
