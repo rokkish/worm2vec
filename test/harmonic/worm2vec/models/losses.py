@@ -14,9 +14,10 @@ def cosine_similarity(a, b):
 
 
 def mean_nondiag(matrix, matrix_shape):
-    sum_lower = tf.reduce_sum(tf.matrix_band_part(matrix, -1, 0))
-    sum_diag = tf.reduce_sum(tf.matrix_diag_part(matrix))
-    return (sum_lower - sum_diag) / (matrix_shape**2 - matrix_shape) * 2
+    with tf.name_scope('mean_nondiag_part'):
+        sum_lower = tf.reduce_sum(tf.matrix_band_part(matrix, -1, 0))
+        sum_diag = tf.reduce_sum(tf.matrix_diag_part(matrix))
+        return (sum_lower - sum_diag) / (matrix_shape**2 - matrix_shape) * 2
 
 
 def cosine_similarity_pos_neg(embeddings):
@@ -24,19 +25,22 @@ def cosine_similarity_pos_neg(embeddings):
     neg = embeddings["negative"]
     arr = tf.concat([pos, neg], axis=0)
 
-    norm_arr = tf.nn.l2_normalize(arr, axis=1)
-    expand1 = tf.expand_dims(norm_arr, axis=0)
-    expand2 = tf.expand_dims(norm_arr, axis=1)
-    cos_matrix = tf.reduce_sum(expand1 * expand2, axis=-1)
+    with tf.name_scope('cosine_matrix'):
+        norm_arr = tf.nn.l2_normalize(arr, axis=1)
+        expand1 = tf.expand_dims(norm_arr, axis=0)
+        expand2 = tf.expand_dims(norm_arr, axis=1)
+        cos_matrix = tf.reduce_sum(expand1 * expand2, axis=-1)
 
-    cos_matrix_pp = cos_matrix[: pos.shape[0],              : pos.shape[0]]
-    cos_matrix_pn = cos_matrix[: pos.shape[0],  pos.shape[0]:             ]
-    cos_matrix_nn = cos_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
+    with tf.name_scope('cosine_matrix_pairs'):
+        cos_matrix_pp = cos_matrix[: pos.shape[0],              : pos.shape[0]]
+        cos_matrix_pn = cos_matrix[: pos.shape[0],  pos.shape[0]:             ]
+        cos_matrix_nn = cos_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
 
-    loss = tf.reduce_mean(cos_matrix)
-    loss_pp = mean_nondiag(cos_matrix_pp, int(pos.shape[0]))
-    loss_pn = tf.reduce_mean(cos_matrix_pn)
-    loss_nn = mean_nondiag(cos_matrix_nn, int(neg.shape[0]))
+    with tf.name_scope('cosine_similarity'):
+        loss = tf.reduce_mean(cos_matrix)
+        loss_pp = mean_nondiag(cos_matrix_pp, int(pos.shape[0]))
+        loss_pn = tf.reduce_mean(cos_matrix_pn)
+        loss_nn = mean_nondiag(cos_matrix_nn, int(neg.shape[0]))
     #ret = {"pp": tf.matrix_band_part(cos_matrix_pp, -1, 0),
     #       "nn":tf.matrix_band_part(cos_matrix_nn, -1, 0),
     #       "nn_diag": tf.matrix_diag_part(cos_matrix_nn)}
@@ -49,18 +53,21 @@ def euclidian_distance_pos_neg(embeddings):
     neg = embeddings["negative"]
     arr = tf.concat([pos, neg], axis=0)
 
-    expand1 = tf.expand_dims(arr, axis=0)
-    expand2 = tf.expand_dims(arr, axis=1)
-    euclid_matrix = tf.reduce_sum(tf.square(expand1 - expand2), axis=-1)
+    with tf.name_scope('euclid_matrix'):
+        expand1 = tf.expand_dims(arr, axis=0)
+        expand2 = tf.expand_dims(arr, axis=1)
+        euclid_matrix = tf.reduce_sum(tf.square(expand1 - expand2), axis=-1)
 
-    euclid_matrix_pp = euclid_matrix[: pos.shape[0],              : pos.shape[0]]
-    euclid_matrix_pn = euclid_matrix[: pos.shape[0],  pos.shape[0]:             ]
-    euclid_matrix_nn = euclid_matrix[pos.shape[0]: ,  pos.shape[0]:             ]
+    with tf.name_scope('euclid_matrix_pairs'):
+        euclid_matrix_pp = euclid_matrix[: pos.shape[0], : pos.shape[0]]
+        euclid_matrix_pn = euclid_matrix[: pos.shape[0],  pos.shape[0]:]
+        euclid_matrix_nn = euclid_matrix[pos.shape[0]: ,  pos.shape[0]:]
 
-    loss = tf.reduce_mean(euclid_matrix)
-    loss_pp = mean_nondiag(euclid_matrix_pp, int(pos.shape[0]))
-    loss_pn = tf.reduce_mean(euclid_matrix_pn)
-    loss_nn = mean_nondiag(euclid_matrix_nn, int(neg.shape[0]))
+    with tf.name_scope('euclid_distance'):
+        loss = tf.reduce_mean(euclid_matrix)
+        loss_pp = mean_nondiag(euclid_matrix_pp, int(pos.shape[0]))
+        loss_pn = tf.reduce_mean(euclid_matrix_pn)
+        loss_nn = mean_nondiag(euclid_matrix_nn, int(neg.shape[0]))
     #ret = {"pp": tf.matrix_band_part(euclid_matrix_pp, -1, 0),
     #       "nn":tf.matrix_band_part(euclid_matrix_nn, -1, 0),
     #       "nn_diag": tf.matrix_diag_part(euclid_matrix_nn)}
@@ -97,21 +104,29 @@ def proxy_anchor_loss(embeddings, n_classes, n_unique, input_dim, alpha, delta):
                             initializer=tf.random_normal_initializer(),
                             dtype=tf.float32,
                             trainable=True)
-    pos_embeddings_l2 = tf.nn.l2_normalize(embeddings["positive"], axis=1)
-    neg_embeddings_l2 = tf.nn.l2_normalize(embeddings["negative"], axis=1)
-    proxy_l2 = tf.nn.l2_normalize(proxy, axis=1)
+    with tf.name_scope('l2_norm_pos'):
+        pos_embeddings_l2 = tf.nn.l2_normalize(embeddings["positive"], axis=1)
+    with tf.name_scope('l2_norm_neg'):
+        neg_embeddings_l2 = tf.nn.l2_normalize(embeddings["negative"], axis=1)
+    with tf.name_scope('l2_norm_proxy'):
+        proxy_l2 = tf.nn.l2_normalize(proxy, axis=1)
 
-    pos_sim_mat = tf.matmul(pos_embeddings_l2, proxy_l2, transpose_b=True)
-    neg_sim_mat = tf.matmul(neg_embeddings_l2, proxy_l2, transpose_b=True)
+    with tf.name_scope('similarity_proxy_pos'):
+        pos_sim_mat = tf.matmul(pos_embeddings_l2, proxy_l2, transpose_b=True)
+    with tf.name_scope('similarity_proxy_neg'):
+        neg_sim_mat = tf.matmul(neg_embeddings_l2, proxy_l2, transpose_b=True)
 
-    pos_mat = tf.exp(-alpha * (pos_sim_mat - delta))
-    neg_mat = tf.exp(alpha * (neg_sim_mat + delta))
+    with tf.name_scope('exp_of_similarity'):
+        pos_mat = tf.exp(-alpha * (pos_sim_mat - delta))
+        neg_mat = tf.exp(alpha * (neg_sim_mat + delta))
 
-    # n_unique = batch_size // n_instance
-    pos_term = 1.0 / n_unique * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(pos_mat, axis=0)))
-    neg_term = 1.0 / n_classes * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(neg_mat, axis=0)))
+    with tf.name_scope('softplus_logsumexp'):
+        # n_unique = batch_size // n_instance
+        pos_term = 1.0 / n_unique * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(pos_mat, axis=0)))
+        neg_term = 1.0 / n_classes * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(neg_mat, axis=0)))
 
-    loss = pos_term + neg_term
+    with tf.name_scope('proxy_anchor_loss'):
+        loss = pos_term + neg_term
 
     return loss
 
