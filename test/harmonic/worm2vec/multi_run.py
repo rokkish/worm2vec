@@ -3,6 +3,7 @@ import os
 import datetime
 import subprocess
 import glob
+from distutils.dir_util import copy_tree
 from post_slack import post
 import get_logger
 logger = get_logger.get_logger(name="multi_run")
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     if len(data) == 0:
         raise ValueError("data not found")
 
-    epoch = 10
+    epoch = 12
 
     runned_datetime = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
     os.makedirs("/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}".format(runned_datetime))
@@ -72,3 +73,19 @@ if __name__ == "__main__":
                 "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
             ])
             prev_date = glob_prev_datetime()
+
+        # predict
+        subprocess.call(["python", "run_worm2vec.py",
+            "path.worm_data={}".format(data_i),
+            "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
+            "nn.n_negative=50",
+            "nn.batch_size=1",
+            "path.tensorboard=./",
+            "train_mode=False",
+        ])
+        predict_date = glob_prev_datetime()
+
+        # to load model.ckpt next iter
+        load_checkpoints_dir = "{}/checkpoints/".format(prev_date)
+        cp_checkpoints_dir = "{}/checkpoints/".format(predict_date)
+        copy_tree(load_checkpoints_dir, cp_checkpoints_dir)
