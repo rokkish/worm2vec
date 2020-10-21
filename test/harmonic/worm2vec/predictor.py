@@ -32,8 +32,8 @@ class Predictor(Trainer):
         self.logdir = params.path.tensorboard
         self.n_classes = params.nn.n_classes
         self.layers_name = [
-            "block4_1/Mean:0",
             "block4/Mean:0",
+            "FCN/Relu:0"
         ]
         self.n_embedding = 10
         self.view_pos_and_neg = False
@@ -83,15 +83,11 @@ class Predictor(Trainer):
             summary_np = np.reshape(summary_np, (summary_np.shape[0], -1))
 
             # cat batch_embedding
-            cat_summary_np[i*self.n_positive: (i+1)*self.n_positive] = summary_np
+            cat_summary_np[i*self.n_positive: (i+1)*self.n_positive] = summary_np[:self.n_positive]
             cat_Pos[i*self.n_positive: (i+1)*self.n_positive] = Pos
 
-            # select  first layer output
-            summary_np = np.array(summary[0])
-            summary_np = np.reshape(summary_np, (summary_np.shape[0], -1))
-
             # cat batch_embedding
-            cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np
+            cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np[self.n_positive:]
             cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
         if self.view_pos_and_neg:

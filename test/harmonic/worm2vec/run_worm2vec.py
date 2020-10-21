@@ -69,14 +69,18 @@ def set_placeholders(batch_size, dim, n_positive, n_negative):
 
 def construct_model(params, placeholders):
     preds = {}
-    n_sample = {"positive": params.n_positive, "negative": params.n_negative}
+    n_sample = params.n_positive + params.n_negative
 
-    for input_key, reuse in [("positive", False), ("negative", True)]:
-        preds[input_key] = deep_worm(params,
-                                     placeholders[input_key],
-                                     placeholders["train_phase"],
-                                     n_sample[input_key],
-                                     reuse)
+    ret = deep_worm(params,
+                    pos=placeholders["positive"],
+                    neg=placeholders["negative"],
+                    train_phase=placeholders["train_phase"],
+                    n_sample=n_sample,
+                    reuse=None)
+    with tf.name_scope('positive_embedding'):
+        preds["positive"] = ret[:params.n_positive]
+    with tf.name_scope('negative_embedding'):
+        preds["negative"] = ret[params.n_positive:]
     return preds
 
 
@@ -118,7 +122,7 @@ def modify_gvs(grads_and_vars, params):
 def main(cfg: DictConfig):
 
     tf.reset_default_graph()
-
+    logger.debug(cfg)
     # load_data
     data = load_data(cfg)
     logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
