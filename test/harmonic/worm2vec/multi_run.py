@@ -36,6 +36,7 @@ if __name__ == "__main__":
         raise ValueError("data not found")
 
     epoch = 12
+    n_classes = 5
 
     runned_datetime = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
     os.makedirs("/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}".format(runned_datetime))
@@ -59,6 +60,7 @@ if __name__ == "__main__":
                 "train.restart_train=False",
                 "nn.n_negative=50",
                 "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
+                "nn.n_classes={}".format(n_classes),
             ])
             prev_date = glob_prev_datetime()
         # reload params
@@ -71,6 +73,7 @@ if __name__ == "__main__":
                 "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
                 "nn.n_negative=50",
                 "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
+                "nn.n_classes={}".format(n_classes),
             ])
             prev_date = glob_prev_datetime()
 
@@ -82,6 +85,7 @@ if __name__ == "__main__":
             "nn.batch_size=1",
             "path.tensorboard=./",
             "train_mode=False",
+            "nn.n_classes={}".format(n_classes),
         ])
         predict_date = glob_prev_datetime()
 
