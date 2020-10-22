@@ -5,56 +5,63 @@ import hydra
 import tensorflow as tf
 import numpy as np
 from omegaconf import DictConfig
-from models.worm_model import deep_worm, triplet_loss
+from models.worm_model import deep_worm
+from models.losses import proxy_anchor_loss, cosine_similarity_pos_neg, euclidian_distance_pos_neg
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
 
 
-def load_data(params):
-    # Load dataset (N, rot+neg, 1, H, W)
-    if not os.path.exists(params.path.worm_data):
+def np_load(path):
+    """Check path and Return data(np.array)
+    """
+    if not os.path.exists(path):
         logger.debug(os.getcwd())
         raise ValueError("no exist")
-    dataset = np.load(params.path.worm_data)["arr_0"]
+    return np.load(path)["arr_0"]
+
+
+def load_fixedtestdata():
+    """When multi_run.py is running, test data must be fixed.
+    """
+    return np_load("/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz")
+
+
+def load_data(params):
+    # Load dataset (N, rot+neg, 1, H, W)
+    dataset = np_load(params.path.worm_data)
 
     # Split
     N = dataset.shape[0]
     valid_rate = params.preprocess.valid_rate
-    test_rate = params.preprocess.test_rate
-    train_valid_rate = 1. - test_rate
     train_rate = 1. - valid_rate
-    N_trval = int(N * train_valid_rate)
-    N_tr = int(N_trval * train_rate)
+    N_tr = int(N * train_rate)
 
-    train_valid = dataset[:N_trval]
-    train = train_valid[:N_tr]
-    valid = train_valid[N_tr:]
-    test = dataset[N_trval:]
+    train = dataset[:N_tr]
+    valid = dataset[N_tr:]
+    test = load_fixedtestdata()
 
     # Format
     data = {}
-    data['train_x'] = train
-    data['valid_x'] = valid
-    data['test_x'] = test
+    data['train_x'] = train#[:1000]
+    data['valid_x'] = valid#[:1000]
+    data['test_x'] = test#[:1000]
     return data
 
 
-def set_placeholders(batch_size, dim):
-    x = tf.placeholder(tf.float32,
-                       [batch_size, dim, dim], name='x')
-    positive = tf.placeholder(tf.float32,
-                              [batch_size, dim, dim],
-                              name='positive')
-    negative = tf.placeholder(tf.float32,
-                              [batch_size, dim, dim],
-                              name='negative')
-    learning_rate = tf.placeholder(tf.float32,
-                                   name='learning_rate')
-    train_phase = tf.placeholder(tf.bool, name='train_phase')
-    return {"x": x,
-            "positive": positive,
+def set_placeholders(batch_size, dim, n_positive, n_negative):
+    with tf.name_scope('inputs'):
+        positive = tf.placeholder(tf.float32,
+                                [n_positive, dim, dim],
+                                name='positive')
+        negative = tf.placeholder(tf.float32,
+                                [n_negative, dim, dim],
+                                name='negative')
+        learning_rate = tf.placeholder(tf.float32,
+                                    name='learning_rate')
+        train_phase = tf.placeholder(tf.bool, name='train_phase')
+    return {"positive": positive,
             "negative": negative,
             "learning_rate": learning_rate,
             "train_phase": train_phase}
@@ -62,12 +69,39 @@ def set_placeholders(batch_size, dim):
 
 def construct_model(params, placeholders):
     preds = {}
-    for input_key, reuse in [("x", False), ("positive", True), ("negative", True)]:
-        preds[input_key] = deep_worm(params,
-                                     placeholders[input_key],
-                                     placeholders["train_phase"],
-                                     reuse)
+    n_sample = params.n_positive + params.n_negative
+
+    ret = deep_worm(params,
+                    pos=placeholders["positive"],
+                    neg=placeholders["negative"],
+                    train_phase=placeholders["train_phase"],
+                    n_sample=n_sample,
+                    reuse=None)
+    with tf.name_scope('positive_embedding'):
+        preds["positive"] = ret[:params.n_positive]
+    with tf.name_scope('negative_embedding'):
+        preds["negative"] = ret[params.n_positive:]
     return preds
+
+
+def construct_loss(preds, params, sample_size):
+    if params.nn.batch_size != 1:
+        assert ValueError("batchsize must be 1. If not, calculating Proxy-anchor-loss is wrong.")
+
+    return proxy_anchor_loss(
+            embeddings=preds,
+            n_classes=sample_size,
+            n_unique=params.nn.n_positive,
+            input_dim=params.nn.n_classes,
+            alpha=params.loss.alpha,
+            delta=params.loss.delta)
+
+
+def construct_validloss(preds):
+    """construct loss NOT for train.
+    """
+    return {"cossim": cosine_similarity_pos_neg(embeddings=preds),
+            "eucliddist": euclidian_distance_pos_neg(embeddings=preds)}
 
 
 def set_optimizer(params):
@@ -88,24 +122,25 @@ def modify_gvs(grads_and_vars, params):
 def main(cfg: DictConfig):
 
     tf.reset_default_graph()
-
+    logger.debug(cfg)
     # load_data
     data = load_data(cfg)
     logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
     # build model
-    placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim)
+    placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
     preds = construct_model(cfg.nn, placeholders)
-    loss = triplet_loss(preds, cfg.loss.margin)
+    loss = construct_loss(preds, cfg, data["train_x"].shape[0])
+    valid_loss = construct_validloss(preds)
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)
     modified_gvs = modify_gvs(grads_and_vars, cfg.nn)
     train_op = optim.apply_gradients(modified_gvs)
     # train or predict
     if cfg.train_mode:
-        trainer = Trainer(cfg, loss, optim, train_op, placeholders)
+        trainer = Trainer(cfg, loss, valid_loss, optim, train_op, placeholders)
         trainer.fit(data)
     else:
-        predictor = Predictor(cfg, loss, optim, train_op, placeholders)
+        predictor = Predictor(cfg, loss, valid_loss, optim, train_op, placeholders)
         predictor.fit(data)
 
 

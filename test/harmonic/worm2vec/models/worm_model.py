@@ -10,7 +10,7 @@ import tensorflow as tf
 import harmonic_network_lite as hn_lite
 
 
-def deep_worm(args, x, train_phase, reuse=False):
+def deep_worm(args, pos, neg, train_phase, n_sample, reuse=False):
     """The MNIST-rot model similar to the one in Cohen & Welling, 2016"""
     # Sure layers weight & bias
     # order = 1
@@ -18,6 +18,7 @@ def deep_worm(args, x, train_phase, reuse=False):
     nf = args.n_filters
     nf2 = int(nf*args.filter_gain)
     nf3 = int(nf*(args.filter_gain**2.))
+    nf4 = int(nf*(args.filter_gain**3))
     bs = args.batch_size
     fs = args.filter_size
     ncl = args.n_classes
@@ -28,7 +29,8 @@ def deep_worm(args, x, train_phase, reuse=False):
     with tf.variable_scope("final_layer", reuse=reuse):
         bias = tf.get_variable('b7', shape=[args.n_classes],
                             initializer=initializer)
-    x = tf.reshape(x, shape=[bs, args.dim, args.dim, 1, 1, 1])
+    x = tf.concat([pos, neg], 0)
+    x = tf.reshape(x, shape=[n_sample, args.dim, args.dim, 1, 1, 1])
 
     # Convolutional Layers with pooling
     with tf.name_scope('block1'):
@@ -62,27 +64,15 @@ def deep_worm(args, x, train_phase, reuse=False):
                              n_rings=nr, name='6', reuse=reuse)
         cv6 = hn_lite.batch_norm(cv6, train_phase, name='bn3', reuse=reuse)
 
-    # Final Layer
     with tf.name_scope('block4'):
-        cv7 = hn_lite.conv2d(cv6, ncl, fs, padding='SAME',
+        cv7 = hn_lite.conv2d(cv6, nf4, fs, padding='SAME',
                              n_rings=nr, phase=False, name='7', reuse=reuse)
         real = hn_lite.sum_magnitudes(cv7)
         cv7 = tf.reduce_mean(real, axis=[1, 2, 3, 4])
-        return tf.nn.bias_add(cv7, bias)
 
-
-def triplet_loss(preds, margin):
-    anchor = preds["x"]
-    positive = preds["positive"]
-    negative = preds["negative"]
-
-    if len(anchor.shape) != 2:
-        raise ValueError("tensor shape should be [batch, dim]")
-
-    def compute_euclidian_distance(x, y):
-        return tf.reduce_sum(tf.square(x - y), 1)
-    dist_pos = compute_euclidian_distance(anchor, positive)
-    dist_neg = compute_euclidian_distance(anchor, negative)
-
-    loss = tf.reduce_mean(tf.maximum(0., margin + dist_pos - dist_neg))
-    return loss
+    # Final Layer
+    with tf.name_scope("FCN"):
+        fully_connected_w = tf.Variable(tf.truncated_normal([nf4, ncl], stddev=0.1))
+        cv8 = tf.matmul(cv7, fully_connected_w)
+        cv8 = tf.nn.bias_add(cv8, bias)
+        return tf.nn.relu(cv8)

@@ -17,26 +17,27 @@ class Predictor(Trainer):
     def __init__(self,
                  params,
                  loss,
+                 valid_loss,
                  optim,
                  train_op,
                  placeholders):
         super().__init__(params,
                          loss,
+                         valid_loss,
                          optim,
                          train_op,
                          placeholders)
         self.dim = params.nn.dim
         self.checkpoint_fullpath = params.path.checkpoint_fullpath
         self.logdir = params.path.tensorboard
+        self.n_classes = params.nn.n_classes
         self.layers_name = [
-            "block1/hconv1/Reshape_1:0",
-            "block2/hconv3/Reshape_1:0",
-            "block3/hconv5/Reshape_1:0",
-            "block4/hconv7/Reshape_1:0",
-            "block4/hconv7/Reshape:0",
             "block4/Mean:0",
-            "block4/Maximum:0"
+            "FCN/Relu:0"
         ]
+        self.n_embedding = 10
+        self.view_pos_and_neg = False
+        self.view_pos = True # if True view only pos,
 
     def fit(self, data):
         saver = tf.train.Saver()
@@ -54,11 +55,24 @@ class Predictor(Trainer):
             )
 
         batcher = self.minibatcher(data['test_x'],
-                                   self.batch_size)
+                                   self.batch_size,
+                                   shuffle=True)
 
-        for i, (X, Pos, Neg) in enumerate(batcher):
-            feed_dict = {self.x: X,
-                         self.positive: Pos,
+        cat_summary_np = np.zeros((self.n_positive * self.n_embedding,
+                                   self.n_classes))
+        cat_Pos = np.zeros((self.n_positive * self.n_embedding,
+                            self.dim, self.dim))
+
+        cat_neg_summary_np = np.zeros((self.n_negative * self.n_embedding,
+                                       self.n_classes))
+        cat_Neg = np.zeros((self.n_negative * self.n_embedding,
+                            self.dim, self.dim))
+
+        for i, (Pos, Neg) in enumerate(batcher):
+            if i == self.n_embedding:
+                break
+
+            feed_dict = {self.positive: Pos,
                          self.negative: Neg,
                          self.learning_rate: self.lr,
                          self.train_phase: False}
@@ -67,24 +81,45 @@ class Predictor(Trainer):
             # select last layer output
             summary_np = np.array(summary[-1])
             summary_np = np.reshape(summary_np, (summary_np.shape[0], -1))
-            variables = tf.Variable(summary_np, trainable=False, name="embedding_lastlayer")
 
-            # make tensor.tsv
-            df = pd.DataFrame(summary_np).astype("float64")
-            df.to_csv(self.logdir + "tensor.csv", header=False, index=False, sep="\t")
+            # cat batch_embedding
+            cat_summary_np[i*self.n_positive: (i+1)*self.n_positive] = summary_np[:self.n_positive]
+            cat_Pos[i*self.n_positive: (i+1)*self.n_positive] = Pos
 
-            # make metadata.tsv (labels)
-            with open(self.logdir + "metadata.tsv", "w") as f:
-                f.write("Index\tLabel\n")
-                for index, label in enumerate(X):
-                    # FIXME:label dont exist in worm data.
-                    f.write("%d\t%d\n" % (index, int(index)))
+            # cat batch_embedding
+            cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np[self.n_positive:]
+            cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
-            # make sprite image (labels)
-            # X = (Batch, H, W)
-            # TODO:X, Pos, Negを一緒にEmbeddingして可視化する．
-            save_sprite_image(create_sprite_image(X), path=self.logdir + "sprite.png")
-            break
+        if self.view_pos_and_neg:
+            cat = np.concatenate([cat_summary_np, cat_neg_summary_np], axis=0)
+            cat_img = np.concatenate([cat_Pos, cat_Neg], axis=0)
+        else:
+            if self.view_pos:
+                cat = cat_summary_np
+                cat_img = cat_Pos
+            else:
+                cat = cat_neg_summary_np
+                cat_img = cat_Neg
+
+        variables = tf.Variable(cat, trainable=False, name="embedding_lastlayer")
+
+        # make tensor.tsv
+        df = pd.DataFrame(cat).astype("float64")
+        df.to_csv(self.logdir + "tensor.csv", header=False, index=False, sep="\t")
+
+        # make metadata.tsv (labels)
+        with open(self.logdir + "metadata.tsv", "w") as f:
+            f.write("Index\tLabel\n")
+            for index, label in enumerate(cat_img):
+                # label means ID of image.
+                if index >= self.n_positive * self.n_embedding:
+                    custmom_label = self.n_positive + (index - self.n_positive * self.n_embedding) // self.n_negative
+                else:
+                    custmom_label = index//self.n_positive
+                f.write("%d\t%d\n" % (index, custmom_label))
+
+        # make sprite image (labels)
+        save_sprite_image(create_sprite_image(cat_img), path=self.logdir + "sprite.png")
 
         # config of projector
         config_projector = projector.ProjectorConfig()
