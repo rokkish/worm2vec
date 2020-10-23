@@ -32,7 +32,9 @@ path:
     # load
     checkpoint_fullpath: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/outputs/2020-08-19/16-18-38/checkpoints/model.ckpt"
     tensorboard: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/tensorboard/"
+    # data
     worm_data: "../../../../data/.npz"
+    fixedtestdata: "/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz"
 train_mode: True
 train:
     restart_train: False

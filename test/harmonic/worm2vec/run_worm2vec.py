@@ -22,10 +22,10 @@ def np_load(path):
     return np.load(path)["arr_0"]
 
 
-def load_fixedtestdata():
+def load_fixedtestdata(path):
     """When multi_run.py is running, test data must be fixed.
     """
-    return np_load("/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz")
+    return np_load(path)
 
 
 def load_data(params):
@@ -40,7 +40,7 @@ def load_data(params):
 
     train = dataset[:N_tr]
     valid = dataset[N_tr:]
-    test = load_fixedtestdata()
+    test = load_fixedtestdata(params.path.fixedtestdata)
 
     # Format
     data = {}
