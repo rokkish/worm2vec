@@ -94,7 +94,7 @@ def triplet_loss(preds, margin):
     return loss
 
 
-def proxy_anchor_loss(embeddings, n_classes, n_unique, input_dim, alpha, delta):
+def proxy_anchor_loss(embeddings, class_id, n_classes, n_unique, input_dim, alpha, delta):
     '''
     ref: https://arxiv.org/abs/2003.13911
     official pytorch codes: https://github.com/tjddus9597/Proxy-Anchor-CVPR2020
@@ -104,25 +104,27 @@ def proxy_anchor_loss(embeddings, n_classes, n_unique, input_dim, alpha, delta):
                             initializer=tf.random_normal_initializer(),
                             dtype=tf.float32,
                             trainable=True)
+    with tf.name_scope('select_proxy'):
+        pos_proxy = tf.reshape(proxy[class_id], [1, input_dim])
     with tf.name_scope('l2_norm_pos'):
         pos_embeddings_l2 = tf.nn.l2_normalize(embeddings["positive"], axis=1)
     with tf.name_scope('l2_norm_neg'):
         neg_embeddings_l2 = tf.nn.l2_normalize(embeddings["negative"], axis=1)
     with tf.name_scope('l2_norm_proxy'):
-        proxy_l2 = tf.nn.l2_normalize(proxy, axis=1)
+        pos_proxy_l2 = tf.nn.l2_normalize(pos_proxy, axis=1)
+        all_proxy_l2 = tf.nn.l2_normalize(proxy, axis=1)
 
     with tf.name_scope('similarity_proxy_pos'):
-        pos_sim_mat = tf.matmul(pos_embeddings_l2, proxy_l2, transpose_b=True)
+        pos_sim_mat = tf.matmul(pos_embeddings_l2, pos_proxy_l2, transpose_b=True)
     with tf.name_scope('similarity_proxy_neg'):
-        neg_sim_mat = tf.matmul(neg_embeddings_l2, proxy_l2, transpose_b=True)
+        neg_sim_mat = tf.matmul(neg_embeddings_l2, all_proxy_l2, transpose_b=True)
 
     with tf.name_scope('exp_of_similarity'):
         pos_mat = tf.exp(-alpha * (pos_sim_mat - delta))
         neg_mat = tf.exp(alpha * (neg_sim_mat + delta))
 
     with tf.name_scope('softplus_logsumexp'):
-        # n_unique = batch_size // n_instance
-        pos_term = 1.0 / n_unique * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(pos_mat, axis=0)))
+        pos_term = tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(pos_mat, axis=0)))
         neg_term = 1.0 / n_classes * tf.reduce_sum(tf.log(1.0 + tf.reduce_sum(neg_mat, axis=0)))
 
     with tf.name_scope('proxy_anchor_loss'):
