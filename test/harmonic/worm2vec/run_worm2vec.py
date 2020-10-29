@@ -126,18 +126,26 @@ def main(cfg: DictConfig):
 
     tf.reset_default_graph()
     logger.debug(cfg)
+
     # load_data
     data = load_data(cfg)
     logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
+
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
+
     preds = construct_model(cfg.nn, placeholders)
+
     loss = construct_loss(preds, placeholders["class_id"], cfg, data["train_x"].shape[0])
     valid_loss = construct_validloss(preds)
+
     optim = set_optimizer(cfg.optimizer)
+
     grads_and_vars = optim.compute_gradients(loss)
     modified_gvs = modify_gvs(grads_and_vars, cfg.nn)
+
     train_op = optim.apply_gradients(modified_gvs)
+
     # train or predict
     if cfg.train_mode:
         trainer = Trainer(cfg, loss, valid_loss, optim, train_op, placeholders)
