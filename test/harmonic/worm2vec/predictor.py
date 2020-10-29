@@ -68,7 +68,7 @@ class Predictor(Trainer):
         cat_Neg = np.zeros((self.n_negative * self.n_embedding,
                             self.dim, self.dim))
 
-        for i, (Pos, Neg) in enumerate(batcher):
+        for i, (Pos, Neg, _) in enumerate(batcher):
             if i == self.n_embedding:
                 break
 

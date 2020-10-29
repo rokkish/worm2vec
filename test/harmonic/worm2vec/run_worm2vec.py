@@ -132,7 +132,7 @@ def main(cfg: DictConfig):
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
     preds = construct_model(cfg.nn, placeholders)
-    loss = construct_loss(preds, placeholders["class_id"], cfg, numsamples)
+    loss = construct_loss(preds, placeholders["class_id"], cfg, data["train_x"].shape[0])
     valid_loss = construct_validloss(preds)
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)

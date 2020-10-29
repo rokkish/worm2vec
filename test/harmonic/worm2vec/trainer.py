@@ -250,7 +250,7 @@ class Trainer():
             else:
                 excerpt = start_idx
 
-            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0], set_class_id(excerpt)
+            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0], self.set_class_id(excerpt)
 
     def notrainloss_summary(self, mode, notrainloss, lossname=""):
         """
