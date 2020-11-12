@@ -2,7 +2,6 @@
     Preprocess raw data
         : Tobinary, Fill hole, Labelling, Padding
 """
-
 import os
 import time
 import glob
@@ -16,7 +15,7 @@ from features.worm_transform import ToBinary, FillHole, Labelling, Rotation, Pad
 import features.sort_index as sort_index
 from trainer import Trainer
 import get_logger
-logger = get_logger.get_logger(name='preprocess')
+logger = get_logger.get_logger(name='preprocess', save_name="../log/logger/preprocess.log")
 
 
 class WormDataset_prepro(torch.utils.data.Dataset):
@@ -54,8 +53,8 @@ class WormDataset_prepro(torch.utils.data.Dataset):
             tuple: (image)
         """
         img = self.data[index]
-        #FIXME:not smart['..', '..', 'data', 'Tanimoto_eLife_Fig3B', '201302081603', 'main', 'img3317.bmp']
-        img_date = img.split("/")[4]
+        #FIXME:not smart['..', '..', 'data', 'raw', 'Tanimoto_eLife_Fig3B', '201302081603', 'main', 'img3317.bmp']
+        img_date = img.split("/")[5]
 
         try:
             img = Image.open(img)
@@ -73,7 +72,7 @@ class WormDataset_prepro(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def load_datasets(START_ID, END_ID):
+def load_datasets(START_ID, END_ID, root_dir):
     """ Set transform """
     worm_transforms = transforms.Compose([
         ToBinary(),
@@ -85,7 +84,7 @@ def load_datasets(START_ID, END_ID):
         #transforms.ToTensor()])
 
     """ Set dataset """
-    dataset = WormDataset_prepro(root="../../data/Tanimoto_eLife_Fig3B",
+    dataset = WormDataset_prepro(root=root_dir,
                                  transform=worm_transforms,
                                  START_ID=START_ID,
                                  END_ID=END_ID)
@@ -97,14 +96,14 @@ def load_datasets(START_ID, END_ID):
     return loader
 
 
-def count_img(process_id):
+def count_img(process_id, root_dir):
     """Count num dataset, and return (start, end) id to divide data. 
         Arg:
             process_id (int): No.[0, 1, 2, 3] of docker container.
     """
     img_list = []
 
-    data_dirs = glob.glob("../../data/Tanimoto_eLife_Fig3B/*")
+    data_dirs = glob.glob(root_dir + "/*")
 
     for dir_i in data_dirs:
         img_list.extend(glob.glob(dir_i + "/main/*"))
@@ -137,6 +136,7 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
         if (data_i + START_ID) % 1000 == 0:
             logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
                          (process_id, data_i + START_ID, END_ID, time.time() - init_t))
+            logger.debug("date: {}".format(date))
 
         if date == config.error_idx:
             logger.debug("Skip this batch beacuse window can't load data")
@@ -169,11 +169,25 @@ def preprocess(START_ID, END_ID, loader, process_id, save_name):
 def main(args):
     """Load datasets, Do preprocess()
     """
-    START_ID, END_ID = count_img(args.process_id)
+    START_ID, END_ID = count_img(args.process_id, args.root_dir)
 
-    loader = load_datasets(START_ID, END_ID)
+    loader = load_datasets(START_ID, END_ID, args.root_dir)
 
     preprocess(START_ID, END_ID, loader, args.process_id, args.save_name)
+
+#from post_slack
+import requests
+import json
+import conf.key
+def post(txt):
+    """post text to slack
+
+    Args:
+        txt ([str]):
+    """
+    webhook_url = conf.key.webhook_url
+    requests.post(webhook_url, data=json.dumps({"text":txt}))
+
 
 
 if __name__ == "__main__":
@@ -181,7 +195,12 @@ if __name__ == "__main__":
     parse.add_argument("--process_id", type=int, default=0,
                        help="input 0~3 for pararell docker container")
     parse.add_argument("--save_name", default="processed")
-
+    parse.add_argument("--root_dir", default="../../data/raw/Tanimoto_eLife_Fig3B")
     args = parse.parse_args()
 
-    main(args)
+    for i in range(0, 4):
+        args.process_id = i
+        post("start preprocess {}/4".format(i+1))
+        main(args)
+
+    post("end preprocess")

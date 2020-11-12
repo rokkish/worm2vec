@@ -6,23 +6,26 @@ TensorboardX
 
 # Preprocess
 
-## **Preprocess** data, and save as torch
+## make_preprocessで一括実行可能
+
+### **Preprocess** data, and save as torch
 生データに前処理（線虫の切り出し）を施し，tensorをバイナリ形式で保存
 ```
 python preprocess.py --process_id 0~3 --save_name processed
 ```
 
-## **Rename** binary data
+### **Rename** binary data
 日付ごとに別れているデータを統合し，ファイル名に日付を追記
 ```
 python features/rename.py
 ```
 
-## **Make** distance table
+### **Make** distance table
 類似度テーブルの作成
 
 * process_id: データの選択
 * gpu_id: GPUの選択
+* processed2に変更してるので注意！！！
 
 max_original個のデータについて，それぞれmax_pair個のデータとのMSEを取得
 max_original x max_pair行のデータが得られる．
@@ -30,22 +33,24 @@ max_original x max_pair行のデータが得られる．
 python get_distance_table.py --process_id 0~3 --max_pair 100 --max_original 20000 --gpu_id 0
 ```
 
-## **Compress** distance table top K
+### **Compress** distance table top K
 類似度テーブルの圧縮
 max_original x max_pair行のデータから，ネガティブサンプルとして誤差が大きいtop Kだけ選出
 max_original x K行のデータが得られる．
 ```
-python compress_distance_table.py -K 1~100
+python compress_distance_table.py -K 1~100 --root_dir ../../data/processed
 ```
 
-## **Make** variety_dataset [original, rotation, negative] from compressed distance table
+### **Make** variety_dataset [original, rotation, negative] from compressed distance table
 類似度テーブルからネガティブサンプルデータセットの作成
 max_original x K行のデータに基づいて，データセットを作成
 load_Kは読み込みデータの指定("distance_table_compress_top?")，num_negativeは作成データセットのtopKを指定
 出力は(num_rotate + num_negative, 1, 64, 64) x データ数(max_original)
 ```
-python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1~5 --save_path varietydata_r36_n5
+python make_variety_dataset.py --load_K 1~100 --num_rotate 1~36 --num_negative 1~5 --save_path varietydata_r36_n5_1_3
 ```
+
+### transform tensor to np
 
 # Main
 
