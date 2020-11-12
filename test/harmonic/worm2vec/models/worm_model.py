@@ -64,15 +64,10 @@ def deep_worm(args, pos, neg, train_phase, n_sample, reuse=False):
                              n_rings=nr, name='6', reuse=reuse)
         cv6 = hn_lite.batch_norm(cv6, train_phase, name='bn3', reuse=reuse)
 
+    # Final Layer
     with tf.name_scope('block4'):
-        cv7 = hn_lite.conv2d(cv6, nf4, fs, padding='SAME',
+        cv7 = hn_lite.conv2d(cv6, ncl, fs, padding='SAME',
                              n_rings=nr, phase=False, name='7', reuse=reuse)
         real = hn_lite.sum_magnitudes(cv7)
         cv7 = tf.reduce_mean(real, axis=[1, 2, 3, 4])
-
-    # Final Layer
-    with tf.name_scope("FCN"):
-        fully_connected_w = tf.Variable(tf.truncated_normal([nf4, ncl], stddev=0.1))
-        cv8 = tf.matmul(cv7, fully_connected_w)
-        cv8 = tf.nn.bias_add(cv8, bias)
-        return tf.nn.relu(cv8)
+        return tf.nn.bias_add(cv7, bias)
