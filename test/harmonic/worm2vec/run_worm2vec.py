@@ -22,10 +22,10 @@ def np_load(path):
     return np.load(path)["arr_0"]
 
 
-def load_fixedtestdata():
+def load_fixedtestdata(path):
     """When multi_run.py is running, test data must be fixed.
     """
-    return np_load("/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz")
+    return np_load(path)
 
 
 def load_data(params):
@@ -40,7 +40,7 @@ def load_data(params):
 
     train = dataset[:N_tr]
     valid = dataset[N_tr:]
-    test = load_fixedtestdata()
+    test = load_fixedtestdata(params.path.fixedtestdata)
 
     # Format
     data = {}
@@ -61,10 +61,12 @@ def set_placeholders(batch_size, dim, n_positive, n_negative):
         learning_rate = tf.placeholder(tf.float32,
                                     name='learning_rate')
         train_phase = tf.placeholder(tf.bool, name='train_phase')
+        class_id = tf.placeholder(tf.int32, name='class_id')
     return {"positive": positive,
             "negative": negative,
             "learning_rate": learning_rate,
-            "train_phase": train_phase}
+            "train_phase": train_phase,
+            "class_id": class_id}
 
 
 def construct_model(params, placeholders):
@@ -84,12 +86,13 @@ def construct_model(params, placeholders):
     return preds
 
 
-def construct_loss(preds, params, sample_size):
+def construct_loss(preds, class_id, params, sample_size):
     if params.nn.batch_size != 1:
         assert ValueError("batchsize must be 1. If not, calculating Proxy-anchor-loss is wrong.")
 
     return proxy_anchor_loss(
             embeddings=preds,
+            class_id=class_id,
             n_classes=sample_size,
             n_unique=params.nn.n_positive,
             input_dim=params.nn.n_classes,
@@ -129,7 +132,7 @@ def main(cfg: DictConfig):
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
     preds = construct_model(cfg.nn, placeholders)
-    loss = construct_loss(preds, cfg, data["train_x"].shape[0])
+    loss = construct_loss(preds, placeholders["class_id"], cfg, numsamples)
     valid_loss = construct_validloss(preds)
     optim = set_optimizer(cfg.optimizer)
     grads_and_vars = optim.compute_gradients(loss)

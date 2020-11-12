@@ -32,6 +32,7 @@ class Trainer():
         self.negative = placeholders["negative"]
         self.learning_rate = placeholders["learning_rate"]
         self.train_phase = placeholders["train_phase"]
+        self.class_id = placeholders["class_id"]
 
         # Configure tensorflow session
         self.init_global = tf.global_variables_initializer()
@@ -108,11 +109,12 @@ class Trainer():
                     data['train_x'],
                     self.batch_size,
                     shuffle=True)
-            for train_i, (Pos, Neg) in enumerate(batcher):
+            for train_i, (Pos, Neg, class_id) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
-                            self.train_phase: True}
+                            self.train_phase: True,
+                            self.class_id: class_id}
                 __, loss, anchor_summary, cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
                                     self.train_op,
                                     self.loss,
@@ -136,11 +138,12 @@ class Trainer():
                 self.minibatcher(
                     data['valid_x'],
                     self.batch_size)
-            for valid_i, (Pos, Neg) in enumerate(batcher):
+            for valid_i, (Pos, Neg, class_id) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
-                            self.train_phase: False}
+                            self.train_phase: False,
+                            self.class_id: 0}
                 cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
                                 self.cossim,
                                 valid_cossim_sum,
@@ -159,11 +162,12 @@ class Trainer():
                 self.minibatcher(
                     data['test_x'],
                     self.batch_size)
-            for test_i, (Pos, Neg) in enumerate(batcher):
+            for test_i, (Pos, Neg, class_id) in enumerate(batcher):
                 feed_dict = {self.positive: Pos,
                             self.negative: Neg,
                             self.learning_rate: self.lr,
-                            self.train_phase: False}
+                            self.train_phase: False,
+                            self.class_id: 0}
                 cossim, cossim_summary, eucliddist, eucliddist_summary = sess.run([
                                 self.cossim,
                                 test_cossim_sum,
@@ -219,6 +223,12 @@ class Trainer():
 
         sess.close()
 
+    @staticmethod
+    def set_class_id(i):
+        if i >= 10000:
+            raise ValueError("datasize must be undrer 10000")
+        return i
+
     def minibatcher(self, inputs, batchsize, shuffle=False):
         """
 
@@ -229,6 +239,7 @@ class Trainer():
 
         Yields:
             positive, negative (ndarray): for proxy-anchor loss.
+            class_id: id of positive proxy
         """
         if shuffle:
             indices = np.arange(len(inputs))
@@ -239,7 +250,7 @@ class Trainer():
             else:
                 excerpt = start_idx
 
-            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0]
+            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0], set_class_id(excerpt)
 
     def notrainloss_summary(self, mode, notrainloss, lossname=""):
         """
