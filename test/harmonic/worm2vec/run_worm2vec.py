@@ -30,7 +30,12 @@ def load_fixedtestdata(path):
 
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
-    dataset = np_load(params.path.worm_data)
+
+    if params.train_mode:
+        dataset = np_load(params.path.worm_data)
+    else:
+        test = load_fixedtestdata(params.path.fixedtestdata)
+        dataset = np.zeros([10**4] + list(test.shape[1:]))
 
     # Split
     N = dataset.shape[0]
@@ -40,7 +45,6 @@ def load_data(params):
 
     train = dataset[:N_tr]
     valid = dataset[N_tr:]
-    test = load_fixedtestdata(params.path.fixedtestdata)
 
     # Format
     data = {}
