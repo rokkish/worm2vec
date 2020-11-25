@@ -343,6 +343,11 @@ class Get_distance_table(object):
         #logger.debug("Len of original:{}, target:{}, mse:{}".format(len(original_date), len(targe_date), len(distance)))
         return dic
 
+    def is_same_pose(self, min_distance):
+        if min_distance < 100:
+            return True
+        return False
+
     def save_as_df(self, dic, original_date):
         """
             Args:
@@ -356,8 +361,12 @@ class Get_distance_table(object):
         target_date = dic["target_date"][0]
         df = pd.DataFrame(dic)
         self.max_distance_list.append(df["distance"].max())
-        os.makedirs("{}/distance_table/{}".format(self.root_dir, original_date), exist_ok=True)
-        df.to_pickle("{}/distance_table/{}/dist_from_{}.pkl".format(self.root_dir, original_date, target_date))
+
+        if self.is_same_pose(df["distance"].min()):
+            logger.debug("no save. distance:(min, max) ({}, {})".format(df["distance"].min(), df["distance"].max()))
+        else:
+            os.makedirs("{}/distance_table/{}".format(self.root_dir, original_date), exist_ok=True)
+            df.to_pickle("{}/distance_table/{}/dist_from_{}.pkl".format(self.root_dir, original_date, target_date))
 
     def save_as_img(self, input_x, target_y):
         """Save data as img
@@ -419,6 +428,6 @@ if __name__ == "__main__":
     args = parse.parse_args()
 
     if chk(args):
-        for i in range(1, 4):
+        for i in range(0, 4):
             args.process_id = i
             main(args)
