@@ -30,7 +30,7 @@ if __name__ == "__main__":
     logger.info("prev dir: {}".format(glob_prev_datetime()))
 
     # glob data
-    data = glob.glob("/root/worm2vec/data/variety_data_r36_n100_np/*.npz")
+    data = glob.glob("/root/worm2vec/data/variety_data_strict_r36_n100_np/*.npz")
     data = sorted(data)
     if len(data) == 0:
         raise ValueError("data not found")
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     epoch = 12
     n_classes = 10
     n_negative = 70
-    fixedtestdata = "/root/worm2vec/data/variety_data_r36_n100_np/minitest/00_2000.npz"
+    fixedtestdata = "/root/worm2vec/data/variety_data_strict_r36_n100_np/minitest/000_2000.npz"
 
     runned_datetime = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
     os.makedirs("/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}".format(runned_datetime))
