@@ -1,0 +1,53 @@
+nn:
+    n_filters: 8
+    filter_gain: 2
+    batch_size: 1000
+    filter_size: 5
+    n_classes: 10
+    std_mult: 0.7
+    n_rings: 4
+    dim: 64
+    phase_preconditioner: 7.8
+    n_epochs: 100
+    n_positive: 36
+    n_negative: 5
+    # display_step: len(data['train_x'])/46
+    # is_classification: True
+    # crop_shape: 0
+    # n_channels: 1
+optimizer:
+    learning_rate: 0.0076
+    delay: 12
+    lr_div: 10.
+loss:
+    margin: 0.1
+    alpha: 64
+    delta: 0.1
+path:
+    log: "./logs"
+    # save
+    checkpoint: "./checkpoints"
+    checkpoint_model: "./checkpoints/model.ckpt"
+    test_score: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/cossim.csv"
+    # load
+    checkpoint_fullpath: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/outputs/2020-08-19/16-18-38/checkpoints/model.ckpt"
+    tensorboard: "/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/tensorboard/"
+    # data
+    worm_data: "../../../../data/.npz"
+    fixedtestdata: "/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz"
+train_mode: True
+train:
+    restart_train: False
+predict:
+    n_embedding: 2000
+    one_embedding_mode: False
+    target_idx: -1
+    view_pos: False
+    view_neg: False
+preprocess:
+    test_rate: 0.1
+    valid_rate: 0.1
+gpu:
+    id: "0"
+    allow_growth: False
+    log_device_placement: True

@@ -2,7 +2,8 @@
 import torch
 import math
 irange = range
-
+import get_logger
+logger = get_logger.get_logger(name='save_image_gray_grid')
 # from torchvision.utils import make_grid, save_images 
 # https://pytorch.org/docs/stable/_modules/torchvision/utils.html#save_image
 
@@ -109,6 +110,7 @@ def save_images_grid(tensor, filename=None, nrow=8, padding=2,
 
     # after unnormalizing to [0, 255] to round to nearest integer
     ndarr = grid.mul(255).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+    #logger.debug("tensor.shape:{}, ndarr.shape:{}, maxmin:({},{})".format(tensor.shape, ndarr.shape, ndarr.max().max(), ndarr.min().min()))
     im = Image.fromarray(ndarr[:, :, 0], mode="L")
 
     if writer is not None:

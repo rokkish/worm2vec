@@ -4,7 +4,25 @@ __pycache__/
 results/training
 log/tensorboard
 log/logger
-*.ipynb*
+notebooks/*.ipynb*
+src/.ipynb_checkpoints
 *.png
 *zip
 *.pkl
+
+test/harmonic/MNIST-rot/checkpoints
+test/harmonic/MNIST-rot/data
+#tfboard projector log
+*/logs/tensorboard/*
+*.tsv
+*.pbtxt
+*.csv
+*.log
+*events.out*
+# output of yaml
+test/harmonic/worm2vec/outputs
+# key
+test/harmonic/worm2vec/conf/key.py
+src/conf/key.py
+# notebook
+test/harmonic/worm2vec/notebook/*

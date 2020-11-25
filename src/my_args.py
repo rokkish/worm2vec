@@ -13,8 +13,6 @@ parse.add_argument("--gpu_id", type=str, default=config.gpu_id,
 
 parse.add_argument("--traindir", type=str, default=config.train_dir, help="set path of train data dir ../../data/[traindir]")
 
-parse.add_argument("-w", "--window", type=int, default=config.window)
-
 parse.add_argument("--use_rotate", action="store_true", \
     help="if True, train with rotate data(theta=0, 10, ..350), else train with only original data(theta=0)")
 
@@ -26,9 +24,15 @@ parse.add_argument("--loss_function_name", type=str, default=config.loss_functio
 
 parse.add_argument("--zsize", type=int, default=config.zsize, help="Set shape of encoded.")
 
+parse.add_argument("--sequential", action="store_true", \
+    help="if True use sequential data, else non sequential data.")
+
 # predict.py
+parse.add_argument("--test_shuffle", action="store_true")
+
 parse.add_argument("--max_predict", type=int, default=config.max_predict)
 
-parse.add_argument("--num_of_tensor_to_embed", type=int, default=config.num_of_tensor_to_embed)
+# analyze.py
+parse.add_argument("--max_analyze", type=int, default=config.max_analyze)
 
 args = parse.parse_args()

@@ -18,22 +18,32 @@ import get_logger
 logger = get_logger.get_logger(name='make_variety_datasets', save_name="../log/logger/test_make_variety_datasets.log")
 
 class DatasetMaker(object):
-    def __init__(self, num_negative, load_K, num_rotate):
+    def __init__(self, num_negative, load_K, num_rotate, save_path="varietydata", root_dir=""):
         self.num_negative = num_negative
         self.load_K = load_K
         self.num_rotate = num_rotate
-        self.pkl_list = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.load_K)))
+        self.save_path = save_path
+        self.root_dir = root_dir
+        self.pkl_list = sorted(glob.glob("{}distance_table_compress_top{}/*".format(self.root_dir, self.load_K)))
         self.original_date_path = ""
-        self.history_pkl = sorted(glob.glob("../../data/processed/varietydata/*.pkl"))
-
+        self.history_dir = self.root_dir + self.save_path
+        self.history_pkl = sorted(glob.glob("{}*.pt".format(self.history_dir)))
+        logger.debug("load: {}".format(len(self.pkl_list)))
+        logger.debug("history: {}".format(len(self.history_pkl)))
     def make(self):
+        skip_count = 0
         for i, pkl in enumerate(self.pkl_list):
             pkl_name = pkl.split("/")[-1].split(".")[0]
-            if "../../data/processed/varietydata/{}" + pkl_name + ".pkl" in self.history_pkl:
+
+            if i % 2500 == 0:
+                logger.debug("i:{}, per:{:.1f}, skip:{}".format(i, i/len(self.pkl_list)*100, skip_count))
+
+            print("\r [process] {}/{}, skip:{}".format(i, len(self.pkl_list), skip_count), end="")
+
+            if "{}{}.pt".format(self.history_dir, pkl_name) in self.history_pkl:
+                skip_count += 1
                 continue
 
-            if i % (len(self.pkl_list)//500) == 0:
-                logger.debug("i:{}, per:{:.1f}".format(i, i/len(self.pkl_list)*100))
             self.load_df(pkl)
             self.load_tensors()
             self.concat_tensors()
@@ -57,8 +67,7 @@ class DatasetMaker(object):
             #logger.debug("path{}, rotate{}".format(target_date_path_i, target_rotate_i))
             self.tensors.append(self.load_tensor(target_date_path_i, target_rotate_i))
 
-    @staticmethod
-    def load_tensor(path, rotate):
+    def load_tensor(self, path, rotate):
         """
 
         Args:
@@ -68,7 +77,7 @@ class DatasetMaker(object):
         Returns:
             [tensor]: pick one rotate from (R, C, H, W), return (1, C, H, W)
         """
-        return torch.load("../../data/processed/alldata/"+path+".pt")[rotate]
+        return torch.load(self.root_dir+"alldata/"+path+".pt")[rotate]
 
     def concat_tensors(self):
         """Concat tensors for tensor in tensors_list(=self.tensors)
@@ -82,18 +91,20 @@ class DatasetMaker(object):
     def save_as_pkl(self):
         """Save self.cat_tensors as pkl
         """
-        torch.save(self.cat_tensors.byte(), "../../data/processed/varietydata/" + self.original_date_path + ".pt")
+        torch.save(self.cat_tensors.byte(), self.root_dir + self.save_path+ "/" + self.original_date_path + ".pt")
 
 def main(args):
     logger.info("start")
-    maker = DatasetMaker(args.num_negative, load_K=args.load_K, num_rotate=args.num_rotate)
+    import os
+    os.makedirs(args.root_dir + args.save_path, exist_ok=True)
+    maker = DatasetMaker(args.num_negative, load_K=args.load_K, num_rotate=args.num_rotate, save_path=args.save_path, root_dir=args.root_dir)
     maker.make()
     logger.info("end")
 
 def chk(args):
     if args.num_rotate < 1 or args.num_rotate > 36:
         return False
-    if args.num_negative < 1 or args.num_negative > 5:
+    if args.num_negative < 1 or args.num_negative > 100:
         return False
     if args.load_K < args.num_negative:
         return False
@@ -105,6 +116,8 @@ if __name__ == "__main__":
     parse.add_argument("--load_K", type=int, default=5)
     parse.add_argument("--num_negative", type=int, default=4)
     parse.add_argument("--num_rotate", type=int, default=4)
+    parse.add_argument("--save_path")
+    parse.add_argument("--root_dir", default="../../data/processed/")
     args = parse.parse_args()
     if chk(args):
         main(args)

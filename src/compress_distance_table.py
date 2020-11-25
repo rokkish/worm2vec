@@ -18,7 +18,7 @@ import time
 import argparse
 from multiprocessing import Pool
 import get_logger
-logger = get_logger.get_logger(name='compress_distance_table', save_name="../log/logger/test_compress.log")
+logger = get_logger.get_logger(name='compress_distance_table', save_name="../log/logger/compress.log")
 
 
 def pdreadpkl(pkl_path):
@@ -33,25 +33,27 @@ def read_pkl_map_multi(file_list, div):
     return df
 
 class Compressor(object):
-    def __init__(self, K):
+    def __init__(self, K, root_dir):
         self.K = K
-        self.zip_list = sorted(glob.glob("../../data/processed/distance_table/*"))
-        self.unzip_dir = "../../data/processed/distance_table/temp/"
-        self.history_pkl = sorted(glob.glob("../../data/processed/distance_table_compress_top{}/*".format(self.K)))
+        self.root_dir = root_dir
+        self.zip_list = sorted(glob.glob("{}/distance_table/*".format(self.root_dir)))
+        self.unzip_dir = "{}/distance_table/temp/".format(self.root_dir)
+        self.history_dir = "{}/distance_table_compress_top{}/".format(self.root_dir, self.K)
+        self.history_pkl = sorted(glob.glob(self.history_dir + "*"))
         logger.debug("zip list:{}".format(len(self.zip_list)))
 
     def compress_all(self):
         for i, zip_i in enumerate(self.zip_list):
             zip_name = zip_i.split("/")[-1].split(".")[0]
 
+            if i % 500 == 0:
+                logger.debug("i:{}, per:{:.3f}".format(i, i/len(self.zip_list)*100))
+
             #TODO:skip
-            if "../../data/processed/distance_table_compress_top{}/".format(self.K) + zip_name + ".pkl" in self.history_pkl:
+            if "{}{}.pkl".format(self.history_dir, zip_name) in self.history_pkl:
                 continue
 
             self.compress(zip_i)
-
-            if i % (len(self.zip_list)//500) == 0:
-                logger.debug("i:{}, per:{}".format(i, i/len(self.zip_list)*100))
 
             self.save_df_as_pickle(zip_name)
 
@@ -94,15 +96,15 @@ class Compressor(object):
     def delete_unzip_dir(self):
         shutil.rmtree(self.unzip_dir)
     def save_df_as_pickle(self, zip_name):
-        save_name_pkl = "../../data/processed/distance_table_compress_top{}/{}.pkl".format(self.K, zip_name)
+        save_name_pkl = "{}/distance_table_compress_top{}/{}.pkl".format(self.root_dir, self.K, zip_name)
         self.df.to_pickle(save_name_pkl)
     def df_reset_index(self):
         self.df = self.df.reset_index(drop=True)
 
 def main(args):
     logger.info("start")
-    os.makedirs("../../data/processed/distance_table_compress_top{}".format(args.K), exist_ok=True)
-    comp = Compressor(args.K)
+    os.makedirs("{}/distance_table_compress_top{}".format(args.root_dir, args.K), exist_ok=True)
+    comp = Compressor(args.K, args.root_dir)
     comp.compress_all()
     logger.info("end")
 
@@ -117,6 +119,7 @@ def check(args):
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("-K", type=int, default=5)
+    parse.add_argument("--root_dir", default="../../data/processed")
     args = parse.parse_args()
     if check(args):
         main(args)

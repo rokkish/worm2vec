@@ -15,12 +15,13 @@ class WormDataset(torch.utils.data.Dataset):
         Def Dataset
     """
 
-    def __init__(self, root, train=True, transform=None, window=3):
+    def __init__(self, root, train=True, transform=None, window=3, sequential=True):
 
         self.root = root    # root_dir \Tanimoto_eLife_Fig3B or \unpublished control
         self.train = train  # training set or test set
         self.transform = transform
         self.window = window
+        self.sequential = sequential
         self.data = []
         self.data_index = 0
         self.count_skip_data = 0
@@ -31,8 +32,13 @@ class WormDataset(torch.utils.data.Dataset):
             self.data.extend(tensor_all[:int(len(tensor_all) * 0.8)])
         else:
             self.data.extend(tensor_all[int(len(tensor_all) * 0.8):])
+            if config.BATCH_SIZE == 1:
+                self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
+            else:
+                self.data = self.data[:-(len(self.data) % config.BATCH_SIZE)] # BATCH_SIZEの定数倍のデータ数に調整
 
         self.data.sort(key=get_binaryfile_number)
+
         if len(self.data) > config.MAX_LEN_TRAIN_DATA:
             self.data = self.data[:config.MAX_LEN_TRAIN_DATA]
 
@@ -42,39 +48,22 @@ class WormDataset(torch.utils.data.Dataset):
             index (int): Index
 
         Returns:
-            tuple: (context, target, OutOfRange)
-                *_context     : tensor(1, R, C, H, W)
+            tuple: (target)
                 target      : tensor(1, R, C, H, W)
 
         """
         self.data_index = index
-        if index - self.window < 0 or index + 1 + self.window > len(self.data):
-            #logger.debug("outrange:{}, count_skip:{}".format(index, self.count_skip_data))
-            dummy = self.get_dummy_data(dummy_path=self.data[index])
-            self.count_skip_data += 1
-            return {config.error_idx: dummy}
 
         target_path = self.data[index]
-        left_context_path = self.data[index - self.window]
-        right_context_path = self.data[index + self.window]
-
-        path_list = [left_context_path] + [target_path] + [right_context_path]
-        if self.is_date_change(path_list) or self.is_data_drop(path_list):
-
-            tmp = []
-            for path in path_list:
-                tmp.append(path.split("/")[-1])
-            #logger.debug("datachange or drop data:{}".format(tmp))
-
-            dummy = self.get_dummy_data(dummy_path=self.data[index])
-            self.count_skip_data += 1
-            return {config.error_idx: dummy}
 
         target = self.load_tensor(target_path)
-        left_context = self.load_tensor(left_context_path)
-        right_context = self.load_tensor(right_context_path)
+        anchor = target[0].unsqueeze(0)
+        positive = target[1: 1 + config.NUM_POSITIVE]
+        negative = target[1 + config.NUM_POSITIVE:]
 
-        return {self.data_index: torch.cat([target, left_context, right_context], dim=0)}
+        #TODO:rotmnist用の変数
+        labels = []
+        return anchor, positive, negative, labels
 
     def __len__(self):
         return len(self.data)
@@ -82,11 +71,10 @@ class WormDataset(torch.utils.data.Dataset):
     def load_tensor(self, path):
         """
             Return:
-                tensor: (1, Rotation, Channel, Height, Width)
+                tensor: (Rotation, Channel, Height, Width)
         """
         tensor = torch.load(path)
         tensor = tensor.type(torch.float)
-        tensor = tensor.unsqueeze(0)
         return tensor
 
     @staticmethod
@@ -95,6 +83,7 @@ class WormDataset(torch.utils.data.Dataset):
 
     @staticmethod
     def get_dummy_data(dummy_path):
+        #TODO:should return tensor.zeros, more fast
         dummy = torch.load(dummy_path).type(torch.float)
         return dummy
 
@@ -125,3 +114,20 @@ class WormDataset(torch.utils.data.Dataset):
             return False
         else:
             return True
+
+    def check_sequential(self, path_list):
+        """if sequential is True, check whether data is sequential.
+        else, return True.
+
+        Args:
+            path_list ([type]): [description]
+
+        Returns:
+            [bool]: (sequential or not) or (not care about sequential)
+        """
+        if self.sequential:
+            if self.is_date_change(path_list) or self.is_data_drop(path_list):
+                return True
+            return False
+        else:
+            return False

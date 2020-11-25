@@ -31,22 +31,22 @@ import features.sort_index as sort_index
 from trainer import Trainer
 from visualization.save_images_gray_grid import save_images_grid
 import get_logger
-logger = get_logger.get_logger(name='get_distance_table')
+logger = get_logger.get_logger(name='get_distance_table', save_name="../log/logger/get_distance_table.log")
 DUMMY = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
 TARGET_ROTATE = list(range(0, 36))
 
 
-def zip_dir():
+def zip_dir(root_dir):
 
     import shutil
-    root_dirs = glob.glob("../../data/processed/distance_table/*")
+    root_dirs = glob.glob("{}/distance_table/*".format(root_dir))
 
     for i, root_dir_i in enumerate(root_dirs):
         if ".zip" in root_dir_i or root_dir_i + ".zip" in root_dirs:
             continue
 
         shutil.make_archive(root_dir_i, "zip", root_dir=root_dir_i)
-        logger.debug("rm {}".format(root_dir_i))
+        #logger.debug("rm {}".format(root_dir_i))
         shutil.rmtree(root_dir_i)
 
 
@@ -62,16 +62,18 @@ class WormDataset_get_table(torch.utils.data.Dataset):
             Load all of raw data to preprocess.
     """
 
-    def __init__(self, root, transform=None, START_ID=0, END_ID=1):
+    def __init__(self, root, transform=None, START_ID=0, END_ID=1, root_dir=""):
 
         self.root = root
         self.transform = transform
         self.START_ID = START_ID
         self.END_ID = END_ID
+        self.root_dir = root_dir
 
         self.alldata = glob.glob(self.root+"/*.pt")
         self.alldata.sort(key=sort_index.get_binaryfile_number)
         self.data = self.alldata[self.START_ID:self.END_ID]
+        self.history_zip = glob.glob("{}/distance_table/*".format(self.root_dir))
 
         logger.debug("head of self.data %s" % (self.data[:2]))
         logger.debug("tail of self.data %s" % (self.data[-2:]))
@@ -87,6 +89,9 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         img_path = self.data[index]
         #['..', '..', 'data', 'processed', 'alldata', '201302081603_000000.pt']
         img_date_id = get_date_to_split_path(img_path)
+
+        if self.is_already_calculated(img_date_id):
+            return {config.error_idx: DUMMY}
 
         try:
             img = torch.load(img_path)
@@ -115,15 +120,10 @@ class WormDataset_get_table(torch.utils.data.Dataset):
                 tensor(36, 1, 64, 64)
                       (Sameimg, Channel, H, W)
         """
-        for i in range(1):
-            tensori = tensor[i].unsqueeze(dim=0)
-            tensori2 = torch.cat([tensori, tensori], dim=0)
-            tensori4 = torch.cat([tensori2, tensori2], dim=0)
-            tensori8 = torch.cat([tensori4, tensori4], dim=0)
-            tensori16 = torch.cat([tensori8, tensori8], dim=0)
-            tensori32 = torch.cat([tensori16, tensori16], dim=0)
-            tensori36 = torch.cat([tensori32, tensori4], dim=0)
-        return tensori36
+        tensors = torch.zeros(36, 1, config.IMG_SIZE, config.IMG_SIZE)
+        for i in range(tensors.shape[0]):
+            tensors[i] = tensor[0]
+        return tensors
 
     @staticmethod
     def cat(original, copy):
@@ -136,34 +136,50 @@ class WormDataset_get_table(torch.utils.data.Dataset):
         tensor = torch.cat([original, copy], dim=0)
         return tensor
 
+    #@staticmethod
+    def is_already_calculated(self, date):
+        """chk whether date in ~/distance_table/*.zip
+            Args
+                date = "201201021359_000000"
+            Return
+        """
+        if self.root_dir + "/distance_table/" + date + ".zip" in self.history_zip:
+            return True
+        return False
 
 class Get_distance_table(object):
     
-    def __init__(self, process_id, save_name, max_num_of_original_data, max_num_of_pair_data, step):
+    def __init__(self, process_id, gpu_id, save_name, max_num_of_original_data, max_num_of_pair_data, root_dir):
         self.process_id = process_id
+        self.gpu_id = gpu_id
         self.save_name = save_name
         self.MAX_NUM_OF_ORIGINAL_DATA = max_num_of_original_data
         self.MAX_NUM_OF_PAIR_DATA = max_num_of_pair_data
-        self.START_ID, self.END_ID = self.count_img()
-        self.device = torch.device("cuda:" + str(self.process_id) if torch.cuda.is_available() else "cpu")
+        self.root_dir = root_dir
+        self.START_ID, self.END_ID = self.set_id_of_start_end()
+        self.device = torch.device("cuda:" + str(self.gpu_id) if torch.cuda.is_available() else "cpu")
         self.max_distance_list = []#original一枚に対する全ペア間の最大距離
 
     def count_img(self):
-        """Count num dataset, and return (start, end) id to divide data. 
-            Arg:
+        """Count num dataset
+        """
+        img_list = glob.glob("{}/alldata/*".format(self.root_dir))
+        return len(img_list)
+    
+    def set_id_of_start_end(self):
+        """Return (start, end) id to divide data. 
+            Args:
                 process_id (int): No.[0, 1, 2, 3] of docker container.
         """
-
-        img_list = glob.glob("../../data/processed/alldata/*")
-
-        START_ID = len(img_list) // 4 * self.process_id
-        END_ID = len(img_list) // 4 * (self.process_id + 1)
+        num_of_data = self.count_img()
+        START_ID = num_of_data // 4 * self.process_id
+        END_ID = num_of_data // 4 * (self.process_id + 1)
 
         return START_ID, END_ID
 
     def load_datasets(self):
         """ Set dataset """
-        dataset = WormDataset_get_table(root="../../data/processed/alldata", transform=None, START_ID=self.START_ID, END_ID=self.END_ID)
+        dataset = WormDataset_get_table(root="{}/alldata".format(self.root_dir), transform=None, START_ID=self.START_ID, END_ID=self.END_ID, root_dir=self.root_dir)
 
         allpath = dataset.get_allpath()
 
@@ -180,35 +196,38 @@ class Get_distance_table(object):
                 allpath(list)   :[path, ..., path]
         """
         init_t = time.time()
-
+        skip_count = 0
         for data_i, data_dic in enumerate(loader):
 
-            logger.debug("allpath:{}, data_i:{}".format(len(allpath_fromi), data_i + self.START_ID))
+            #logger.debug("allpath:{}, data_i:{}".format(len(allpath), data_i + self.START_ID))
 
             date, data = Trainer.get_data_from_dic(data_dic)
 
+            print("\r [process] {}/{}".format(data_i + self.START_ID, self.END_ID), end="")
+
             if data_i % 1000 == 0:
-                logger.debug("[%d] %d/%d \t Load&Save Processd :%d sec" %
-                            (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
+                logger.debug("[{}] {}/{} \t Processd :{:.3f} sec, skip:{}".format
+                            (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t, skip_count))
 
             if date == config.error_idx:
-                logger.debug("Skip this batch beacuse window can't load data")
-                logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
+                skip_count += 1
+                #logger.debug("Skip this batch beacuse window can't load data")
+                #logger.debug("Skip Data:%s, Date:%s" % (data.shape, date))
                 continue
 
-            if self.is_already_calculated(date):
-                continue
+            #if self.is_already_calculated(date):
+            #    continue
 
             if data_i >= self.MAX_NUM_OF_ORIGINAL_DATA:
                 break
 
             random_path_list = self.get_random_paths(np.array(allpath), self.MAX_NUM_OF_PAIR_DATA, data_i)
-            logger.debug("allpath:{}, data_i:{}".format(len(random_path_list), data_i))
+            #logger.debug("allpath:{}, data_i:{}".format(len(random_path_list), data_i))
 
             self.get_mse_epoch(data, date, random_path_list)
-            logger.debug("GPU {}, max dist:{}".format(self.process_id, max(self.max_distance_list)))
+            #logger.debug("GPU {}, max dist:{}".format(self.process_id, max(self.max_distance_list)))
             self.max_distance_list = []
-            zip_dir()   #TODO:並列実行すると，予期せぬ挙動になる．
+            zip_dir(self.root_dir)   #TODO:並列実行すると，予期せぬ挙動になる．
 
         logger.debug("GPU [%d] %d/%d \t Finish Processd :%f sec" %
                     (self.process_id, data_i + self.START_ID, self.END_ID, time.time() - init_t))
@@ -228,17 +247,17 @@ class Get_distance_table(object):
 
         values = [(i, pathi) for i, pathi in enumerate(allpath)]
 
-        logger.debug("load tensors")
+        #logger.debug("load tensors")
         tensors_y = self.load_target_tensor(allpath)
         tensors_y = tensors_y.to(self.device)
-        logger.debug("loaded tensors:{}".format(tensors_y.shape))
+        #logger.debug("loaded tensors:{}".format(tensors_y.shape))
 
         def get_mse_batch_map(values, tensors_y=tensors_y):
             idx, pathi = values[0], values[1]
             target_y = tensors_y[idx]
 
-            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("GPU[{}] get_mse_batch_map idx:{}".format(self.process_id, idx))
+            #if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+            #logger.debug("GPU[{}] get_mse_batch_map idx:{}".format(self.process_id, idx))
 
             y_date = get_date_to_split_path(pathi)
 
@@ -284,8 +303,8 @@ class Get_distance_table(object):
 
         for idx, pathi in enumerate(allpath):
 
-            if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
-                logger.debug("GPU[{}] load_target_tensor_map idx:{}".format(self.process_id, idx))
+            #if idx % (self.MAX_NUM_OF_PAIR_DATA//10) == 0:
+            #logger.debug("GPU[{}] load_target_tensor_map idx:{}".format(self.process_id, idx))
 
             newTensor[idx] = torch.load(pathi).unsqueeze(0)
 
@@ -324,6 +343,11 @@ class Get_distance_table(object):
         #logger.debug("Len of original:{}, target:{}, mse:{}".format(len(original_date), len(targe_date), len(distance)))
         return dic
 
+    def is_same_pose(self, min_distance):
+        if min_distance < 100:
+            return True
+        return False
+
     def save_as_df(self, dic, original_date):
         """
             Args:
@@ -337,8 +361,12 @@ class Get_distance_table(object):
         target_date = dic["target_date"][0]
         df = pd.DataFrame(dic)
         self.max_distance_list.append(df["distance"].max())
-        os.makedirs("../../data/processed/distance_table/{}".format(original_date), exist_ok=True)
-        df.to_pickle("../../data/processed/distance_table/{}/dist_from_{}.pkl".format(original_date, target_date))
+
+        if self.is_same_pose(df["distance"].min()):
+            logger.debug("no save. distance:(min, max) ({}, {})".format(df["distance"].min(), df["distance"].max()))
+        else:
+            os.makedirs("{}/distance_table/{}".format(self.root_dir, original_date), exist_ok=True)
+            df.to_pickle("{}/distance_table/{}/dist_from_{}.pkl".format(self.root_dir, original_date, target_date))
 
     def save_as_img(self, input_x, target_y):
         """Save data as img
@@ -349,16 +377,15 @@ class Get_distance_table(object):
         save_images_grid(input_x.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/input_x", writer=None, filename="../results/input.png")
         save_images_grid(target_y.cpu(), nrow=config.nrow, scale_each=True, global_step=0, tag_img="test/target_y", writer=None, filename="../results/target.png")
 
-    @staticmethod
-    def is_already_calculated(date):
+    def is_already_calculated(self, date):
         """chk whether date in ~/distance_table/*.zip
             Args
                 date = "201201021359_000000"
             Return
         """
-        dirs = glob.glob("../../data/processed/distance_table/*")
-        if "../../data/processed/distance_table/" + date + ".zip" in dirs:
-            logger.debug("Skip:{}".format(date))
+        dirs = glob.glob("{}/distance_table/*".format(self.root_dir))
+        if self.root_dir + "/distance_table/" + date + ".zip" in dirs:
+            #logger.debug("Skip:{}".format(date))
             return True
         return False
 
@@ -373,7 +400,7 @@ def main(args):
     """Load datasets, Do preprocess()
     """
     logger.info("start")
-    gettabler = Get_distance_table(args.process_id, args.save_name, args.max_original, args.max_pair, args.step)
+    gettabler = Get_distance_table(args.process_id, args.gpu_id, args.save_name, args.max_original, args.max_pair, args.root_dir)
     loader, allpath = gettabler.load_datasets()
     gettabler.calc_distance(loader, allpath)
     #zip_dir()
@@ -391,12 +418,16 @@ def chk(args):
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("--process_id", type=int, default=0,
-                       help="input 0~3 for pararell docker container")
+                       help="input 0~3 for pararell docker container to select splited data")
+    parse.add_argument("--gpu_id", default="0")
     parse.add_argument("--save_name", default="test")
     parse.add_argument("--max_original", type=int, default=1)
     parse.add_argument("--max_pair", type=int, default=10000)
+    parse.add_argument("--root_dir", default="../../data/processed")
 
     args = parse.parse_args()
 
     if chk(args):
-        main(args)
+        for i in range(0, 4):
+            args.process_id = i
+            main(args)

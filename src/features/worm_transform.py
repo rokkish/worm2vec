@@ -11,6 +11,8 @@ from PIL import Image
 from skimage.measure import label, regionprops
 from torchvision.transforms import functional
 
+import get_logger
+logger = get_logger.get_logger(name='transform')
 
 class ToBinary(object):
     def __init__(self):
@@ -213,6 +215,49 @@ class Resize(object):
         resized_img = np.reshape(resized_img, (-1, 1, resized_img.shape[1], resized_img.shape[2]))
 
         return resized_img
+
+
+class Resize_nonbinary(object):
+    def __init__(self, size, interpolation=Image.NEAREST):
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        """
+        Args:
+            ndarray Image (N, W, H) :   Rotated Image.
+
+        Returns:
+            ndarray Image (N, W, H) :   Resized image.
+        """
+        def resize_img(img):
+            img = Image.fromarray(np.uint8(img), mode="L")
+            img = img.resize(self.size, self.interpolation)
+            img = np.asarray(img)
+            return img
+
+        resized_img = np.zeros((img.shape[0], self.size[0], self.size[1]))
+
+        for i in range(img.shape[0]):
+            resized_img[i, :, :] = resize_img(img[i, :, :])
+        return resized_img
+
+
+class Normalize(object):
+    def __init__(self, max_value=255):
+        self.max_value = max_value
+    def __call__(self, img):
+        """
+        Args:
+            ndarray Image (N, W, H) :   
+
+        Returns:
+            ndarray Image (N, W, H) :   
+        """
+
+        return (img - img.min()) / (img.max() - img.min()) * self.max_value
+
+
 
 
 class ToNDarray(object):
