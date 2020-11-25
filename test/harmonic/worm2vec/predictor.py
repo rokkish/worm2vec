@@ -33,11 +33,14 @@ class Predictor(Trainer):
         self.n_classes = params.nn.n_classes
         self.layers_name = [
             "block4/Mean:0",
-            "FCN/Relu:0"
+            #"FCN/Relu:0"
         ]
-        self.n_embedding = 10
-        self.view_pos_and_neg = False
-        self.view_pos = True # if True view only pos,
+        self.n_embedding = params.predict.n_embedding
+        self.view_neg = params.predict.view_neg
+        self.view_pos = params.predict.view_pos
+        
+        self.one_embedding_mode = params.predict.one_embedding_mode
+        self.target_idx = params.predict.target_idx
 
     def fit(self, data):
         saver = tf.train.Saver()
@@ -54,9 +57,14 @@ class Predictor(Trainer):
                 self.layers_name)
             )
 
+        del data["train_x"]
+
         batcher = self.minibatcher(data['test_x'],
                                    self.batch_size,
-                                   shuffle=True)
+                                   shuffle=False)
+
+        if self.one_embedding_mode:
+            self.n_embedding = 1
 
         cat_summary_np = np.zeros((self.n_positive * self.n_embedding,
                                    self.n_classes))
@@ -68,15 +76,22 @@ class Predictor(Trainer):
         cat_Neg = np.zeros((self.n_negative * self.n_embedding,
                             self.dim, self.dim))
 
-        for i, (Pos, Neg) in enumerate(batcher):
-            if i == self.n_embedding:
+        cossim_pn = []
+
+        for i, (Pos, Neg, _) in enumerate(batcher):
+            if not self.one_embedding_mode and i == self.n_embedding:
                 break
+            if self.one_embedding_mode:
+                if i != self.target_idx:
+                    continue
+                else:
+                    i = 0
 
             feed_dict = {self.positive: Pos,
                          self.negative: Neg,
                          self.learning_rate: self.lr,
                          self.train_phase: False}
-            summary = sess.run(medium_op, feed_dict=feed_dict)
+            summary, cossim = sess.run([medium_op, self.cossim], feed_dict=feed_dict)
 
             # select last layer output
             summary_np = np.array(summary[-1])
@@ -90,16 +105,25 @@ class Predictor(Trainer):
             cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np[self.n_positive:]
             cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
-        if self.view_pos_and_neg:
+            # save cossim
+            cossim_pn.append(cossim["pn"])
+
+        # save predictor cossim.csv
+        df_cossim = pd.DataFrame(cossim_pn)
+        df_cossim.to_csv(self.logdir + "cossim_pn.csv")
+
+        if self.view_pos and self.view_neg:
             cat = np.concatenate([cat_summary_np, cat_neg_summary_np], axis=0)
             cat_img = np.concatenate([cat_Pos, cat_Neg], axis=0)
         else:
-            if self.view_pos:
+            if self.view_pos and not self.view_neg:
                 cat = cat_summary_np
                 cat_img = cat_Pos
-            else:
+            elif self.view_neg and not self.view_pos:
                 cat = cat_neg_summary_np
                 cat_img = cat_Neg
+            else:
+                raise ValueError("self.view_ are False")
 
         variables = tf.Variable(cat, trainable=False, name="embedding_lastlayer")
 

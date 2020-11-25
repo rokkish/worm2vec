@@ -38,6 +38,12 @@ path:
 train_mode: True
 train:
     restart_train: False
+predict:
+    n_embedding: 2000
+    one_embedding_mode: False
+    target_idx: -1
+    view_pos: False
+    view_neg: False
 preprocess:
     test_rate: 0.1
     valid_rate: 0.1

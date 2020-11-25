@@ -30,13 +30,15 @@ if __name__ == "__main__":
     logger.info("prev dir: {}".format(glob_prev_datetime()))
 
     # glob data
-    data = glob.glob("/root/worm2vec/data/variety_data_r36_n50_np/*.npz")
+    data = glob.glob("/root/worm2vec/data/variety_data_strict_r36_n100_np/*.npz")
     data = sorted(data)
     if len(data) == 0:
         raise ValueError("data not found")
 
     epoch = 12
-    n_classes = 5
+    n_classes = 10
+    n_negative = 70
+    fixedtestdata = "/root/worm2vec/data/variety_data_strict_r36_n100_np/minitest/000_2000.npz"
 
     runned_datetime = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
     os.makedirs("/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}".format(runned_datetime))
@@ -55,10 +57,11 @@ if __name__ == "__main__":
         if i == 0:
             subprocess.call(["python", "run_worm2vec.py",
                 "path.worm_data={}".format(data_i),
+                "path.fixedtestdata={}".format(fixedtestdata),
                 "nn.n_epochs={}".format(epoch),
                 "nn.batch_size=1",
                 "train.restart_train=False",
-                "nn.n_negative=50",
+                "nn.n_negative={}".format(n_negative),
                 "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
                 "nn.n_classes={}".format(n_classes),
             ])
@@ -67,11 +70,12 @@ if __name__ == "__main__":
         else:
             subprocess.call(["python", "run_worm2vec.py",
                 "path.worm_data={}".format(data_i),
+                "path.fixedtestdata={}".format(fixedtestdata),
                 "nn.n_epochs={}".format(epoch),
                 "nn.batch_size=1",
                 "train.restart_train=True",
                 "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
-                "nn.n_negative=50",
+                "nn.n_negative={}".format(n_negative),
                 "path.test_score=/root/worm2vec/worm2vec/test/harmonic/worm2vec/logs/test_score/{}/cossim_{:0=2}.csv".format(runned_datetime, i),
                 "nn.n_classes={}".format(n_classes),
             ])
@@ -80,8 +84,9 @@ if __name__ == "__main__":
         # predict
         subprocess.call(["python", "run_worm2vec.py",
             "path.worm_data={}".format(data_i),
+            "path.fixedtestdata={}".format(fixedtestdata),
             "path.checkpoint_fullpath={}/checkpoints/model.ckpt".format(prev_date),
-            "nn.n_negative=50",
+            "nn.n_negative={}".format(n_negative),
             "nn.batch_size=1",
             "path.tensorboard=./",
             "train_mode=False",
