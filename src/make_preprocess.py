@@ -5,13 +5,15 @@ from preprocess import post
 
 if __name__ == '__main__':
 
+    root_dir = "processed4"
+
     post("start make_prepro.py")
 
     """
     try:
         ret = subprocess.call(["python", "preprocess.py",
             "--process_id", "0",
-            "--save_name", "processed2",
+            "--save_name", root_dir,
             "--root_dir", "../../data/raw/unpublished_control"
         ])
     except:
@@ -23,7 +25,7 @@ if __name__ == '__main__':
         post(ret)
     try:
         ret = subprocess.call(["python", "features/rename.py",
-            "--root_dir", "../../data/processed2/"
+            "--root_dir", "../../data/{}/".format(root_dir)
         ])
     except:
         post("error happen@rename.py")
@@ -33,14 +35,14 @@ if __name__ == '__main__':
     finally:
         post(ret)
 
-    """
+    #"""
     try:
         ret = subprocess.call(["python", "get_distance_table.py",
             "--process_id", "0",
-            "--max_pair", "100",
+            "--max_pair", "200",
             "--max_original", "100000",
             "--gpu_id", "0",
-            "--root_dir", "../../data/processed2",
+            "--root_dir", "../../data/{}".format(root_dir),
         ])
     except:
         post("error happen@get_distance_table.py")
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     try:
         ret = subprocess.call(["python", "compress_distance_table.py",
             "-K", "100",
-            "--root_dir", "../../data/processed2"
+            "--root_dir", "../../data/{}".format(root_dir)
         ])
     except:
         post("error happen@compress_distance_table.py")
@@ -69,7 +71,7 @@ if __name__ == '__main__':
             "--num_rotate", "36",
             "--num_negative", "100",
             "--save_path", "varietydata_r36_n100",
-            "--root_dir", "../../data/processed2/",
+            "--root_dir", "../../data/{}/".format(root_dir),
         ])
     except:
         post("error happen@make_variety_dataset.py")
@@ -82,8 +84,8 @@ if __name__ == '__main__':
 
     try:
         ret = subprocess.call(["python", "../test/harmonic/worm2vec/preprocess/tensor_to_numpy.py",
-            "--load_path", "../../data/processed2/varietydata_r36_n100",
-            "--save_path", "../../data/processed2/np_n100",
+            "--load_path", "../../data/{}/varietydata_r36_n100".format(root_dir),
+            "--save_path", "../../data/{}/np_n100".format(root_dir),
             "--datasize", "10000",
         ])
     except:
