@@ -5,10 +5,11 @@ results/training
 log/tensorboard
 log/logger
 notebooks/*.ipynb*
-src/.ipynb_checkpoints
+*.ipynb_checkpoints
 *.png
 *zip
 *.pkl
+*.npy
 
 test/harmonic/MNIST-rot/checkpoints
 test/harmonic/MNIST-rot/data
