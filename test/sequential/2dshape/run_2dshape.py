@@ -1,13 +1,11 @@
 """Train model, and evaluate it
 """
-import os
 import glob
 import random
 import hydra
 import tensorflow as tf
-import numpy as np
 from omegaconf import DictConfig
-#from models.worm_model import deep_worm
+from models.twoDshape_model import nn, nn_loss
 #from trainer import Trainer
 #from predictor import Predictor
 import get_logger
@@ -50,12 +48,17 @@ def set_placeholders(dim, window):
             "learning_rate": learning_rate}
 
 
-def construct_model(params, placeholders):
-    pass
+def construct_model(input_dim, output_dim, placeholders):
+    preds = nn(placeholders["x_previous"],
+               placeholders["x_next"],
+               placeholders["x_now"],
+               input_dim, output_dim)
+    return preds
 
 
-def construct_loss(preds, params, sample_size):
-    pass
+def construct_loss(preds):
+    loss = nn_loss(context=preds[0], target=preds[1])
+    return loss
 
 
 def set_optimizer(learning_rate):
@@ -73,26 +76,25 @@ def main(cfg: DictConfig):
     data = load_data(cfg.dir.data, cfg.training.test_rate)
     logger.debug(len(data["train_x"]))
     logger.debug(data["train_x"][:10])
-    """
+
     # build model
-    placeholders = set_placeholders(cfg.model.dim, cfg.model.window)
+    placeholders = set_placeholders(cfg.training.dim, cfg.training.window)
 
-    preds = construct_model()
+    preds = construct_model(cfg.training.dim, cfg.training.output_dim, placeholders)
 
-    loss = construct_loss()
+    loss = construct_loss(preds)
 
-    optim = set_optimizer(cfg.model.learning_rate)
+    optim = set_optimizer(cfg.training.learning_rate)
 
     grads_and_vars = optim.compute_gradients(loss)
 
     train_op = optim.apply_gradients(grads_and_vars)
 
     # train or predict
-    if cfg.train_mode:
+    if cfg.training.train_mode:
         pass
     else:
         pass
-    """
 
 
 if __name__ == "__main__":
