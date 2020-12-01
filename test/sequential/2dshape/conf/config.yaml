@@ -1,0 +1,9 @@
+training:
+  dim: 32
+  window: 1
+  learning_rate: 0.1
+  test_rate: 0.1
+  train_mode: true
+  seed: 0
+dir:
+  data: "data/processed"
