@@ -22,6 +22,7 @@ test/harmonic/MNIST-rot/data
 *events.out*
 # output of yaml
 test/harmonic/worm2vec/outputs
+test/sequential/2dshape/outputs
 # key
 test/harmonic/worm2vec/conf/key.py
 src/conf/key.py
