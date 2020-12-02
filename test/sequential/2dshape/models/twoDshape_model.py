@@ -50,4 +50,10 @@ def nn_loss(context, target):
     """euclid distance loss between context and target"""
     distance = compute_euclidian_distance(context, target)
     loss = tf.reduce_mean(tf.reduce_sum(distance))
+
+    with tf.name_scope('add_l2_loss'):
+        var = tf.trainable_variables()
+        l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in var if "w" in v.name]) * 0.001
+        loss += l2_loss
+
     return loss
