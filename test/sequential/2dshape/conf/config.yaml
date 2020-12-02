@@ -1,10 +1,22 @@
 training:
   dim: 32
   output_dim: 16
-  window: 1
   learning_rate: 0.1
   test_rate: 0.1
   train_mode: true
   seed: 0
+  n_epochs: 3
 dir:
   data: "data/processed"
+  checkpoint: "./checkpoints/model.ckpt"
+  checkpoint_fullpath: "./outputs/DATE/TIME/checkpoints/model.ckpt"
+  losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"
+  tensorboard: "./"
+device:
+  gpu:
+    allow_growth: False
+    id: "0"
+    log_device_placement: True
+exp_name: "default"
+predicting:
+  n_embedding: 10
