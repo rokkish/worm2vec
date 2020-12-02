@@ -6,7 +6,7 @@ import hydra
 import tensorflow as tf
 from omegaconf import DictConfig
 from models.twoDshape_model import nn, nn_loss
-#from trainer import Trainer
+from trainer import Trainer
 #from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
@@ -35,11 +35,11 @@ def load_data(path, test_rate):
     return data
 
 
-def set_placeholders(dim, window):
+def set_placeholders(dim):
     with tf.name_scope('inputs'):
-        x_previous = tf.placeholder(tf.float32, [window, dim, dim], name='x_previous')
+        x_previous = tf.placeholder(tf.float32, [1, dim, dim], name='x_previous')
         x_now = tf.placeholder(tf.float32, [1, dim, dim], name='x_now')
-        x_next = tf.placeholder(tf.float32, [window, dim, dim], name='x_next')
+        x_next = tf.placeholder(tf.float32, [1, dim, dim], name='x_next')
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
     return {"x_previous": x_previous,
@@ -78,7 +78,7 @@ def main(cfg: DictConfig):
     logger.debug(data["train_x"][:10])
 
     # build model
-    placeholders = set_placeholders(cfg.training.dim, cfg.training.window)
+    placeholders = set_placeholders(cfg.training.dim)
 
     preds = construct_model(cfg.training.dim, cfg.training.output_dim, placeholders)
 
@@ -92,7 +92,8 @@ def main(cfg: DictConfig):
 
     # train or predict
     if cfg.training.train_mode:
-        pass
+        trainer = Trainer(cfg, loss, optim, train_op, placeholders)
+        trainer.fit(data)
     else:
         pass
 
