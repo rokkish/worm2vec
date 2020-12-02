@@ -32,6 +32,6 @@ def create_sprite_image(images):
 
 
 def save_sprite_image(sprite_image, path):
-    sprite_image = 1. - sprite_image
+    #sprite_image = 1. - sprite_image
     plt.imsave(path, sprite_image, cmap="Greys_r")
     plt.close()
