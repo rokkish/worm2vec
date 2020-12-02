@@ -51,7 +51,9 @@ class Predictor(Trainer):
         cat_context_img = np.zeros((self.n_embedding, self.dim, self.dim))
         cat_target_img = np.zeros((self.n_embedding, self.dim, self.dim))
 
-        for i, (x_previous, x_now, x_next) in enumerate(batcher):
+        labels = []
+
+        for i, (x_previous, x_now, x_next, x_label) in enumerate(batcher):
             if i == self.n_embedding:
                 break
 
@@ -74,9 +76,11 @@ class Predictor(Trainer):
             cat_context_img[i: (i+1)] = x_now
             cat_target_img[i: (i+1)] = x_now
 
+            labels.append(x_label)
+
         cat_tensors = np.concatenate([cat_context_summary_np, cat_target_summary_np], axis=0)
         cat_images = np.concatenate([cat_context_img, cat_target_img], axis=0)
-
+        cat_labels = labels + labels
         # tensorize
         variables = tf.Variable(cat_tensors, trainable=False, name="embedding_lastlayer")
 
@@ -87,10 +91,11 @@ class Predictor(Trainer):
         # make metadata.tsv (labels)
         with open(self.logdir + "metadata.tsv", "w") as f:
             f.write("Index\tLabel\n")
-            for index, label in enumerate(cat_images):
-                #TODO:cutom_label should be pair-name of circle, triangle, square.
-                custmom_label = index
-                f.write("%d\t%d\n" % (index, custmom_label))
+            for index, label in enumerate(cat_labels):
+                for i, str_label in enumerate(["circle_square", "circle_triangle", "square_triangle"]):
+                    if label == str_label:
+                        id_label = i
+                f.write("%d\t%d\n" % (index, id_label))
 
         # make sprite image (labels)
         save_sprite_image(create_sprite_image(cat_images), path=self.logdir + "sprite.png")
@@ -112,3 +117,35 @@ class Predictor(Trainer):
         projector.visualize_embeddings(summary_writer, config_projector)
 
         sess.close()
+
+    def minibatcher(self, inputs, shuffle=False):
+        """
+
+        Args:
+            inputs (list): list of data path. (*.npy)
+            shuffle (bool, optional): shffule idx. Defaults to False.
+
+        Yields:
+            x_previous, x_now, x_next, label (ndarray):
+        """
+        dim = self.dim
+
+        if shuffle:
+            indices = np.arange(len(inputs))
+            np.random.shuffle(indices)
+
+        for start_idx in range(0, len(inputs), 1):
+            if shuffle:
+                excerpt = indices[start_idx]
+            else:
+                excerpt = start_idx
+
+            path = inputs[excerpt]
+
+            x = np.load(path)
+
+            # path:/root/~/circle_square/*.npy
+            # label is circle_square
+            label = path.split("/")[-2]
+
+            yield np.reshape(x[0, 0], (1, dim, dim)), np.reshape(x[0, 5], (1, dim, dim)), np.reshape(x[0, -1], (1, dim, dim)), label
