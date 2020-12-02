@@ -7,7 +7,7 @@ import tensorflow as tf
 from omegaconf import DictConfig
 from models.twoDshape_model import nn, nn_loss
 from trainer import Trainer
-#from predictor import Predictor
+from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
 
@@ -95,7 +95,8 @@ def main(cfg: DictConfig):
         trainer = Trainer(cfg, loss, optim, train_op, placeholders)
         trainer.fit(data)
     else:
-        pass
+        predictor = Predictor(cfg, loss, optim, train_op, placeholders)
+        predictor.fit(data)
 
 
 if __name__ == "__main__":
