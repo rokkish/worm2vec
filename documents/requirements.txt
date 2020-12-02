@@ -4,4 +4,5 @@ torch==1.1.0
 torchvision==0.3.0
 tensorboardX
 hydra-core
+pandas
 #default package from docker image "tensorflow/tensorflow:1.9.0-gpu-py3" 
