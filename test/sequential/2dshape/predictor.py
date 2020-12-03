@@ -31,6 +31,8 @@ class Predictor(Trainer):
             "concat_outputs/concat:0",
         ]
         self.n_embedding = params.predicting.n_embedding
+        self.constant_idx = 0
+        self.output_dim = 16
 
     def fit(self, data):
         saver, sess = self.init_session()
@@ -46,8 +48,8 @@ class Predictor(Trainer):
         batcher = self.minibatcher(data["test_x"], shuffle=True)
 
         # def zero vec
-        cat_context_summary_np = np.zeros((self.n_embedding, 64))
-        cat_target_summary_np = np.zeros((self.n_embedding, 64))
+        cat_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
+        cat_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
         cat_context_img = np.zeros((self.n_embedding, self.dim, self.dim))
         cat_target_img = np.zeros((self.n_embedding, self.dim, self.dim))
 
@@ -69,12 +71,12 @@ class Predictor(Trainer):
             summary_np = np.array(summary[-1][0])
 
             # cat several vectors (output of model)
-            cat_context_summary_np[i: (i+1)] = summary_np[0]
-            cat_target_summary_np[i: (i+1)] = summary_np[1]
+            cat_context_summary_np[i: (i+1)] = summary_np[self.constant_idx]
+            cat_target_summary_np[i: (i+1)] = summary_np[self.batchsize + self.constant_idx]
 
             # cat several images
-            cat_context_img[i: (i+1)] = x_now
-            cat_target_img[i: (i+1)] = x_now
+            cat_context_img[i: (i+1)] = x_now[self.constant_idx]
+            cat_target_img[i: (i+1)] = x_now[self.constant_idx]
 
             labels.append(x_label)
 
@@ -90,12 +92,17 @@ class Predictor(Trainer):
 
         # make metadata.tsv (labels)
         with open(self.logdir + "metadata.tsv", "w") as f:
-            f.write("Index\tLabel\n")
+            f.write("Index\tLabel\tContextOrTarget\n")
             for index, label in enumerate(cat_labels):
                 for i, str_label in enumerate(["circle_square", "circle_triangle", "square_triangle"]):
                     if label == str_label:
                         id_label = i
-                f.write("%d\t%d\n" % (index, id_label))
+
+                if index < cat_context_summary_np.shape[0]:
+                    context_or_target_label = 0
+                else:
+                    context_or_target_label = 1
+                f.write("%d\t%d\t%d\n" % (index, id_label, context_or_target_label))
 
         # make sprite image (labels)
         save_sprite_image(create_sprite_image(cat_images), path=self.logdir + "sprite.png")
@@ -129,6 +136,7 @@ class Predictor(Trainer):
             x_previous, x_now, x_next, label (ndarray):
         """
         dim = self.dim
+        bs = self.batchsize
 
         if shuffle:
             indices = np.arange(len(inputs))
@@ -148,4 +156,9 @@ class Predictor(Trainer):
             # label is circle_square
             label = path.split("/")[-2]
 
-            yield np.reshape(x[0, 0], (1, dim, dim)), np.reshape(x[0, 5], (1, dim, dim)), np.reshape(x[0, -1], (1, dim, dim)), label
+            for idx in range(0, bs * (x.shape[0] // bs), bs):
+                # sample rotate image
+                x_previous = np.reshape(x[idx: idx + bs, 0], (bs, dim, dim))
+                x_now = np.reshape(x[idx: idx + bs, 5], (bs, dim, dim))
+                x_next = np.reshape(x[idx: idx + bs, -1], (bs, dim, dim))
+                yield x_previous, x_now, x_next, label

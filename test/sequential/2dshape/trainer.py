@@ -25,6 +25,7 @@ class Trainer(object):
         # yaml config
         self.lr = params.training.learning_rate
         self.n_epochs = params.training.n_epochs
+        self.batchsize = params.training.batchsize
         self.checkpoint = params.dir.checkpoint
         self.csv_path = params.dir.losscsv
         self.dim = params.training.dim
@@ -142,6 +143,7 @@ class Trainer(object):
             x_previous, x_now, x_next (ndarray):
         """
         dim = self.dim
+        bs = self.batchsize
 
         if shuffle:
             indices = np.arange(len(inputs))
@@ -155,4 +157,9 @@ class Trainer(object):
 
             x = np.load(inputs[excerpt])
 
-            yield np.reshape(x[0, 0], (1, dim, dim)), np.reshape(x[0, 5], (1, dim, dim)), np.reshape(x[0, -1], (1, dim, dim))
+            for idx in range(0, bs * (x.shape[0] // bs), bs):
+                # sample rotate image
+                x_previous = np.reshape(x[idx: idx + bs, 0], (bs, dim, dim))
+                x_now = np.reshape(x[idx: idx + bs, 5], (bs, dim, dim))
+                x_next = np.reshape(x[idx: idx + bs, -1], (bs, dim, dim))
+                yield x_previous, x_now, x_next

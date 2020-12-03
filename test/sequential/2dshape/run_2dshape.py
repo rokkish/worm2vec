@@ -35,11 +35,11 @@ def load_data(path, test_rate):
     return data
 
 
-def set_placeholders(dim):
+def set_placeholders(dim, batchsize):
     with tf.name_scope('inputs'):
-        x_previous = tf.placeholder(tf.float32, [1, dim, dim], name='x_previous')
-        x_now = tf.placeholder(tf.float32, [1, dim, dim], name='x_now')
-        x_next = tf.placeholder(tf.float32, [1, dim, dim], name='x_next')
+        x_previous = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_previous')
+        x_now = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_now')
+        x_next = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_next')
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
     return {"x_previous": x_previous,
@@ -48,11 +48,11 @@ def set_placeholders(dim):
             "learning_rate": learning_rate}
 
 
-def construct_model(input_dim, output_dim, placeholders):
+def construct_model(input_dim, placeholders):
     preds = nn(placeholders["x_previous"],
                placeholders["x_next"],
                placeholders["x_now"],
-               input_dim, output_dim)
+               input_dim)
     return preds
 
 
@@ -78,9 +78,9 @@ def main(cfg: DictConfig):
     logger.debug(data["train_x"][:10])
 
     # build model
-    placeholders = set_placeholders(cfg.training.dim)
+    placeholders = set_placeholders(cfg.training.dim, cfg.training.batchsize)
 
-    preds = construct_model(cfg.training.dim, cfg.training.output_dim, placeholders)
+    preds = construct_model(cfg.training.dim, placeholders)
 
     loss = construct_loss(preds)
 

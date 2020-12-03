@@ -1,11 +1,11 @@
 training:
   dim: 32
-  output_dim: 16
   learning_rate: 0.1
   test_rate: 0.1
   train_mode: true
   seed: 0
   n_epochs: 3
+  batchsize: 1
 dir:
   data: "data/processed"
   checkpoint: "./checkpoints/model.ckpt"
