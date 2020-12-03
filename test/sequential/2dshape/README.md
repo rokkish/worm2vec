@@ -16,5 +16,11 @@ T = (A + \lambda * B)/2 for \lambda in range(0, 1.1, 0.1)
 ```
 
 ## train
-
+```sh
+python run_2dshape.py training.n_epochs=2 exp_name="add batchsize" training.batchsize=1000
+```
+## predict
+```sh
+python run_2dshape.py training.train_mode=false training.batchsize=1000 exp_name="test predictor" dir.checkpoint_fullpath="/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-02/08-44-36/checkpoints/model.ckpt" predicting.n_embedding=100
+```
 # Sequential model for worm
