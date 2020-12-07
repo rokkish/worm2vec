@@ -75,7 +75,7 @@ class Creator(object):
         self.coordinates["square"] = xy_square
         self.coordinates["triangle"] = xy_triangle
 
-    def circle(self, N):
+    def circle(self, N) -> np.array:
         xy = []
         radius = 0.25
         c = 0.5
@@ -85,7 +85,7 @@ class Creator(object):
             xy.append([x, y])
         return np.array(xy)
 
-    def square(self, N):
+    def square(self, N) -> np.array:
         line_N = N // 4
         xy = []
 
@@ -117,7 +117,7 @@ class Creator(object):
 
         return np.array(xy)
 
-    def triangle(self, N):
+    def triangle(self, N) -> np.array:
         line_N = N // 3
         xy = []
         # under
@@ -151,7 +151,7 @@ class Creator(object):
             coordinates_nn = self.nearest_neighbors_top1(fig_a, fig_b)
             self.coordinates_nn["nn_{}_{}".format(fig_a, fig_b)] = coordinates_nn
 
-    def euclidian_distance(self, a, b):
+    def euclidian_distance(self, a, b) -> np.array:
         """
         Args:
             a (1, 2): ndarray (x, y)
@@ -163,7 +163,7 @@ class Creator(object):
         ab = np.square(a - b)
         return np.sqrt(ab[0]+ab[1])
 
-    def nearest_neighbors_top1(self, fig_a, fig_b):
+    def nearest_neighbors_top1(self, fig_a, fig_b) -> list:
         n_xy_a = self.coordinates[fig_a]
         n_xy_b = self.coordinates[fig_b]
 
@@ -197,7 +197,7 @@ class Creator(object):
 
             self.morph_coordinates["{}_{}".format(fig_a, fig_b)] = np.array(xy_comb)
 
-    def morphing(self, xy_a, xy_b, step):
+    def morphing(self, xy_a, xy_b, step) -> list:
         return xy_a + (xy_b - xy_a) * step / self.STEP
 
     def gaussian_noise(self, xy) -> np.array:
