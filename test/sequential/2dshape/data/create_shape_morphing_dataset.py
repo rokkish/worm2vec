@@ -30,6 +30,9 @@ class Creator(object):
         # 補完ステップ数
         self.STEP = 10
 
+        # resize
+        self.SIZE = 32
+
     def create(self):
         # circle, square, triangleの座標を取得
         self.get_coordinates()
@@ -40,8 +43,17 @@ class Creator(object):
         # 最近傍点へのmorphingデータ点の作成
         self.create_morphing_coordinates()
 
-        # sample plot
+        # 座標にノイズ付与
+        self.add_noise()
+
+        # 図形の確認とgifの作成
         self.sample_plt()
+
+        # 読み込むためのpngfileの作成
+        self.save_png()
+
+        # png -> ndarray変換
+        self.translate_into_np()
 
     def get_comb(self):
         """need to load at many times
@@ -188,6 +200,16 @@ class Creator(object):
     def morphing(self, xy_a, xy_b, step):
         return xy_a + (xy_b - xy_a) * step / self.STEP
 
+    def gaussian_noise(self, xy) -> np.array:
+        return xy + np.random.normal(0, 0.002, size=xy.shape)
+
+    def add_noise(self):
+        for fig_i, fig_j in self.comb:
+
+            xy = self.morph_coordinates["{}_{}".format(fig_i, fig_j)]
+            xy = self.gaussian_noise(xy)
+            self.morph_coordinates["{}_{}".format(fig_i, fig_j)] = xy
+
     def sample_plt(self):
         """sample plot
         """
@@ -197,35 +219,89 @@ class Creator(object):
         import matplotlib.patches as patches
         from PIL import Image
 
+        os.makedirs("./tmp/gif", exist_ok=True)
+
         for fig_i, fig_j in self.comb:
 
             xy = self.morph_coordinates["{}_{}".format(fig_i, fig_j)]
             for step in range(self.STEP+1):
 
-                # slice step
+                # slice step (self.N, step, xy)
                 xy_step = xy[:, step, :]
 
                 patch = patches.Polygon(xy=xy_step, closed=True, fc="black", ec="black")
                 shape_name = "test_morphing"
 
-                fig = plt.figure(figsize=(5, 5))
+                fig = plt.figure(figsize=(3, 3))
                 ax = plt.axes()
 
                 ax.add_patch(patch)
 
                 plt.axis("off")
                 ax.set_aspect("equal")
-                plt.title(shape_name)
-                ax.text(0.1, 0.1, "{}_to_{}".format(fig_i, fig_j), size=10)
+                #plt.title(shape_name)
+                #ax.text(0.1, 0.1, "{}_to_{}".format(fig_i, fig_j), size=10)
 
-                plt.savefig("./tmp/{}_{:0=3}.png".format(shape_name, step))
+                plt.savefig("./tmp/gif/{}_{:0=3}.png".format(shape_name, step))
 
-            plt.close()
+                plt.close()
 
             # anime to gif
-            files = sorted(glob.glob("./tmp/{}_*.png".format(shape_name)))
+            files = sorted(glob.glob("./tmp/gif/{}_*.png".format(shape_name)))
             images = list(map(lambda file: Image.open(file), files))
-            images[0].save("./tmp/out_{}_{}.gif".format(fig_i, fig_j), save_all=True, append_images=images[1:], duration=400, loop=False)
+            images[0].save("./tmp/gif/out_{}_{}.gif".format(fig_i, fig_j), save_all=True, append_images=images[1:], duration=400, loop=False)
+
+    def save_png(self):
+        """save morphing image
+        """
+        import matplotlib as mpl
+        mpl.use("Agg")
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as patches
+
+        os.makedirs("./tmp/png", exist_ok=True)
+
+        for fig_i, fig_j in self.comb:
+
+            xy = self.morph_coordinates["{}_{}".format(fig_i, fig_j)]
+            for step in range(self.STEP+1):
+
+                # slice step (self.N, step, xy)
+                xy_step = xy[:, step, :]
+
+                patch = patches.Polygon(xy=xy_step, closed=True, fc="black", ec="black")
+
+                fig = plt.figure(figsize=(3, 3))
+                ax = plt.axes()
+
+                ax.add_patch(patch)
+
+                plt.axis("off")
+                ax.set_aspect("equal")
+
+                os.makedirs("./tmp/png/{}_{}".format(fig_i, fig_j), exist_ok=True)
+                plt.savefig("./tmp/png/{}_{}/{:0=3}.png".format(fig_i, fig_j, step))
+
+                plt.close()
+
+    def translate_into_np(self):
+        from PIL import Image
+        os.makedirs("./tmp/np", exist_ok=True)
+        for fig_i, fig_j in self.comb:
+
+            folder = "./tmp/png/{}_{}".format(fig_i, fig_j)
+            files = sorted(glob.glob("{}/*.png".format(folder)))
+
+            arr = np.zeros((len(files), self.SIZE, self.SIZE))
+
+            for k, file in enumerate(files):
+                img = Image.open(file)
+                img = img.convert("L")
+                img = img.resize((self.SIZE, self.SIZE))
+                img = np.array(img)
+                arr[k] = img
+
+            np.save("./tmp/np/{}_{}".format(fig_i, fig_j), arr)
 
 
 def main():
