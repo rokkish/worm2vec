@@ -26,5 +26,6 @@ test/sequential/2dshape/outputs
 # key
 test/harmonic/worm2vec/conf/key.py
 src/conf/key.py
+test/sequential/2dshape/conf/key.py
 # notebook
 test/harmonic/worm2vec/notebook/*
