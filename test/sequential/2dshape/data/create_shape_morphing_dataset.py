@@ -1,8 +1,12 @@
 import os
+import time
+import sys
 import glob
 import math
 import itertools
 import numpy as np
+sys.path.append('../')
+from post_slack import post
 
 
 class Creator(object):
@@ -27,13 +31,16 @@ class Creator(object):
         # 全図形の組み合わせ
         self.comb = list(self.get_comb())
 
+        # 不適切な図形変換のペアを削除
+        self.rm_comb()
+
         # 補完ステップ数
         self.STEP = 10
 
         # resize
-        self.SIZE = 32
+        self.SIZE = 32*2
 
-    def create(self):
+    def create(self, n):
         # circle, square, triangleの座標を取得
         self.get_coordinates()
 
@@ -44,21 +51,26 @@ class Creator(object):
         self.create_morphing_coordinates()
 
         # 座標にノイズ付与
-        self.add_noise()
+        self.morph_coordinates = self.add_noise(self.morph_coordinates)
 
         # 図形の確認とgifの作成
-        self.sample_plt()
+        #self.sample_plt()
 
         # 読み込むためのpngfileの作成
         self.save_png()
 
         # png -> ndarray変換
-        self.translate_into_np()
+        self.translate_into_np(n)
 
     def get_comb(self):
         """need to load at many times
         """
         return itertools.permutations(list(self.coordinates.keys()), r=2)
+
+    def rm_comb(self):
+        self.comb.remove(("circle", "square"))
+        self.comb.remove(("circle", "triangle"))
+        self.comb.remove(("triangle", "square"))
 
     def get_coordinates(self):
         """circle, square, triangleの座標を取得
@@ -201,14 +213,13 @@ class Creator(object):
         return xy_a + (xy_b - xy_a) * step / self.STEP
 
     def gaussian_noise(self, xy) -> np.array:
-        return xy + np.random.normal(0, 0.002, size=xy.shape)
+        return xy + np.random.normal(0, 0.007, size=xy.shape)
 
-    def add_noise(self):
-        for fig_i, fig_j in self.comb:
-
-            xy = self.morph_coordinates["{}_{}".format(fig_i, fig_j)]
-            xy = self.gaussian_noise(xy)
-            self.morph_coordinates["{}_{}".format(fig_i, fig_j)] = xy
+    def add_noise(self, coordinates):
+        for key, val in coordinates.items():
+            val = self.gaussian_noise(val)
+            coordinates[key] = val
+        return coordinates
 
     def sample_plt(self):
         """sample plot
@@ -284,11 +295,12 @@ class Creator(object):
 
                 plt.close()
 
-    def translate_into_np(self):
+    def translate_into_np(self, n):
         from PIL import Image
-        os.makedirs("./tmp/np", exist_ok=True)
+        os.makedirs("./processed/morph", exist_ok=True)
         for fig_i, fig_j in self.comb:
 
+            os.makedirs("./processed/morph/{}_{}".format(fig_i, fig_j), exist_ok=True)
             folder = "./tmp/png/{}_{}".format(fig_i, fig_j)
             files = sorted(glob.glob("{}/*.png".format(folder)))
 
@@ -301,12 +313,24 @@ class Creator(object):
                 img = np.array(img)
                 arr[k] = img
 
-            np.save("./tmp/np/{}_{}".format(fig_i, fig_j), arr)
+            np.save("./processed/morph/{}_{}/{:0=5}".format(fig_i, fig_j, n), arr)
 
 
 def main():
     creator = Creator()
-    creator.create()
+
+    post("start create morph")
+
+    init_t = time.time()
+
+    n = 20000
+
+    for i in range(n):
+        creator.create(i)
+        creator.__init__()
+        print("\r {}% [{:0=5}/{:0=5}] {:.3f}".format(100*(i+1)/n, i+1, n, time.time() - init_t), end="")
+
+    post("end create morph data")
 
 
 if __name__ == "__main__":
