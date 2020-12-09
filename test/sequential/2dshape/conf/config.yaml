@@ -7,7 +7,7 @@ training:
   n_epochs: 3
   batchsize: 1
 dir:
-  data: "data/processed"
+  data: "data/processed/morph"
   checkpoint: "./checkpoints/model.ckpt"
   checkpoint_fullpath: "./outputs/DATE/TIME/checkpoints/model.ckpt"
   losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"

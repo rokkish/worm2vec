@@ -16,7 +16,7 @@ def load_data(path, test_rate):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
     dataset = {"train": [], "test": []}
-    data_label = ["circle_square", "circle_triangle", "square_triangle"]
+    data_label = ["square_circle", "triangle_circle", "square_triangle"]
     for label in data_label:
         dataset[label] = glob.glob(cwd + "/" + path + "/" + label + "/*.npy")
         random.shuffle(dataset[label])
