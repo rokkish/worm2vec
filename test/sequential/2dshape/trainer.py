@@ -78,14 +78,10 @@ class Trainer(object):
 
             ### Training steps ###
 
-            batcher = self.minibatcher(data["train_x"], shuffle=True)
+            batcher = self.minibatcher(data["train_x"])
 
             for batch, (x_previous, x_now, x_next) in enumerate(batcher):
 
-                if batch == 0:
-                    logger.debug(x_previous.shape)
-                    logger.debug(x_now.shape)
-                    logger.debug(x_next.shape)
 
                 feed_dict = {
                     self.x_previous: x_previous,
@@ -101,7 +97,7 @@ class Trainer(object):
 
             ### Test steps ###
 
-            batcher = self.minibatcher(data["test_x"], shuffle=True)
+            batcher = self.minibatcher(data["test_x"])
 
             for batch, (x_previous, x_now, x_next) in enumerate(batcher):
 
@@ -127,12 +123,12 @@ class Trainer(object):
 
             epoch += 1
 
-            logger.info('[{:04d} | {:04.1f}] Train loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss))
+            logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss))
 
         # save loss to df
         pd.DataFrame(self.loss_tocsv).to_csv(self.csv_path, mode="a", header=not os.path.exists(self.csv_path))
 
-    def minibatcher(self, inputs, shuffle=False):
+    def minibatcher(self, inputs):
         """
 
         Args:
@@ -145,21 +141,12 @@ class Trainer(object):
         dim = self.dim
         bs = self.batchsize
 
-        if shuffle:
-            indices = np.arange(len(inputs))
-            np.random.shuffle(indices)
+        for idx in range(0, len(inputs), bs):
 
-        for start_idx in range(0, len(inputs), 1):
-            if shuffle:
-                excerpt = indices[start_idx]
-            else:
-                excerpt = start_idx
+            x = inputs[idx: idx + bs]
 
-            x = np.load(inputs[excerpt])
+            x_previous = np.reshape(x[:, 0], (bs, dim, dim))
+            x_now = np.reshape(x[:, 5], (bs, dim, dim))
+            x_next = np.reshape(x[:, -1], (bs, dim, dim))
 
-            for idx in range(0, bs * (x.shape[0] // bs), bs):
-                # sample rotate image
-                x_previous = np.reshape(x[idx: idx + bs, 0], (bs, dim, dim))
-                x_now = np.reshape(x[idx: idx + bs, 5], (bs, dim, dim))
-                x_next = np.reshape(x[idx: idx + bs, -1], (bs, dim, dim))
-                yield x_previous, x_now, x_next
+            yield x_previous, x_now, x_next

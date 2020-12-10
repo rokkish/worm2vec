@@ -1,8 +1,13 @@
 """Train model, and evaluate it
 """
+import os
+#if debug
+#os.chdir("./test/sequential/2dshape")
+
 import glob
 import random
 import hydra
+import numpy as np
 import tensorflow as tf
 from omegaconf import DictConfig
 from models.twoDshape_model import nn, nn_loss
@@ -15,23 +20,45 @@ logger = get_logger.get_logger(name='run')
 def load_data(path, test_rate):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
-    dataset = {"train": [], "test": []}
+
+    n_samples = 20000
+
+    dataset = {
+        "train": np.zeros((int(3*0.9*n_samples), 11, 64, 64)),
+        "test": np.zeros((int(3*0.1*n_samples), 11, 64, 64)),
+        "train_label": [],
+        "test_label": []
+    }
+
     data_label = ["square_circle", "triangle_circle", "square_triangle"]
-    for label in data_label:
-        dataset[label] = glob.glob(cwd + "/" + path + "/" + label + "/*.npy")
-        random.shuffle(dataset[label])
+
+    for i, label in enumerate(data_label):
+
+        files = sorted(glob.glob(cwd + "/" + path + "/" + label + "/*.npy"))[:n_samples]
+        random.shuffle(files)
+
+        arr = np.zeros((len(files), 11, 64, 64))
+
+        for j, f in enumerate(files):
+            arr[j] = np.load(f)
+            print("\r Loading... {:0=5}/{:0=5}".format(j+i*n_samples, 3*len(files)), end="")
+
         # Split
-        N = len(dataset[label])
+        N = len(arr)
         train_rate = 1. - test_rate
         N_tr = int(N * train_rate)
 
-        dataset["train"].extend(dataset[label][:N_tr])
-        dataset["test"].extend(dataset[label][N_tr:])
+        dataset["train"][i*int(0.9*n_samples): (i+1)*int(0.9*n_samples)] = arr[:N_tr]
+        dataset["test"][i*int(0.1*n_samples): (i+1)*int(0.1*n_samples)] = arr[N_tr:]
+        dataset["train_label"].extend(files[:N_tr])
+        dataset["test_label"].extend(files[N_tr:])
 
     # Format
     data = {}
     data['train_x'] = dataset["train"]#[:1000]
     data['test_x'] = dataset["test"]#[:1000]
+    data['train_label'] = dataset["train_label"]#[:1000]
+    data['test_label'] = dataset["test_label"]#[:1000]
     return data
 
 
@@ -75,7 +102,6 @@ def main(cfg: DictConfig):
     # load_data
     data = load_data(cfg.dir.data, cfg.training.test_rate)
     logger.debug(len(data["train_x"]))
-    logger.debug(data["train_x"][:10])
 
     # build model
     placeholders = set_placeholders(cfg.training.dim, cfg.training.batchsize)

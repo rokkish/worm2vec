@@ -32,7 +32,7 @@ class Predictor(Trainer):
         ]
         self.n_embedding = params.predicting.n_embedding
         self.constant_idx = 0
-        self.output_dim = 16
+        self.output_dim = 64
 
     def fit(self, data):
         saver, sess = self.init_session()
@@ -45,7 +45,7 @@ class Predictor(Trainer):
                 self.layers_name)
             )
 
-        batcher = self.minibatcher(data["test_x"], shuffle=True)
+        batcher = self.minibatcher(data["test_x"], data["test_label"], shuffle=True)
 
         # def zero vec
         cat_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
@@ -94,7 +94,7 @@ class Predictor(Trainer):
         with open(self.logdir + "metadata.tsv", "w") as f:
             f.write("Index\tLabel\tContextOrTarget\n")
             for index, label in enumerate(cat_labels):
-                for i, str_label in enumerate(["circle_square", "circle_triangle", "square_triangle"]):
+                for i, str_label in enumerate(["square_circle", "triangle_circle", "square_triangle"]):
                     if label == str_label:
                         id_label = i
 
@@ -125,7 +125,7 @@ class Predictor(Trainer):
 
         sess.close()
 
-    def minibatcher(self, inputs, shuffle=False):
+    def minibatcher(self, inputs, labels, shuffle=False):
         """
 
         Args:
@@ -138,27 +138,17 @@ class Predictor(Trainer):
         dim = self.dim
         bs = self.batchsize
 
-        if shuffle:
-            indices = np.arange(len(inputs))
-            np.random.shuffle(indices)
-
-        for start_idx in range(0, len(inputs), 1):
-            if shuffle:
-                excerpt = indices[start_idx]
-            else:
-                excerpt = start_idx
-
-            path = inputs[excerpt]
-
-            x = np.load(path)
+        for idx in range(0, len(inputs), bs):
 
             # path:/root/~/circle_square/*.npy
             # label is circle_square
-            label = path.split("/")[-2]
+            x = inputs[idx: idx + bs]
 
-            for idx in range(0, bs * (x.shape[0] // bs), bs):
-                # sample rotate image
-                x_previous = np.reshape(x[idx: idx + bs, 0], (bs, dim, dim))
-                x_now = np.reshape(x[idx: idx + bs, 5], (bs, dim, dim))
-                x_next = np.reshape(x[idx: idx + bs, -1], (bs, dim, dim))
-                yield x_previous, x_now, x_next, label
+            #TODO:pathを渡す
+            label = labels[idx].split("/")[-2]
+
+            x_previous = np.reshape(x[:, 0], (bs, dim, dim))
+            x_now = np.reshape(x[:, 5], (bs, dim, dim))
+            x_next = np.reshape(x[:, -1], (bs, dim, dim))
+
+            yield x_previous, x_now, x_next, label
