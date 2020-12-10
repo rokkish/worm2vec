@@ -32,7 +32,7 @@ class Predictor(Trainer):
         ]
         self.n_embedding = params.predicting.n_embedding
         self.constant_idx = 0
-        self.output_dim = 64
+        self.output_dim = params.training.dim
 
     def fit(self, data):
         saver, sess = self.init_session()

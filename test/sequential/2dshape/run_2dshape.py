@@ -23,9 +23,11 @@ def load_data(path, test_rate):
 
     n_samples = 20000
 
+    train_rate = 1. - test_rate
+
     dataset = {
-        "train": np.zeros((int(3*0.9*n_samples), 11, 64, 64)),
-        "test": np.zeros((int(3*0.1*n_samples), 11, 64, 64)),
+        "train": np.zeros((int(3*train_rate*n_samples), 11, 64, 64)),
+        "test": np.zeros((int(3*test_rate*n_samples), 11, 64, 64)),
         "train_label": [],
         "test_label": []
     }
@@ -45,11 +47,10 @@ def load_data(path, test_rate):
 
         # Split
         N = len(arr)
-        train_rate = 1. - test_rate
         N_tr = int(N * train_rate)
 
-        dataset["train"][i*int(0.9*n_samples): (i+1)*int(0.9*n_samples)] = arr[:N_tr]
-        dataset["test"][i*int(0.1*n_samples): (i+1)*int(0.1*n_samples)] = arr[N_tr:]
+        dataset["train"][i*int(train_rate*n_samples): (i+1)*int(train_rate*n_samples)] = arr[:N_tr]
+        dataset["test"][i*int(test_rate*n_samples): (i+1)*int(test_rate*n_samples)] = arr[N_tr:]
         dataset["train_label"].extend(files[:N_tr])
         dataset["test_label"].extend(files[N_tr:])
 
