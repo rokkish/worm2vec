@@ -21,8 +21,6 @@ def load_data(path, test_rate, n_samples):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
 
-    n_samples = 20000
-
     train_rate = 1. - test_rate
 
     dataset = {
