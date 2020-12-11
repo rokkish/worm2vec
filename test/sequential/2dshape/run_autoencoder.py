@@ -17,7 +17,7 @@ import get_logger
 logger = get_logger.get_logger(name='run_ae')
 
 
-def load_data(path, test_rate):
+def load_data(path, test_rate, n_samples):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
 
@@ -113,7 +113,7 @@ def main(cfg: DictConfig):
     logger.debug(cfg)
 
     # load_data
-    data = load_data(cfg.dir.data, cfg.training.test_rate)
+    data = load_data(cfg.dir.data, cfg.training.test_rate, cfg.training.n_samples)
     logger.debug(len(data["train_x"]))
 
     # TODO:need to normalize
