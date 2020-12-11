@@ -10,7 +10,8 @@ import hydra
 import numpy as np
 import tensorflow as tf
 from omegaconf import DictConfig
-from models.autoencoder import nn, nn_euclid_loss
+import models.autoencoder as model
+from models.autoencoder import nn_euclid_loss
 from trainer_autoencoder import Trainer
 from predictor_autoencoder import Predictor
 import get_logger
@@ -82,8 +83,8 @@ def set_placeholders(size, batchsize):
 
 
 def construct_model(placeholders, input_dim):
-    preds = nn(placeholders["x"],
-               input_dim)
+    ae = model.AutoEncoder(placeholders["x"], input_dim)
+    preds = ae.nn()
     return preds
 
 

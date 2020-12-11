@@ -1,12 +1,8 @@
 """Predictor class mainly visualize embedding space.
 """
-import sys
-import time
 import tensorflow as tf
 import numpy as np
-import pandas as pd
 from trainer_autoencoder import Trainer
-from tensorboard.plugins import projector
 
 from visualize.sprite_images import create_sprite_image, save_sprite_image
 import get_logger
