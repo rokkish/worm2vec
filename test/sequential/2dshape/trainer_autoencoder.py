@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import get_logger
 logger = get_logger.get_logger(name="trainer")
+import wandb
+from wandb.keras import WandbCallback
 
 
 class Trainer(object):
@@ -115,6 +117,11 @@ class Trainer(object):
             self.loss_tocsv["train_loss"].append(train_loss)
             self.loss_tocsv["test_loss"].append(test_loss)
 
+            # save to wandb
+            wandb.log({'epochs': epoch,
+                       'loss': train_loss,
+                       'test_loss': test_loss,
+                       'learning_rate': self.lr})
             # save models
             saver.save(sess, self.checkpoint)
 

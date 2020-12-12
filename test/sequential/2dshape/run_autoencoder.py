@@ -16,6 +16,8 @@ from trainer_autoencoder import Trainer
 from predictor_autoencoder import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run_ae')
+import wandb
+from wandb.keras import WandbCallback
 
 
 def load_data(path, test_rate, n_samples):
@@ -141,4 +143,6 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    wandb.login()
+    wandb.init()
     main()
