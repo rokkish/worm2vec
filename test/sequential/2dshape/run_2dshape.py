@@ -15,6 +15,7 @@ from trainer import Trainer
 from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
+import wandb
 
 
 def load_data(path, test_rate, n_samples):
@@ -95,6 +96,8 @@ def set_optimizer(learning_rate):
 
 @hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig):
+    wandb.login()
+    wandb.init(project="2dshape", name=cfg.exp_name)
 
     tf.reset_default_graph()
     random.seed(cfg.training.seed)
