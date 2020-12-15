@@ -4,7 +4,7 @@ training:
   size: 64
   learning_rate: 0.1
   test_rate: 0.1
-  train_mode: false
+  train_mode: true
   seed: 0
   n_epochs: 3
   batchsize: 100
@@ -25,3 +25,4 @@ device:
 exp_name: "test_predcictor"
 predicting:
   n_embedding: 10
+  dim_out: 128

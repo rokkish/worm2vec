@@ -32,7 +32,7 @@ class Predictor(Trainer):
         ]
         self.n_embedding = params.predicting.n_embedding
         self.constant_idx = 0
-        self.output_dim = params.training.dim_out
+        self.output_dim = params.predicting.dim_out
 
     def fit(self, data):
         saver, sess = self.init_session()
@@ -50,8 +50,8 @@ class Predictor(Trainer):
         # def zero vec
         cat_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
         cat_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
-        cat_context_img = np.zeros((self.n_embedding, self.dim, self.dim))
-        cat_target_img = np.zeros((self.n_embedding, self.dim, self.dim))
+        cat_context_img = np.zeros((self.n_embedding, self.size, self.size))
+        cat_target_img = np.zeros((self.n_embedding, self.size, self.size))
 
         labels = []
 
@@ -135,7 +135,7 @@ class Predictor(Trainer):
         Yields:
             x_previous, x_now, x_next, label (ndarray):
         """
-        dim = self.dim
+        size = self.size
         bs = self.batchsize
 
         for idx in range(0, len(inputs), bs):
@@ -147,8 +147,8 @@ class Predictor(Trainer):
             #TODO:pathを渡す
             label = labels[idx].split("/")[-2]
 
-            x_previous = np.reshape(x[:, 0], (bs, dim, dim))
-            x_now = np.reshape(x[:, 5], (bs, dim, dim))
-            x_next = np.reshape(x[:, -1], (bs, dim, dim))
+            x_previous = np.reshape(x[:, 0], (bs, size, size))
+            x_now = np.reshape(x[:, 5], (bs, size, size))
+            x_next = np.reshape(x[:, -1], (bs, size, size))
 
             yield x_previous, x_now, x_next, label
