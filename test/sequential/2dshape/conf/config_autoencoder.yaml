@@ -4,7 +4,7 @@ training:
   size: 64
   learning_rate: 0.1
   test_rate: 0.1
-  train_mode: false
+  train_mode: true
   seed: 0
   n_epochs: 3
   batchsize: 100
@@ -21,6 +21,6 @@ device:
     allow_growth: False
     id: "0"
     log_device_placement: True
-exp_name: "test_ae"
+exp_name: "test_saver"
 predicting:
   n_embedding: 10
