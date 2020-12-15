@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class AutoEncoder(object):
-    def __init__(self, x, input_dim):
+    def __init__(self, x, input_dim, multiply_dim):
 
         self.x = x
         self.input_dim = input_dim
@@ -17,10 +17,11 @@ class AutoEncoder(object):
         size3 = size2 // 2
         size4 = size3 // 2
 
-        dim1 = input_dim * 2
-        dim2 = input_dim * (2**2)
-        dim3 = input_dim * (2**3)
-        dim4 = input_dim * (2**4)
+        multiply_dim = list(map(int, multiply_dim.split("-")))
+        dim1 = input_dim * multiply_dim[0]
+        dim2 = input_dim * multiply_dim[1]
+        dim3 = input_dim * multiply_dim[2]
+        dim4 = input_dim * multiply_dim[3]
 
         self.strides = (1, 2, 2, 1)
 

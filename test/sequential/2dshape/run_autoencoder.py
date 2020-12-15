@@ -84,8 +84,8 @@ def set_placeholders(size, batchsize):
             "learning_rate": learning_rate}
 
 
-def construct_model(placeholders, input_dim):
-    ae = model.AutoEncoder(placeholders["x"], input_dim)
+def construct_model(placeholders, input_dim, multiply_dim):
+    ae = model.AutoEncoder(placeholders["x"], input_dim, multiply_dim)
     preds = ae.nn()
     return preds
 
@@ -123,7 +123,7 @@ def main(cfg: DictConfig):
     # build model
     placeholders = set_placeholders(cfg.training.size, cfg.training.batchsize)
 
-    preds = construct_model(placeholders, cfg.training.dim)
+    preds = construct_model(placeholders, cfg.training.dim, cfg.training.multiply_dim)
 
     loss = construct_loss(preds, placeholders)
 
