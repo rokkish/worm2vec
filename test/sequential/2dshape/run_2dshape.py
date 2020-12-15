@@ -91,7 +91,7 @@ def construct_loss(preds):
 
 
 def set_optimizer(learning_rate):
-    return tf.train.AdamOptimizer(learning_rate=learning_rate)
+    return tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.01)
 
 
 @hydra.main(config_path="./conf/config.yaml")
