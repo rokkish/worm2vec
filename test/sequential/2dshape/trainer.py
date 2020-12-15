@@ -122,6 +122,10 @@ class Trainer(object):
                 test_loss += loss_value
                 self.test_summary_writer.add_summary(loss_summary, batch)
 
+            # update the learning rate
+            if epoch % 4 == 0:
+                self.lr = self.lr * 0.25
+
             # save loss to csv
             train_loss /= (batch + 1.)
             test_loss /= (batch + 1.)
@@ -136,7 +140,7 @@ class Trainer(object):
 
             epoch += 1
 
-            logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss))
+            logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}, Test loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss, test_loss))
 
         # save loss to df
         pd.DataFrame(self.loss_tocsv).to_csv(self.csv_path, mode="a", header=not os.path.exists(self.csv_path))
