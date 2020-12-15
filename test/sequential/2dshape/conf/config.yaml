@@ -14,6 +14,7 @@ dir:
   data: "data/processed/morph"
   checkpoint: "./checkpoints/model.ckpt"
   checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-09/19-45-29/checkpoints/model.ckpt"
+  checkpoint_fullpath_subset: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/DATE/TIME/checkpoints/subset.ckpt"
   losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"
   tensorboard: "./"
 device:

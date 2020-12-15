@@ -68,6 +68,12 @@ class Trainer(object):
     def fit(self, data):
         saver, sess = self.init_session()
 
+        if self.restore:
+            subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c")
+            logger.debug(subset_variables)
+            saver_ = tf.train.Saver(subset_variables)
+            saver_.restore(sess, self.checkpoint_fullpath_subset)
+
         train_loss_summary_op = tf.summary.scalar("train_loss/euclid_distance", self.loss)
         test_loss_summary_op = tf.summary.scalar("test_loss/euclid_distance", self.loss)
 
