@@ -69,7 +69,8 @@ class Predictor(Trainer):
 
         # make sprite image (labels)
         cat_images /= 255.
-        save_sprite_image(create_sprite_image(cat_images), path=self.logdir + "sprite.png")
+        img = create_sprite_image(cat_images)
+        save_sprite_image(img, path=self.logdir + "sprite.png")
 
         tf.summary.FileWriter(self.logdir, sess.graph)
 
