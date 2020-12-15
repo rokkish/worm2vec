@@ -108,6 +108,8 @@ def set_optimizer(learning_rate):
 
 @hydra.main(config_path="./conf/config_autoencoder.yaml")
 def main(cfg: DictConfig):
+    wandb.login()
+    wandb.init(project="autoencoder for pretrain", name=cfg.exp_name)
 
     tf.reset_default_graph()
     random.seed(cfg.training.seed)
@@ -143,6 +145,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    wandb.login()
-    wandb.init()
     main()
