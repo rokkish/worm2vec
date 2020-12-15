@@ -29,6 +29,7 @@ class Trainer(object):
         self.n_epochs = params.training.n_epochs
         self.batchsize = params.training.batchsize
         self.checkpoint = params.dir.checkpoint
+        self.checkpoint_subset = params.dir.checkpoint_subset
         self.csv_path = params.dir.losscsv
         self.size = params.training.size
 
@@ -64,6 +65,8 @@ class Trainer(object):
 
     def fit(self, data):
         saver, sess = self.init_session()
+        subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c")
+        saver_ = tf.train.Saver(subset_variables)
 
         train_loss_summary_op = tf.summary.scalar("train_loss/euclid_distance", self.loss)
         test_loss_summary_op = tf.summary.scalar("test_loss/euclid_distance", self.loss)
@@ -118,12 +121,11 @@ class Trainer(object):
             self.loss_tocsv["test_loss"].append(test_loss)
 
             # save to wandb
-            wandb.log({'epochs': epoch,
-                       'loss': train_loss,
-                       'test_loss': test_loss,
-                       'learning_rate': self.lr})
+            wandb.log({'epochs': epoch, 'loss': train_loss, 'test_loss': test_loss, 'learning_rate': self.lr})
+
             # save models
             saver.save(sess, self.checkpoint)
+            saver_.save(sess, self.checkpoint_subset)
 
             epoch += 1
 
