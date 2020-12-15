@@ -10,18 +10,16 @@ import hydra
 import numpy as np
 import tensorflow as tf
 from omegaconf import DictConfig
-from models.twoDshape_model import nn, nn_loss
+from models.twoDshape_model import TwoDshape_model, nn_loss
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
 
 
-def load_data(path, test_rate):
+def load_data(path, test_rate, n_samples):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
-
-    n_samples = 20000
 
     train_rate = 1. - test_rate
 
@@ -63,11 +61,11 @@ def load_data(path, test_rate):
     return data
 
 
-def set_placeholders(dim, batchsize):
+def set_placeholders(size, batchsize):
     with tf.name_scope('inputs'):
-        x_previous = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_previous')
-        x_now = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_now')
-        x_next = tf.placeholder(tf.float32, [batchsize, dim, dim], name='x_next')
+        x_previous = tf.placeholder(tf.float32, [batchsize, size, size], name='x_previous')
+        x_now = tf.placeholder(tf.float32, [batchsize, size, size], name='x_now')
+        x_next = tf.placeholder(tf.float32, [batchsize, size, size], name='x_next')
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
     return {"x_previous": x_previous,
@@ -76,11 +74,12 @@ def set_placeholders(dim, batchsize):
             "learning_rate": learning_rate}
 
 
-def construct_model(input_dim, placeholders):
-    preds = nn(placeholders["x_previous"],
-               placeholders["x_next"],
-               placeholders["x_now"],
-               input_dim)
+def construct_model(placeholders, input_dim):
+    model = TwoDshape_model(placeholders["x_previous"],
+                            placeholders["x_next"],
+                            placeholders["x_now"],
+                            input_dim)
+    preds = model.nn()
     return preds
 
 
@@ -101,13 +100,13 @@ def main(cfg: DictConfig):
     logger.debug(cfg)
 
     # load_data
-    data = load_data(cfg.dir.data, cfg.training.test_rate)
+    data = load_data(cfg.dir.data, cfg.training.test_rate, cfg.training.n_samples)
     logger.debug(len(data["train_x"]))
 
     # build model
-    placeholders = set_placeholders(cfg.training.dim, cfg.training.batchsize)
+    placeholders = set_placeholders(cfg.training.size, cfg.training.batchsize)
 
-    preds = construct_model(cfg.training.dim, placeholders)
+    preds = construct_model(placeholders, cfg.training.dim)
 
     loss = construct_loss(preds)
 
