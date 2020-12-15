@@ -74,11 +74,12 @@ def set_placeholders(size, batchsize):
             "learning_rate": learning_rate}
 
 
-def construct_model(placeholders, input_dim):
+def construct_model(placeholders, input_dim, multiply_dim):
     model = TwoDshape_model(placeholders["x_previous"],
                             placeholders["x_next"],
                             placeholders["x_now"],
-                            input_dim)
+                            input_dim,
+                            multiply_dim)
     preds = model.nn()
     return preds
 
@@ -106,7 +107,7 @@ def main(cfg: DictConfig):
     # build model
     placeholders = set_placeholders(cfg.training.size, cfg.training.batchsize)
 
-    preds = construct_model(placeholders, cfg.training.dim)
+    preds = construct_model(placeholders, cfg.training.dim, cfg.training.multiply_dim)
 
     loss = construct_loss(preds)
 

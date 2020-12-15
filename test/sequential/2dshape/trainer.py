@@ -29,6 +29,9 @@ class Trainer(object):
         self.checkpoint = params.dir.checkpoint
         self.csv_path = params.dir.losscsv
         self.dim = params.training.dim
+        self.size = params.training.size
+        self.restore = params.training.restore
+        self.checkpoint_fullpath_subset = params.dir.checkpoint_fullpath_subset
 
         # placeholders
         self.x_previous = placeholders["x_previous"]
@@ -138,15 +141,15 @@ class Trainer(object):
         Yields:
             x_previous, x_now, x_next (ndarray):
         """
-        dim = self.dim
+        size = self.size
         bs = self.batchsize
 
         for idx in range(0, len(inputs), bs):
 
             x = inputs[idx: idx + bs]
 
-            x_previous = np.reshape(x[:, 0], (bs, dim, dim))
-            x_now = np.reshape(x[:, 5], (bs, dim, dim))
-            x_next = np.reshape(x[:, -1], (bs, dim, dim))
+            x_previous = np.reshape(x[:, 0], (bs, size, size))
+            x_now = np.reshape(x[:, 5], (bs, size, size))
+            x_next = np.reshape(x[:, -1], (bs, size, size))
 
             yield x_previous, x_now, x_next

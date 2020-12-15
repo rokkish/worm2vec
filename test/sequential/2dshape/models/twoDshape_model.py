@@ -1,10 +1,11 @@
 """predict mean of 2d-shapes
 """
 import tensorflow as tf
+from models.autoencoder import AutoEncoder
 
 
 class TwoDshape_model(object):
-    def __init__(self, x_previous, x_next, x_now, input_dim):
+    def __init__(self, x_previous, x_next, x_now, input_dim, multiply_dim):
         self.x_previous = x_previous
         self.x_next = x_next
         self.x_now = x_now
@@ -13,21 +14,39 @@ class TwoDshape_model(object):
         self.context = x_previous.shape[0] + x_next.shape[0]
         self.target = x_now.shape[0]
         self.N = self.context + self.target
+        self.input_size = int(self.x_now.shape[1])
 
-        dim1 = input_dim//2
-        dim2 = input_dim//4
-        self.output_dim = dim2 ** 2 // 2 // 2
+        size1 = self.input_size // 2
+        size2 = size1 // 2
+        size3 = size2 // 2
+        size4 = size3 // 2
+
+        multiply_dim = list(map(int, multiply_dim.split("-")))
+        dim1 = input_dim * multiply_dim[0]
+        dim2 = input_dim * multiply_dim[1]
+        dim3 = input_dim * multiply_dim[2]
+        dim4 = input_dim * multiply_dim[3]
+
+        self.strides = (1, 2, 2, 1)
+
+        # share encoder output shape (N, size4, size4, dim4) -> (N, output_dim)
+        self.share_output_dim = size4 ** 2 * dim4
+        self.output_dim = self.share_output_dim
 
         w_initializer = tf.initializers.he_normal()
         b_initializer = tf.constant_initializer(1e-2)
 
         self.W_bn1 = self.createWeightsBN(input_dim)
-        self.W_conv1 = tf.get_variable('w1', shape=[7, 7, input_dim, dim1], dtype=tf.float32, initializer=w_initializer)
-
         self.W_bn2 = self.createWeightsBN(dim1)
-        self.W_conv2 = tf.get_variable('w2', shape=[7, 7, dim1, dim2], dtype=tf.float32, initializer=w_initializer)
+        self.W_bn3 = self.createWeightsBN(dim2)
+        self.W_bn4 = self.createWeightsBN(dim3)
 
-        self.W_logit = tf.get_variable('w_logit1', shape=[self.output_dim, self.output_dim], dtype=tf.float32, initializer=w_initializer)
+        self.W_conv1 = tf.get_variable('w_c1', shape=[7, 7, input_dim, dim1], dtype=tf.float32, initializer=w_initializer)
+        self.W_conv2 = tf.get_variable('w_c2', shape=[7, 7, dim1, dim2], dtype=tf.float32, initializer=w_initializer)
+        self.W_conv3 = tf.get_variable('w_c3', shape=[7, 7, dim2, dim3], dtype=tf.float32, initializer=w_initializer)
+        self.W_conv4 = tf.get_variable('w_c4', shape=[7, 7, dim3, dim4], dtype=tf.float32, initializer=w_initializer)
+
+        self.W_logit = tf.get_variable('w_logit1', shape=[self.share_output_dim, self.output_dim], dtype=tf.float32, initializer=w_initializer)
         self.bias_logit = tf.get_variable('b_logit1', shape=[self.output_dim], initializer=b_initializer)
 
     def nn(self):
@@ -35,23 +54,14 @@ class TwoDshape_model(object):
 
         with tf.name_scope("concat_inputs"):
             x = tf.concat([self.x_previous, self.x_next, self.x_now], axis=0)
-            x = tf.reshape(x, shape=[self.N, 1, self.input_dim, self.input_dim])
+            x = tf.reshape(x, shape=[self.N, self.input_size, self.input_size, self.input_dim])
 
-        with tf.name_scope("share_encoder"):
-            cv1 = self.bn(x, self.W_bn1, name="bn1")
-            cv1 = tf.nn.relu(cv1, name="relu1")
-            cv1 = tf.nn.conv2d(cv1, self.W_conv1, strides=(1, 2, 2, 1), padding="SAME", name="conv1")
-            cv1 = tf.nn.max_pool2d(cv1, ksize=(1, 2, 2, 1), strides=(1, 2, 2, 1), padding="SAME", name="maxpool1")
-
-            cv2 = self.bn(cv1, self.W_bn2, name="bn2")
-            cv2 = tf.nn.relu(cv2, name="relu2")
-            cv2 = tf.nn.conv2d(cv2, self.W_conv2, strides=(1, 2, 2, 1), padding="SAME", name="conv2")
-            cv2 = tf.nn.max_pool2d(cv2, ksize=(1, 2, 2, 1), strides=(1, 2, 2, 1), padding="SAME", name="maxpool2")
+        x_enc = self.share_encoder(x)
 
         with tf.name_scope("flatten"):
-            x_target = cv2[self.context:]
+            x_target = x_enc[self.context:]
             x_target = tf.reshape(x_target, shape=[self.target, self.output_dim])
-            x_context = cv2[:self.context]
+            x_context = x_enc[:self.context]
             x_context = tf.reshape(x_context, shape=[self.context, self.output_dim])
 
         with tf.name_scope("context_encoder"):
@@ -62,6 +72,32 @@ class TwoDshape_model(object):
 
         with tf.name_scope("concat_outputs"):
             return tf.concat([dense1, x_target], axis=0)
+
+    def share_encoder(self, x):
+        """encoder of autoencoder.py
+        """
+        with tf.name_scope("encoder"):
+            enc = self.bn(x, self.W_bn1, name="bn1")
+            enc = tf.nn.relu(enc, name="relu1")
+            enc = tf.nn.conv2d(enc, self.W_conv1, strides=self.strides, padding="SAME", name="conv1")
+            enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool1")
+
+            enc = self.bn(enc, self.W_bn2, name="bn2")
+            enc = tf.nn.relu(enc, name="relu2")
+            enc = tf.nn.conv2d(enc, self.W_conv2, strides=self.strides, padding="SAME", name="conv2")
+            enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool2")
+
+            enc = self.bn(enc, self.W_bn3, name="bn3")
+            enc = tf.nn.relu(enc, name="relu3")
+            enc = tf.nn.conv2d(enc, self.W_conv3, strides=self.strides, padding="SAME", name="conv3")
+            enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool3")
+
+            enc = self.bn(enc, self.W_bn4, name="bn4")
+            enc = tf.nn.relu(enc, name="relu4")
+            enc = tf.nn.conv2d(enc, self.W_conv4, strides=self.strides, padding="SAME", name="conv4")
+            enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool4")
+
+        return enc
 
     def createWeightsBN(self, s):
         """
