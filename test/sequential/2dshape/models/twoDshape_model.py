@@ -65,10 +65,10 @@ class TwoDshape_model(object):
             x_context = tf.reshape(x_context, shape=[self.context, self.output_dim])
 
         with tf.name_scope("context_encoder"):
-            dense1 = tf.matmul(x_context, self.W_logit)
-            dense1 = tf.nn.bias_add(dense1, self.bias_logit)
-            previous_context, next_context = dense1[:self.context//2], dense1[self.context//2:]
+            previous_context, next_context = x_context[:self.context//2], x_context[self.context//2:]
             dense1 = tf.math.add(previous_context, next_context)
+            dense1 = tf.matmul(dense1, self.W_logit)
+            dense1 = tf.nn.bias_add(dense1, self.bias_logit)
 
         with tf.name_scope("concat_outputs"):
             return tf.concat([dense1, x_target], axis=0)
