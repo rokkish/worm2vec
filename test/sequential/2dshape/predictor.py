@@ -118,7 +118,7 @@ class Predictor(Trainer):
 
         # config of sprite image
         embedding.sprite.image_path = "sprite.png"
-        embedding.sprite.single_image_dim.extend([self.dim, self.dim])
+        embedding.sprite.single_image_dim.extend([self.size, self.size])
 
         summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
         projector.visualize_embeddings(summary_writer, config_projector)
