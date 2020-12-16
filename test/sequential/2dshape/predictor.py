@@ -105,6 +105,7 @@ class Predictor(Trainer):
                 f.write("%d\t%d\t%d\n" % (index, id_label, context_or_target_label))
 
         # make sprite image (labels)
+        cat_images = (1 - cat_images) * 255.
         save_sprite_image(create_sprite_image(cat_images), path=self.logdir + "sprite.png")
 
         # config of projector
