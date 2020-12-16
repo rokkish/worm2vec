@@ -62,6 +62,17 @@ def load_data(path, test_rate, n_samples):
     return data
 
 
+def preprocess(data):
+
+    def normalize(x):
+        return 1 - x / 255.
+
+    data["train_x"] = normalize(data["train_x"])
+    data["test_x"] = normalize(data["test_x"])
+
+    return data
+
+
 def set_placeholders(size, batchsize):
     with tf.name_scope('inputs'):
         x_previous = tf.placeholder(tf.float32, [batchsize, size, size], name='x_previous')
@@ -106,6 +117,9 @@ def main(cfg: DictConfig):
     # load_data
     data = load_data(cfg.dir.data, cfg.training.test_rate, cfg.training.n_samples)
     logger.debug(len(data["train_x"]))
+
+    # TODO:need to normalize
+    data = preprocess(data)
 
     # build model
     placeholders = set_placeholders(cfg.training.size, cfg.training.batchsize)
