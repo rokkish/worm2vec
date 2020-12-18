@@ -5,11 +5,12 @@ from models.autoencoder import AutoEncoder
 
 
 class TwoDshape_model(object):
-    def __init__(self, x_previous, x_next, x_now, input_dim, multiply_dim):
+    def __init__(self, x_previous, x_next, x_now, input_dim, multiply_dim, share_enc_trainable):
         self.x_previous = x_previous
         self.x_next = x_next
         self.x_now = x_now
         self.input_dim = input_dim
+        self.share_enc_trainable = share_enc_trainable
 
         self.context = x_previous.shape[0] + x_next.shape[0]
         self.target = x_now.shape[0]
@@ -41,10 +42,10 @@ class TwoDshape_model(object):
         self.W_bn3 = self.createWeightsBN(dim2)
         self.W_bn4 = self.createWeightsBN(dim3)
 
-        self.W_conv1 = tf.get_variable('w_c1', shape=[7, 7, input_dim, dim1], dtype=tf.float32, initializer=w_initializer)
-        self.W_conv2 = tf.get_variable('w_c2', shape=[7, 7, dim1, dim2], dtype=tf.float32, initializer=w_initializer)
-        self.W_conv3 = tf.get_variable('w_c3', shape=[7, 7, dim2, dim3], dtype=tf.float32, initializer=w_initializer)
-        self.W_conv4 = tf.get_variable('w_c4', shape=[7, 7, dim3, dim4], dtype=tf.float32, initializer=w_initializer)
+        self.W_conv1 = tf.get_variable('w_c1', shape=[7, 7, input_dim, dim1], dtype=tf.float32, initializer=w_initializer, trainable=self.share_enc_trainable)
+        self.W_conv2 = tf.get_variable('w_c2', shape=[7, 7, dim1, dim2], dtype=tf.float32, initializer=w_initializer, trainable=self.share_enc_trainable)
+        self.W_conv3 = tf.get_variable('w_c3', shape=[7, 7, dim2, dim3], dtype=tf.float32, initializer=w_initializer, trainable=self.share_enc_trainable)
+        self.W_conv4 = tf.get_variable('w_c4', shape=[7, 7, dim3, dim4], dtype=tf.float32, initializer=w_initializer, trainable=self.share_enc_trainable)
 
         self.W_logit = tf.get_variable('w_logit1', shape=[self.share_output_dim, self.output_dim], dtype=tf.float32, initializer=w_initializer)
         self.bias_logit = tf.get_variable('b_logit1', shape=[self.output_dim], initializer=b_initializer)
