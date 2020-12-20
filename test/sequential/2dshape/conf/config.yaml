@@ -4,7 +4,7 @@ training:
   size: 64
   learning_rate: 0.1
   test_rate: 0.1
-  train_mode: true
+  train_mode: false
   seed: 0
   n_epochs: 3
   batchsize: 100
@@ -14,7 +14,7 @@ training:
 dir:
   data: "data/processed/morph"
   checkpoint: "./checkpoints/model.ckpt"
-  checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-09/19-45-29/checkpoints/model.ckpt"
+  checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-16/18-52-45/checkpoints/model.ckpt"
   checkpoint_fullpath_subset: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/DATE/TIME/checkpoints/subset.ckpt"
   losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"
   tensorboard: "./"
@@ -23,7 +23,7 @@ device:
     allow_growth: False
     id: "0"
     log_device_placement: True
-exp_name: "test_predcictor"
+exp_name: "test plot restore freeze"
 predicting:
-  n_embedding: 10
+  n_embedding: 12
   dim_out: 128
