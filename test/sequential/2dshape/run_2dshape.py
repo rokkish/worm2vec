@@ -1,12 +1,9 @@
 """Train model, and evaluate it
 """
-import os
-#if debug
-#os.chdir("./test/sequential/2dshape")
-
 import glob
 import random
 import hydra
+import wandb
 import numpy as np
 import tensorflow as tf
 from omegaconf import DictConfig
@@ -15,7 +12,6 @@ from trainer import Trainer
 from predictor import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run')
-import wandb
 
 
 def load_data(path, test_rate, n_samples):

@@ -1,11 +1,8 @@
 """Train model, and evaluate it
 """
-#import os
-#if debug
-#os.chdir("./test/sequential/2dshape")
-
 import glob
 import random
+import wandb
 import hydra
 import numpy as np
 import tensorflow as tf
@@ -16,8 +13,6 @@ from trainer_autoencoder import Trainer
 from predictor_autoencoder import Predictor
 import get_logger
 logger = get_logger.get_logger(name='run_ae')
-import wandb
-from wandb.keras import WandbCallback
 
 
 def load_data(path, test_rate, n_samples):

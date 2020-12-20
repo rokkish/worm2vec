@@ -2,12 +2,12 @@
 """
 import os
 import time
+import wandb
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 import get_logger
 logger = get_logger.get_logger(name="trainer")
-import wandb
 
 
 class Trainer(object):
