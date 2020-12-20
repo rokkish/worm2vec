@@ -28,6 +28,8 @@ class Predictor(Trainer):
         self.checkpoint_fullpath = params.dir.checkpoint_fullpath
         self.logdir = params.dir.tensorboard
         self.layers_name = [
+            "flatten/Reshape:0",
+            "flatten/Reshape_1:0",
             "concat_outputs/concat:0",
         ]
         self.n_embedding = params.predicting.n_embedding
