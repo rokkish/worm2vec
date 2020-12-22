@@ -4,7 +4,7 @@ training:
   size: 64
   learning_rate: 0.1
   test_rate: 0.1
-  train_mode: true
+  train_mode: false
   seed: 0
   n_epochs: 3
   batchsize: 100
@@ -13,7 +13,7 @@ dir:
   data: "data/processed/morph"
   checkpoint: "./checkpoints/model.ckpt"
   checkpoint_subset: "./checkpoints/subset/model.ckpt"
-  checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-11/17-09-50/checkpoints/model.ckpt"
+  checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-18/18-33-43/checkpoints/model.ckpt"
   losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"
   tensorboard: "./"
 device:
@@ -21,6 +21,7 @@ device:
     allow_growth: False
     id: "0"
     log_device_placement: True
-exp_name: "test_saver"
+exp_name: "test latent projector"
 predicting:
-  n_embedding: 10
+  n_embedding: 22
+  latent_dim: 128
