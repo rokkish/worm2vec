@@ -1,0 +1,9 @@
+params:
+  num_mean_img: 9
+  resize_width: 32
+  resize_height: 32
+dir:
+  data: "/data/raw/"
+  np: "/data/raw_np/"
+  save: "/data/processed/morph"
+exp_name: "test latent projector"
