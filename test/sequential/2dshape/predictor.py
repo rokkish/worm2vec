@@ -70,7 +70,7 @@ class Predictor(Trainer):
             summary = sess.run([medium_op], feed_dict=feed_dict)
 
             # select last layer output
-            summary_np = np.array(summary[-1][0])
+            summary_np = np.array(summary[0][-1])
 
             # cat several vectors (output of model)
             cat_context_summary_np[i: (i+1)] = summary_np[self.constant_idx]
