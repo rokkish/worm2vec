@@ -85,8 +85,9 @@ class Preprocess(object):
             self.data[fig_i] = self.data[fig_i][:self.min_data_length]
 
     def create_pair_list(self, parameter_list=None):
-        import itertools
-        self.pair_list_figures = itertools.combinations(self.fig, 2)
+        #import itertools
+        #self.pair_list_figures = itertools.combinations(self.fig, 2)
+        self.pair_list_figures = [("square", "circle"), ("square", "triangle"), ("triangle", "circle")]
 
     def compute_mean_pair(self, parameter_list=None):
         # num_mean: 中間の画像数
@@ -107,10 +108,11 @@ class Preprocess(object):
                 arr = np.zeros((self.min_data_length, num_all, w, h))
                 np_i = np.load(path_i)
                 for beta in range(0, num_all):
-                    arr[:, beta] += (1 - beta * 0.1) * np_i
-                    arr[:, beta] += beta * 0.1 * arr_j[:, beta]
+                    kai = beta / float(num_all-1)
+                    arr[:, beta] += (1 - kai) * np_i
+                    arr[:, beta] += kai * arr_j[:, beta]
                 arr /= 2
-                np.save("{}{}_{}/{:0=4}".format(self.save_path, fig_i, fig_j, i), arr)
+                np.save("{}{}_{}/{:0=5}".format(self.save_path, fig_i, fig_j, i), arr)
                 print("\r {}_{} {}/{}".format(fig_i, fig_j, i, len(self.data[fig_i])), end="")
 
 
