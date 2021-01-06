@@ -22,6 +22,7 @@ class Preprocess(object):
         self.resize_width = cfg.params.resize_width
         self.resize_height = cfg.params.resize_height
         self.num_mean_img = cfg.params.num_mean_img
+        self.k_pair = cfg.params.k_pair
         # flag
         self.translate_into_np_is_needed = False
 
@@ -104,16 +105,21 @@ class Preprocess(object):
             for j, path_j in enumerate(self.data[fig_j]):
                 arr_j[j] += np.load(path_j)
 
-            for i, path_i in enumerate(self.data[fig_i]):
-                arr = np.zeros((self.min_data_length, num_all, w, h))
-                np_i = np.load(path_i)
-                for beta in range(0, num_all):
-                    kai = beta / float(num_all-1)
-                    arr[:, beta] += (1 - kai) * np_i
-                    arr[:, beta] += kai * arr_j[:, beta]
-                arr /= 2
-                np.save("{}{}_{}/{:0=5}".format(self.save_path, fig_i, fig_j, i), arr)
-                print("\r {}_{} {}/{}".format(fig_i, fig_j, i, len(self.data[fig_i])), end="")
+            for k in range(self.k_pair):
+
+                for i, path_i in enumerate(self.data[fig_i]):
+                    arr = np.zeros((num_all, w, h))
+                    np_i = np.load(path_i)
+
+                    random_j = np.random.randint(0, arr_j.shape[0])
+
+                    for beta in range(0, num_all):
+                        kai = beta / float(num_all-1)
+                        arr[beta] += (1 - kai) * np_i
+                        arr[beta] += kai * arr_j[random_j, beta]
+                    arr /= 2
+                    np.save("{}{}_{}/{:0=5}".format(self.save_path, fig_i, fig_j, i+len(self.data[fig_i])*k), arr)
+                    print("\r {}_{} {}/{}".format(fig_i, fig_j, i+len(self.data[fig_i])*k, self.k_pair*len(self.data[fig_i])), end="")
 
 
 @hydra.main(config_path="conf", config_name="config_preprocess")
