@@ -11,6 +11,8 @@ logger = get_logger.get_logger(name="trainer")
 
 
 class Trainer(object):
+    """class for training sequential model.
+    """
     def __init__(self,
                  params,
                  loss,
@@ -59,6 +61,12 @@ class Trainer(object):
         self.config.log_device_placement = params.device.gpu.log_device_placement
 
     def init_session(self):
+        """Initial tensorflow Session
+
+        Returns:
+            saver: load self.config
+            sess: load inital config
+        """
         saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
         sess.run([self.init_global,
@@ -67,6 +75,11 @@ class Trainer(object):
         return saver, sess
 
     def fit(self, data):
+        """Train Model to fit data.
+
+        Args:
+            data ([dict]): have data and labels.
+        """
         saver, sess = self.init_session()
 
         if self.restore:
@@ -146,7 +159,7 @@ class Trainer(object):
         pd.DataFrame(self.loss_tocsv).to_csv(self.csv_path, mode="a", header=not os.path.exists(self.csv_path))
 
     def minibatcher(self, inputs):
-        """
+        """Yield batchsize data.
 
         Args:
             inputs (list): list of data path. (*.npy)

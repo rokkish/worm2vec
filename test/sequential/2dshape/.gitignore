@@ -1,0 +1,4 @@
+# ignore for 2dshape
+*.rst
+**/doctrees/**
+**/html/**
