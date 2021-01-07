@@ -50,6 +50,11 @@ class TwoDshape_model(object):
         self.W_logit = tf.get_variable('w_logit1', shape=[self.share_output_dim, self.output_dim], dtype=tf.float32, initializer=w_initializer)
         self.bias_logit = tf.get_variable('b_logit1', shape=[self.output_dim], initializer=b_initializer)
 
+        self.variable_summary(self.W_conv1, key_="share_variables")
+        self.variable_summary(self.W_conv2, key_="share_variables")
+        self.variable_summary(self.W_conv3, key_="share_variables")
+        self.variable_summary(self.W_conv4, key_="share_variables")
+
     def nn(self):
         """Simple CNN model for prediction"""
 
@@ -123,6 +128,17 @@ class TwoDshape_model(object):
             sigma = tf.reduce_mean(tf.square(x - mu), keep_dims=True)
             x_hat = (x - mu) / tf.sqrt(sigma + eps)
         return gamma * x_hat + beta
+
+    def variable_summary(self, w, key_):
+        with tf.name_scope("summaries"):
+            mean = tf.reduce_mean(w)
+            tf.summary.scalar("mean", mean, collections=[key_])
+            with tf.name_scope("stddev"):
+                stddev = tf.sqrt(tf.reduce_mean(tf.square(w-mean)))
+            tf.summary.scalar("stddev", stddev, collections=[key_])
+            tf.summary.scalar("max", tf.reduce_max(w), collections=[key_])
+            tf.summary.scalar("min", tf.reduce_min(w), collections=[key_])
+            tf.summary.histogram("histogram", w, collections=[key_])
 
 
 def compute_euclidian_distance(x, y):

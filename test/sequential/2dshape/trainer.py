@@ -90,6 +90,7 @@ class Trainer(object):
 
         train_loss_summary_op = tf.summary.scalar("train_loss/euclid_distance", self.loss)
         test_loss_summary_op = tf.summary.scalar("test_loss/euclid_distance", self.loss)
+        share_variables_summary_op = tf.summary.merge_all(key="share_variables")
 
         init_t = time.time()
         epoch = 0
@@ -113,10 +114,12 @@ class Trainer(object):
                     self.learning_rate: self.lr
                 }
 
-                __, loss_value, loss_summary = sess.run(
-                    [self.train_op, self.loss, train_loss_summary_op], feed_dict=feed_dict)
+                __, loss_value, loss_summary, share_summary = sess.run(
+                    [self.train_op, self.loss, train_loss_summary_op, share_variables_summary_op], feed_dict=feed_dict)
                 train_loss += loss_value
                 self.train_summary_writer.add_summary(loss_summary, batch)
+                if batch % 40 == 0:
+                    self.train_summary_writer.add_summary(share_summary, batch)
 
             ### Test steps ###
 
