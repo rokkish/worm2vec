@@ -21,8 +21,8 @@ def load_data(path, test_rate, n_samples):
     train_rate = 1. - test_rate
 
     dataset = {
-        "train": np.zeros((int(3*train_rate*n_samples), 11, 64, 64)),
-        "test": np.zeros((int(3*test_rate*n_samples), 11, 64, 64)),
+        "train": np.zeros((int(3*train_rate*n_samples), 3, 64, 64)),
+        "test": np.zeros((int(3*test_rate*n_samples), 3, 64, 64)),
         "train_label": [],
         "test_label": []
     }
@@ -34,7 +34,7 @@ def load_data(path, test_rate, n_samples):
         files = sorted(glob.glob(cwd + "/" + path + "/" + label + "/*.npy"))[:n_samples]
         random.shuffle(files)
 
-        arr = np.zeros((len(files), 11, 64, 64))
+        arr = np.zeros((len(files), 3, 64, 64))
 
         for j, f in enumerate(files):
             arr[j] = np.load(f)

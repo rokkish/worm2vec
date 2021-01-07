@@ -179,7 +179,7 @@ class Trainer(object):
             x = inputs[idx: idx + bs]
 
             x_previous = np.reshape(x[:, 0], (bs, size, size))
-            x_now = np.reshape(x[:, 5], (bs, size, size))
-            x_next = np.reshape(x[:, -1], (bs, size, size))
+            x_now = np.reshape(x[:, 1], (bs, size, size))
+            x_next = np.reshape(x[:, 2], (bs, size, size))
 
             yield x_previous, x_now, x_next
