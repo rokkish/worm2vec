@@ -25,5 +25,4 @@ device:
     log_device_placement: True
 exp_name: "test plot restore freeze"
 predicting:
-  n_embedding: 12
   dim_out: 128

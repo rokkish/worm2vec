@@ -32,7 +32,11 @@ class Predictor(Trainer):
             "flatten/Reshape_1:0",
             "concat_outputs/concat:0",
         ]
-        self.n_embedding = params.predicting.n_embedding
+
+        #FIXME:n_embedding is relative to batchsize & n_samples.
+        self.batchsize = 1
+        self.n_embedding = int(params.training.n_samples*0.3)#params.predicting.n_embedding
+
         self.constant_idx = 0
         self.output_dim = params.predicting.dim_out
 
