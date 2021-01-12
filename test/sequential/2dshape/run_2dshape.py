@@ -9,6 +9,7 @@ import tensorflow as tf
 from omegaconf import DictConfig
 from models.twoDshape_model import TwoDshape_model, nn_loss
 from models.twoDshapeAE_model import TwoDshapeAE_model, nn_ae_loss
+from models.twoDshapeCBOW_model import TwoDshapeCBOW_model, nn_cbow_loss
 from trainer import Trainer
 from predictor import Predictor
 import get_logger
@@ -96,7 +97,7 @@ def set_placeholders(size, batchsize):
 
 
 def construct_model(placeholders, input_dim, multiply_dim, share_enc_trainable):
-    model = TwoDshapeAE_model(placeholders["x_previous"],
+    model = TwoDshapeCBOW_model(placeholders["x_previous"],
                             placeholders["x_next"],
                             placeholders["x_now"],
                             input_dim,
@@ -107,7 +108,7 @@ def construct_model(placeholders, input_dim, multiply_dim, share_enc_trainable):
 
 
 def construct_loss(preds):
-    loss = nn_ae_loss(context=preds[0], target=preds[1], inout_autoencoder=preds[2:])
+    loss = nn_cbow_loss(context=preds[0], target=preds[1])
     return loss
 
 
@@ -118,7 +119,7 @@ def set_optimizer(learning_rate):
 @hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig):
     wandb.login()
-    wandb.init(project="2dshape-ae", name=cfg.exp_name)
+    wandb.init(project="2dshape-cbow", name=cfg.exp_name)
 
     tf.reset_default_graph()
     random.seed(cfg.training.seed)

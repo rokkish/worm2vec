@@ -61,7 +61,7 @@ class Predictor(Trainer):
                   self.init_local],
                  feed_dict={})
 
-        subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_enc") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_dec")
+        subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_enc")
         logger.debug(subset_variables)
 
         saver = tf.train.Saver(subset_variables)
