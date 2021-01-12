@@ -35,7 +35,16 @@ class Predictor(Trainer):
 
         #FIXME:n_embedding is relative to batchsize & n_samples.
         self.batchsize = 1
-        self.n_embedding = int(params.training.n_samples*0.3)#params.predicting.n_embedding
+        self.dataset_name = params.dir.data.split("/")[-1]
+        if self.dataset_name == "morph":
+            if params.training.n_samples % 10 != 0:
+                raise ValueError("plot morph, n_samples%10 must be 0")
+            self.n_embedding = int(params.training.n_samples-1)*3
+
+        elif self.dataset_name == "minimorph":
+            if params.training.n_samples != 240:
+                raise ValueError("plot morph, n_samples must be 240")
+            self.n_embedding = int(params.training.n_samples*0.3)
 
         self.constant_idx = 0
         self.output_dim = params.predicting.dim_out
@@ -172,8 +181,18 @@ class Predictor(Trainer):
             #TODO:pathを渡す
             label = labels[idx].split("/")[-2]
 
-            x_previous = np.reshape(x[:, 0], (bs, size, size))
-            x_now = np.reshape(x[:, 1], (bs, size, size))
-            x_next = np.reshape(x[:, 2], (bs, size, size))
+            if self.dataset_name == "morph":
 
-            yield x_previous, x_now, x_next, label
+                for m in range(0, x.shape[1]-2):
+                    x_previous = np.reshape(x[:, 0+m], (bs, size, size))
+                    x_now = np.reshape(x[:, 1+m], (bs, size, size))
+                    x_next = np.reshape(x[:, 2+m], (bs, size, size))
+
+                    yield x_previous, x_now, x_next, label
+
+            elif self.dataset_name == "minimorph":
+                x_previous = np.reshape(x[:, 0], (bs, size, size))
+                x_now = np.reshape(x[:, 1], (bs, size, size))
+                x_next = np.reshape(x[:, 2], (bs, size, size))
+
+                yield x_previous, x_now, x_next, label

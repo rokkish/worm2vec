@@ -15,15 +15,27 @@ import get_logger
 logger = get_logger.get_logger(name='run')
 
 
-def load_data(path, test_rate, n_samples):
+def dataset_dim(dataset_name):
+    dataset_name = dataset_name.split("/")[-1]
+    if dataset_name == "morph":
+        return 11
+    elif dataset_name == "minimorph":
+        return 3
+    else:
+        raise ValueError("Unknown dataset")
+
+
+def load_data(path, test_rate, n_samples, dataset_name=None):
     # Load dataset (N, Time, H, W)
     cwd = hydra.utils.get_original_cwd()
 
     train_rate = 1. - test_rate
 
+    data_dim = dataset_dim(dataset_name)
+    
     dataset = {
-        "train": np.zeros((int(3*train_rate*n_samples), 3, 64, 64)),
-        "test": np.zeros((int(3*test_rate*n_samples), 3, 64, 64)),
+        "train": np.zeros((int(3*train_rate*n_samples), data_dim, 64, 64)),
+        "test": np.zeros((int(3*test_rate*n_samples), data_dim, 64, 64)),
         "train_label": [],
         "test_label": []
     }
@@ -35,7 +47,7 @@ def load_data(path, test_rate, n_samples):
         files = sorted(glob.glob(cwd + "/" + path + "/" + label + "/*.npy"))[:n_samples]
         random.shuffle(files)
 
-        arr = np.zeros((len(files), 3, 64, 64))
+        arr = np.zeros((len(files), data_dim, 64, 64))
 
         for j, f in enumerate(files):
             arr[j] = np.load(f)
@@ -113,7 +125,7 @@ def main(cfg: DictConfig):
     logger.debug(cfg)
 
     # load_data
-    data = load_data(cfg.dir.data, cfg.training.test_rate, cfg.training.n_samples)
+    data = load_data(cfg.dir.data, cfg.training.test_rate, cfg.training.n_samples, cfg.dir.data)
     logger.debug(len(data["train_x"]))
 
     # TODO:need to normalize
