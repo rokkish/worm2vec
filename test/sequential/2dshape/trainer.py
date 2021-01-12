@@ -140,8 +140,10 @@ class Trainer(object):
                 self.test_summary_writer.add_summary(loss_summary, batch)
 
             # update the learning rate
-            if epoch % 4 == 0:
-                self.lr = self.lr * 0.25
+            if epoch % 3 == 0 and epoch < 7:#warm up
+                self.lr *= 1.25
+            if epoch % 12 == 0 and epoch > 7:
+                self.lr = self.lr * 0.75
 
             # save loss to csv
             train_loss /= (batch + 1.)
