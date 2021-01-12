@@ -40,10 +40,28 @@ class Predictor(Trainer):
         self.constant_idx = 0
         self.output_dim = params.predicting.dim_out
 
-    def fit(self, data):
-        saver, sess = self.init_session()
+    def restore_session(self):
+        """Restore tensorflow Session
 
+        Returns:
+            saver: load self.config
+            sess: load inital config
+        """
+        sess = tf.Session(config=self.config)
+        sess.run([self.init_global,
+                  self.init_local],
+                 feed_dict={})
+
+        subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_enc") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_dec")
+        logger.debug(subset_variables)
+
+        saver = tf.train.Saver(subset_variables)
         saver.restore(sess, self.checkpoint_fullpath)
+
+        return saver, sess
+
+    def fit(self, data):
+        saver, sess = self.restore_session()
 
         medium_op = list(
             map(

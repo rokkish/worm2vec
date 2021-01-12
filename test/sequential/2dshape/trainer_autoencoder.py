@@ -55,15 +55,14 @@ class Trainer(object):
         self.config.log_device_placement = params.device.gpu.log_device_placement
 
     def init_session(self):
-        saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
         sess.run([self.init_global,
                   self.init_local],
                  feed_dict={})
-        return saver, sess
+        return sess
 
     def fit(self, data):
-        saver, sess = self.init_session()
+        sess = self.init_session()
         subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c")
         saver_ = tf.train.Saver(subset_variables)
 
@@ -123,7 +122,7 @@ class Trainer(object):
             wandb.log({'epochs': epoch, 'loss': train_loss, 'test_loss': test_loss, 'learning_rate': self.lr})
 
             # save models
-            saver.save(sess, self.checkpoint)
+            #saver.save(sess, self.checkpoint)
             saver_.save(sess, self.checkpoint_subset)
 
             epoch += 1

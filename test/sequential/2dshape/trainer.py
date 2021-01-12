@@ -64,15 +64,13 @@ class Trainer(object):
         """Initial tensorflow Session
 
         Returns:
-            saver: load self.config
             sess: load inital config
         """
-        saver = tf.train.Saver()
         sess = tf.Session(config=self.config)
         sess.run([self.init_global,
                   self.init_local],
                  feed_dict={})
-        return saver, sess
+        return sess
 
     def fit(self, data):
         """Train Model to fit data.
@@ -80,13 +78,16 @@ class Trainer(object):
         Args:
             data ([dict]): have data and labels.
         """
-        saver, sess = self.init_session()
+        sess = self.init_session()
 
+        subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c")
+        saver = tf.train.Saver(subset_variables)
         if self.restore:
-            subset_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_c")
-            logger.debug(subset_variables)
-            saver_ = tf.train.Saver(subset_variables)
-            saver_.restore(sess, self.checkpoint_fullpath_subset)
+            saver.restore(sess, self.checkpoint_fullpath_subset)
+
+        subset_variables += tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_enc") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="w_dec")
+        logger.debug(subset_variables)
+        saver_fullmodel = tf.train.Saver(subset_variables)
 
         train_loss_summary_op = tf.summary.scalar("train_loss/euclid_distance", self.loss)
         test_loss_summary_op = tf.summary.scalar("test_loss/euclid_distance", self.loss)
@@ -152,7 +153,7 @@ class Trainer(object):
             wandb.log({'epochs': epoch, 'loss': train_loss, 'test_loss': test_loss, 'learning_rate': self.lr})
 
             # save models
-            saver.save(sess, self.checkpoint)
+            saver_fullmodel.save(sess, self.checkpoint)
 
             epoch += 1
 
