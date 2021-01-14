@@ -248,8 +248,6 @@ class Trainer(object):
             # save models
             saver_fullmodel.save(sess, self.checkpoint)
 
-            self.predict(sess, data, epoch)
-
             epoch += 1
 
             logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}, Test loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss, test_loss))
