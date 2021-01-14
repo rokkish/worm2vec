@@ -162,16 +162,26 @@ def compute_euclidian_distance(x, y):
 
 
 def cosine_similarity(x, y):
-    return tf.nn.l2_normalize(x, axis=-1) * tf.nn.l2_normalize(y, axis=-1)
+    with tf.name_scope('cosine_similarity'):
+        return tf.nn.l2_normalize(x, axis=-1) * tf.nn.l2_normalize(y, axis=-1)
 
 
-def nn_skipgram_loss(context, prev_target, next_target):
+def nn_skipgram_loss(context, target):
     """euclid distance loss between context and target"""
     logger.debug("context shape: {}".format(context.shape))
+    with tf.name_scope('prev_context'):
+        prev_context = context[:int(context.shape[0])//2]
+    with tf.name_scope('next_context'):
+        next_context = context[int(context.shape[0])//2:]
+    with tf.name_scope('prev_target'):
+        prev_target = target[:int(target.shape[0])//2]
+    with tf.name_scope('next_target'):
+        next_target = target[int(target.shape[0])//2:]
+
     with tf.name_scope('distance_loss'):
-        distance = cosine_similarity(context[:int(context.shape[0])//2], prev_target)
-        distance += cosine_similarity(context[int(context.shape[0])//2:], next_target)
-        loss = - tf.reduce_mean(tf.reduce_sum(distance/2., axis=-1))
+        distance = cosine_similarity(prev_context, prev_target)
+        distance += cosine_similarity(next_context, next_target)
+        loss = 1. - tf.reduce_mean(tf.reduce_sum(distance/2., axis=-1))
 
 #    with tf.name_scope('add_l2_loss'):
 #        var = tf.trainable_variables()

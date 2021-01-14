@@ -116,8 +116,6 @@ class Trainer(object):
                     [self.train_op, self.loss, train_loss_summary_op, share_variables_summary_op], feed_dict=feed_dict)
                 train_loss += loss_value
                 self.train_summary_writer.add_summary(loss_summary, batch)
-                if batch % 40 == 0:
-                    self.train_summary_writer.add_summary(share_summary, batch)
 
             train_loss /= (batch + 1.)
 

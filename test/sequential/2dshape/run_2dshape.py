@@ -109,7 +109,7 @@ def construct_model(placeholders, input_dim, multiply_dim, share_enc_trainable):
 
 
 def construct_loss(preds, batchsize):
-    loss = nn_skipgram_loss(context=preds[:2*batchsize], prev_target=preds[2*batchsize:3*batchsize], next_target=preds[3*batchsize:])
+    loss = nn_skipgram_loss(context=preds[:2*batchsize], target=preds[2*batchsize:])
     return loss
 
 
