@@ -83,8 +83,10 @@ class Predictor(Trainer):
         # def zero vec
         cat_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
         cat_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
+        cat_shapetarget_summary_np = np.zeros((self.n_embedding, self.output_dim))
         cat_context_img = np.zeros((self.n_embedding, self.size, self.size))
         cat_target_img = np.zeros((self.n_embedding, self.size, self.size))
+        cat_shapetarget_img = np.zeros((self.n_embedding, self.size, self.size))
 
         labels = []
 
@@ -102,20 +104,24 @@ class Predictor(Trainer):
 
             # select last layer output
             summary_np = np.array(summary[0][-1])
+            # select first layer output
+            summary_np2 = np.array(summary[0][0])
 
             # cat several vectors (output of model)
             cat_context_summary_np[i: (i+1)] = summary_np[self.constant_idx]
-            cat_target_summary_np[i: (i+1)] = summary_np[self.batchsize + self.constant_idx]
+            cat_target_summary_np[i: (i+1)] = summary_np[2*self.batchsize + self.constant_idx]
+            cat_shapetarget_summary_np[i: (i+1)] = summary_np2[self.constant_idx]
 
             # cat several images
             cat_context_img[i: (i+1)] = x_now[self.constant_idx]
             cat_target_img[i: (i+1)] = x_now[self.constant_idx]
+            cat_shapetarget_img[i: (i+1)] = x_now[self.constant_idx]
 
             labels.append(x_label)
 
-        cat_tensors = np.concatenate([cat_context_summary_np, cat_target_summary_np], axis=0)
-        cat_images = np.concatenate([cat_context_img, cat_target_img], axis=0)
-        cat_labels = labels + labels
+        cat_tensors = np.concatenate([cat_context_summary_np, cat_target_summary_np, cat_shapetarget_summary_np], axis=0)
+        cat_images = np.concatenate([cat_context_img, cat_target_img, cat_shapetarget_img], axis=0)
+        cat_labels = labels + labels + labels
         # tensorize
         variables = tf.Variable(cat_tensors, trainable=False, name="embedding_lastlayer")
 
@@ -125,7 +131,7 @@ class Predictor(Trainer):
 
         # make metadata.tsv (labels)
         with open(self.logdir + "metadata.tsv", "w") as f:
-            f.write("Index\tLabel\tContextOrTarget\n")
+            f.write("Index\tLabel\tContextOrTargetOrShapeTarget\n")
             for index, label in enumerate(cat_labels):
                 for i, str_label in enumerate(["square_circle", "triangle_circle", "square_triangle"]):
                     if label == str_label:
@@ -133,8 +139,11 @@ class Predictor(Trainer):
 
                 if index < cat_context_summary_np.shape[0]:
                     context_or_target_label = 0
-                else:
+                elif index >= cat_context_summary_np.shape[0] and index < 2*cat_context_summary_np.shape[0]:
                     context_or_target_label = 1
+                else:
+                    context_or_target_label = 2
+
                 f.write("%d\t%d\t%d\n" % (index, id_label, context_or_target_label))
 
         # make sprite image (labels)
