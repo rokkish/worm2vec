@@ -238,7 +238,7 @@ class Trainer(object):
             if epoch % 3 == 0 and epoch < 7:#warm up
                 self.lr *= 1.25
             if epoch % 12 == 0 and epoch > 7:
-                self.lr = self.lr * 0.75
+                self.lr = self.lr * 0.9
 
             test_loss /= (batch + 1.)
 
