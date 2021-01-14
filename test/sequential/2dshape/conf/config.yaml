@@ -11,6 +11,7 @@ training:
   n_samples: 2000
   restore: true
   share_enc_trainable: false
+  optim: "sgd"
 dir:
   data: "data/processed/minimorph"
   checkpoint: "./checkpoints/model.ckpt"

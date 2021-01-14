@@ -113,8 +113,11 @@ def construct_loss(preds, batchsize):
     return loss
 
 
-def set_optimizer(learning_rate):
-    return tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.01)
+def set_optimizer(learning_rate, optim):
+    if optim == "sgd":
+        return tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.01)
+    elif optim == "adam":
+        return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 
 @hydra.main(config_path="./conf/config.yaml")
@@ -140,7 +143,7 @@ def main(cfg: DictConfig):
 
     loss = construct_loss(preds, cfg.training.batchsize)
 
-    optim = set_optimizer(cfg.training.learning_rate)
+    optim = set_optimizer(cfg.training.learning_rate, cfg.training.optim)
 
     grads_and_vars = optim.compute_gradients(loss)
 
