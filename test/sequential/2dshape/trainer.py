@@ -147,7 +147,8 @@ class Trainer(object):
             batcher = self.minibatcher_withlabel(data["test_x"], data["test_label"])
 
             self.logdir = "{}projector/in_test/{:0=2}/".format(self.default_logdir, epoch)
-            os.makedirs(self.logdir, exist_ok=True)
+            if epoch % 10 == 0 or epoch == self.n_epochs - 1:
+                os.makedirs(self.logdir, exist_ok=True)
 
             medium_op = list(
                 map(
@@ -206,33 +207,34 @@ class Trainer(object):
 
                 labels.append(x_label)
 
-            cat_tensors = np.concatenate([
-                prev_context_summary_np,
-                next_context_summary_np,
-                prev_target_summary_np,
-                next_target_summary_np,
-                shapetarget_summary_np
-                ], axis=0)
-            cat_images = np.concatenate([
-                prev_context_img,
-                next_context_img,
-                target_img,
-                target_img,
-                shapetarget_img
-                ], axis=0)
-            cat_labels = labels + labels + labels + labels + labels
+            if epoch % 10 == 0 or epoch == self.n_epochs - 1:
+                cat_tensors = np.concatenate([
+                    prev_context_summary_np,
+                    next_context_summary_np,
+                    prev_target_summary_np,
+                    next_target_summary_np,
+                    shapetarget_summary_np
+                    ], axis=0)
+                cat_images = np.concatenate([
+                    prev_context_img,
+                    next_context_img,
+                    target_img,
+                    target_img,
+                    shapetarget_img
+                    ], axis=0)
+                cat_labels = labels + labels + labels + labels + labels
 
-            variables = tf.Variable(cat_tensors, trainable=False, name="embedding")
+                variables = tf.Variable(cat_tensors, trainable=False, name="embedding")
 
-            self.create_tensor_tsv(cat_tensors, path="{}{}".format(self.logdir, self.tensor_path_name))
+                self.create_tensor_tsv(cat_tensors, path="{}{}".format(self.logdir, self.tensor_path_name))
 
-            self.create_metadata_csv(cat_labels, path="{}{}".format(self.logdir, self.metadata_path_name))
+                self.create_metadata_csv(cat_labels, path="{}{}".format(self.logdir, self.metadata_path_name))
 
-            self.mk_spriteimage(cat_images, path="{}{}".format(self.logdir, self.sprite_image_path_name))
+                self.mk_spriteimage(cat_images, path="{}{}".format(self.logdir, self.sprite_image_path_name))
 
-            config_projector = self.set_config_projector(variables)
-            summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
-            projector.visualize_embeddings(summary_writer, config_projector)
+                config_projector = self.set_config_projector(variables)
+                summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
+                projector.visualize_embeddings(summary_writer, config_projector)
 
             # update the learning rate
             if epoch % 3 == 0 and epoch < 7:#warm up
