@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import get_logger
 logger = get_logger.get_logger(name="trainer")
+from visualize.sprite_images import create_sprite_image, save_sprite_image
+from tensorboard.plugins import projector
 
 
 class Trainer(object):
@@ -69,6 +71,14 @@ class Trainer(object):
             self.n_embedding = int(params.training.n_samples*params.training.test_rate)//params.training.batchsize*3
         self.output_dim = 256
         self.constant_idx = 0
+        self.label_dict = {
+            "square_circle": 0,
+            "triangle_circle": 1,
+            "square_triangle": 2
+        }
+        self.tensor_path_name = "tensor.csv"
+        self.metadata_path_name = "metadata.tsv"
+        self.sprite_image_path_name = "sprite.png"
 
     def init_session(self):
         """Initial tensorflow Session
@@ -172,10 +182,8 @@ class Trainer(object):
         sess.close()
 
     def predict(self, sess, data, epoch):
-        from visualize.sprite_images import create_sprite_image, save_sprite_image
-        from tensorboard.plugins import projector
 
-        self.logdir = "{}projector/{:0=2}/".format(self.default_logdir, epoch)
+        self.logdir = "{}projector/after_test/{:0=2}/".format(self.default_logdir, epoch)
         os.makedirs(self.logdir, exist_ok=True)
 
         medium_op = list(
@@ -218,9 +226,9 @@ class Trainer(object):
 
             # cat several vectors (output of model)
             prev_context_summary_np[i: (i+1)] = summary_np[self.constant_idx]
-            next_context_summary_np[i: (i+1)] = summary_np[self.constant_idx]
+            next_context_summary_np[i: (i+1)] = summary_np[self.batchsize + self.constant_idx]
             prev_target_summary_np[i: (i+1)] = summary_np[2*self.batchsize + self.constant_idx]
-            next_target_summary_np[i: (i+1)] = summary_np[2*self.batchsize + self.constant_idx]
+            next_target_summary_np[i: (i+1)] = summary_np[3*self.batchsize + self.constant_idx]
             shapetarget_summary_np[i: (i+1)] = summary_np2[self.constant_idx]
 
             # cat several images
@@ -250,43 +258,13 @@ class Trainer(object):
         # tensorize
         variables = tf.Variable(cat_tensors, trainable=False, name="embedding")
 
-        # make tensor.tsv
-        df = pd.DataFrame(cat_tensors).astype("float64")
-        df.to_csv("{}tensor.csv".format(self.logdir), header=False, index=False, sep="\t")
+        self.create_tensor_tsv(cat_tensors, path="{}{}".format(self.logdir, self.tensor_path_name))
 
-        # make metadata.tsv (labels)
-        label_dict = {
-            "square_circle": 0,
-            "triangle_circle": 1,
-            "square_triangle": 2
-        }
-        with open("{}metadata.tsv".format(self.logdir), "w") as f:
-            f.write("Index\tLabel\tPrevContext_NextContext_PrevTarget_NextTarget_ShapeTarget\n")
+        self.create_metadata_csv(cat_labels, path="{}{}".format(self.logdir, self.metadata_path_name))
 
-            for index, label in enumerate(cat_labels):
-                id_label = label_dict[label]
+        self.mk_spriteimage(cat_images, path="{}{}".format(self.logdir, self.sprite_image_path_name))
 
-                context_or_target_label = index // self.n_embedding
-
-                f.write("%d\t%d\t%d\n" % (index, id_label, context_or_target_label))
-
-        # make sprite image (labels)
-        cat_images = (1 - cat_images) * 255.
-        save_sprite_image(create_sprite_image(cat_images), path="{}sprite.png".format(self.logdir))
-
-        # config of projector
-        config_projector = projector.ProjectorConfig()
-        embedding = config_projector.embeddings.add()
-        embedding.tensor_name = variables.name
-
-        # tsv path
-        embedding.tensor_path = "tensor.csv"
-        embedding.metadata_path = "metadata.tsv"
-
-        # config of sprite image
-        embedding.sprite.image_path = "sprite.png"
-        embedding.sprite.single_image_dim.extend([self.size, self.size])
-
+        config_projector = self.set_config_projector(variables)
         summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
         projector.visualize_embeddings(summary_writer, config_projector)
 
@@ -359,3 +337,40 @@ class Trainer(object):
                 x_next = np.reshape(x[:, 2], (bs, size, size))
 
                 yield x_previous, x_now, x_next, label
+
+    def create_tensor_tsv(self, cat_tensors, path):
+        # make tensor.tsv
+        df = pd.DataFrame(cat_tensors).astype("float64")
+        df.to_csv(path, header=False, index=False, sep="\t")
+
+    def create_metadata_csv(self, cat_labels, path):
+        # make metadata.tsv (labels)
+        with open(path, "w") as f:
+            f.write("Index\tLabel\tPrevContext_NextContext_PrevTarget_NextTarget_ShapeTarget\n")
+
+            for index, label in enumerate(cat_labels):
+                id_label = self.label_dict[label]
+
+                multi_label = index // self.n_embedding
+
+                f.write("%d\t%d\t%d\n" % (index, id_label, multi_label))
+
+    def mk_spriteimage(self, cat_images, path):
+        # make sprite image (labels)
+        cat_images = (1 - cat_images) * 255.
+        save_sprite_image(create_sprite_image(cat_images), path=path)
+
+    def set_config_projector(self, variables):
+        # config of projector
+        config_projector = projector.ProjectorConfig()
+        embedding = config_projector.embeddings.add()
+        embedding.tensor_name = variables.name
+
+        # tsv path
+        embedding.tensor_path = self.tensor_path_name
+        embedding.metadata_path = self.metadata_path_name
+
+        # config of sprite image
+        embedding.sprite.image_path = self.sprite_image_path_name
+        embedding.sprite.single_image_dim.extend([self.size, self.size])
+        return config_projector
