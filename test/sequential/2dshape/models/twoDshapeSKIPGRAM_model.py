@@ -99,22 +99,22 @@ class TwoDshapeSKIPGRAM_model(object):
         """encoder of autoencoder.py
         """
         with tf.name_scope("encoder"):
-            enc = self.bn(x, self.W_bn1, name="bn1")
-            enc = tf.nn.relu(enc, name="relu1")
+            #enc = self.bn(x, self.W_bn1, name="bn1")
+            enc = tf.nn.relu(x, name="relu1")
             enc = tf.nn.conv2d(enc, self.W_conv1, strides=self.strides, padding="SAME", name="conv1")
             enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool1")
 
-            enc = self.bn(enc, self.W_bn2, name="bn2")
+            #enc = self.bn(enc, self.W_bn2, name="bn2")
             enc = tf.nn.relu(enc, name="relu2")
             enc = tf.nn.conv2d(enc, self.W_conv2, strides=self.strides, padding="SAME", name="conv2")
             enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool2")
 
-            enc = self.bn(enc, self.W_bn3, name="bn3")
+            #enc = self.bn(enc, self.W_bn3, name="bn3")
             enc = tf.nn.relu(enc, name="relu3")
             enc = tf.nn.conv2d(enc, self.W_conv3, strides=self.strides, padding="SAME", name="conv3")
             enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool3")
 
-            enc = self.bn(enc, self.W_bn4, name="bn4")
+            #enc = self.bn(enc, self.W_bn4, name="bn4")
             enc = tf.nn.relu(enc, name="relu4")
             enc = tf.nn.conv2d(enc, self.W_conv4, strides=self.strides, padding="SAME", name="conv4")
             enc = tf.nn.max_pool2d(enc, ksize=(1, 2, 2, 1), strides=(1, 1, 1, 1), padding="SAME", name="maxpool4")
