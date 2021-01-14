@@ -144,9 +144,30 @@ class Trainer(object):
 
             ### Test steps ###
 
-            batcher = self.minibatcher(data["test_x"])
+            batcher = self.minibatcher_withlabel(data["test_x"], data["test_label"])
 
-            for batch, (x_previous, x_now, x_next) in enumerate(batcher):
+            self.logdir = "{}projector/in_test/{:0=2}/".format(self.default_logdir, epoch)
+            os.makedirs(self.logdir, exist_ok=True)
+
+            medium_op = list(
+                map(
+                    lambda tname: tf.get_default_graph().get_tensor_by_name(tname),
+                    self.layers_name)
+                )
+            # def zero vec
+            prev_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            next_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            prev_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            next_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            shapetarget_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            prev_context_img = np.zeros((self.n_embedding, self.size, self.size))
+            next_context_img = np.zeros((self.n_embedding, self.size, self.size))
+            target_img = np.zeros((self.n_embedding, self.size, self.size))
+            shapetarget_img = np.zeros((self.n_embedding, self.size, self.size))
+
+            labels = []
+
+            for batch, (x_previous, x_now, x_next, x_label) in enumerate(batcher):
 
                 feed_dict = {
                     self.x_previous: x_previous,
@@ -155,9 +176,63 @@ class Trainer(object):
                     self.learning_rate: self.lr
                 }
 
-                loss_value, loss_summary = sess.run([self.loss, test_loss_summary_op], feed_dict=feed_dict)
+                loss_value, loss_summary, embedding_summary = sess.run([
+                    self.loss,
+                    test_loss_summary_op,
+                    medium_op
+                    ], feed_dict=feed_dict)
                 test_loss += loss_value
                 self.test_summary_writer.add_summary(loss_summary, batch)
+
+                ## project embedding ##
+
+                # select last layer output
+                summary_np = np.array(embedding_summary[-1])
+                # select first layer output
+                summary_np2 = np.array(embedding_summary[0])
+
+                # cat several vectors (output of model)
+                prev_context_summary_np[batch: (batch+1)] = summary_np[self.constant_idx]
+                next_context_summary_np[batch: (batch+1)] = summary_np[self.batchsize + self.constant_idx]
+                prev_target_summary_np[batch: (batch+1)] = summary_np[2*self.batchsize + self.constant_idx]
+                next_target_summary_np[batch: (batch+1)] = summary_np[3*self.batchsize + self.constant_idx]
+                shapetarget_summary_np[batch: (batch+1)] = summary_np2[self.constant_idx]
+
+                # cat several images
+                prev_context_img[batch: (batch+1)] = x_previous[self.constant_idx]
+                next_context_img[batch: (batch+1)] = x_next[self.constant_idx]
+                target_img[batch: (batch+1)] = x_now[self.constant_idx]
+                shapetarget_img[batch: (batch+1)] = x_now[self.constant_idx]
+
+                labels.append(x_label)
+
+            cat_tensors = np.concatenate([
+                prev_context_summary_np,
+                next_context_summary_np,
+                prev_target_summary_np,
+                next_target_summary_np,
+                shapetarget_summary_np
+                ], axis=0)
+            cat_images = np.concatenate([
+                prev_context_img,
+                next_context_img,
+                target_img,
+                target_img,
+                shapetarget_img
+                ], axis=0)
+            cat_labels = labels + labels + labels + labels + labels
+
+            variables = tf.Variable(cat_tensors, trainable=False, name="embedding")
+
+            self.create_tensor_tsv(cat_tensors, path="{}{}".format(self.logdir, self.tensor_path_name))
+
+            self.create_metadata_csv(cat_labels, path="{}{}".format(self.logdir, self.metadata_path_name))
+
+            self.mk_spriteimage(cat_images, path="{}{}".format(self.logdir, self.sprite_image_path_name))
+
+            config_projector = self.set_config_projector(variables)
+            summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
+            projector.visualize_embeddings(summary_writer, config_projector)
 
             # update the learning rate
             if epoch % 3 == 0 and epoch < 7:#warm up
