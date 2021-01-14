@@ -60,6 +60,9 @@ class Trainer(object):
         self.config.gpu_options.visible_device_list = params.device.gpu.id
         self.config.log_device_placement = params.device.gpu.log_device_placement
 
+        # morph or minimorph for switch minibatcher
+        self.dataset_name = params.dir.data.split("/")[-1]
+
     def init_session(self):
         """Initial tensorflow Session
 
@@ -181,8 +184,19 @@ class Trainer(object):
 
             x = inputs[idx: idx + bs]
 
-            x_previous = np.reshape(x[:, 0], (bs, size, size))
-            x_now = np.reshape(x[:, 1], (bs, size, size))
-            x_next = np.reshape(x[:, 2], (bs, size, size))
+            if self.dataset_name == "morph":
 
-            yield x_previous, x_now, x_next
+                for m in range(0, x.shape[1]-2):
+                    x_previous = np.reshape(x[:, 0+m], (bs, size, size))
+                    x_now = np.reshape(x[:, 1+m], (bs, size, size))
+                    x_next = np.reshape(x[:, 2+m], (bs, size, size))
+
+                    yield x_previous, x_now, x_next
+
+            elif self.dataset_name == "minimorph":
+
+                x_previous = np.reshape(x[:, 0], (bs, size, size))
+                x_now = np.reshape(x[:, 1], (bs, size, size))
+                x_next = np.reshape(x[:, 2], (bs, size, size))
+
+                yield x_previous, x_now, x_next
