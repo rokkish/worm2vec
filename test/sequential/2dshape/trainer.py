@@ -122,6 +122,8 @@ class Trainer(object):
                 if batch % 40 == 0:
                     self.train_summary_writer.add_summary(share_summary, batch)
 
+            train_loss /= (batch + 1.)
+            self.loss_tocsv["train_loss"].append(train_loss)
             ### Test steps ###
 
             batcher = self.minibatcher(data["test_x"])
@@ -146,9 +148,7 @@ class Trainer(object):
                 self.lr = self.lr * 0.75
 
             # save loss to csv
-            train_loss /= (batch + 1.)
             test_loss /= (batch + 1.)
-            self.loss_tocsv["train_loss"].append(train_loss)
             self.loss_tocsv["test_loss"].append(test_loss)
 
             # save to wandb
