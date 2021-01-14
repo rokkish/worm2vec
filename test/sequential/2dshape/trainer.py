@@ -46,12 +46,6 @@ class Trainer(object):
         self.train_summary_writer = tf.summary.FileWriter("./tensorboard/train")
         self.test_summary_writer = tf.summary.FileWriter("./tensorboard/test")
 
-        # save loss
-        self.loss_tocsv = {
-            "train_loss": [],
-            "test_loss": []
-            }
-
         # Configure tensorflow session
         self.init_global = tf.global_variables_initializer()
         self.init_local = tf.local_variables_initializer()
@@ -126,7 +120,7 @@ class Trainer(object):
                     self.train_summary_writer.add_summary(share_summary, batch)
 
             train_loss /= (batch + 1.)
-            self.loss_tocsv["train_loss"].append(train_loss)
+
             ### Test steps ###
 
             batcher = self.minibatcher(data["test_x"])
@@ -150,9 +144,7 @@ class Trainer(object):
             if epoch % 12 == 0 and epoch > 7:
                 self.lr = self.lr * 0.75
 
-            # save loss to csv
             test_loss /= (batch + 1.)
-            self.loss_tocsv["test_loss"].append(test_loss)
 
             # save to wandb
             wandb.log({'epochs': epoch, 'loss': train_loss, 'test_loss': test_loss, 'learning_rate': self.lr})
@@ -163,9 +155,6 @@ class Trainer(object):
             epoch += 1
 
             logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}, Test loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss, test_loss))
-
-        # save loss to df
-        pd.DataFrame(self.loss_tocsv).to_csv(self.csv_path, mode="a", header=not os.path.exists(self.csv_path))
 
     def minibatcher(self, inputs):
         """Yield batchsize data.
