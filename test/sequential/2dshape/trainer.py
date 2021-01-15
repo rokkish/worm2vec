@@ -63,10 +63,11 @@ class Trainer(object):
         self.default_logdir = params.dir.tensorboard
         self.layers_name = [
             "flatten/Reshape:0",
+            "target_encoder/MatMul:0",
             "concat_outputs/concat:0"
         ]
         if self.dataset_name == "morph":
-            self.n_embedding = 27
+            self.n_embedding = int(params.training.n_samples*params.training.test_rate)//params.training.batchsize*27
         elif self.dataset_name == "minimorph":
             self.n_embedding = int(params.training.n_samples*params.training.test_rate)//params.training.batchsize*3
         self.output_dim = 256
@@ -79,6 +80,7 @@ class Trainer(object):
         self.tensor_path_name = "tensor.csv"
         self.metadata_path_name = "metadata.tsv"
         self.sprite_image_path_name = "sprite.png"
+        self.embedding_column_name = "PrevContext_NextContext_PrevTarget_NextTarget_ShapeTarget"
 
     def init_session(self):
         """Initial tensorflow Session
@@ -160,11 +162,11 @@ class Trainer(object):
             next_context_summary_np = np.zeros((self.n_embedding, self.output_dim))
             prev_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
             next_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
-            shapetarget_summary_np = np.zeros((self.n_embedding, self.output_dim))
+            conttarget_summary_np = np.zeros((self.n_embedding, self.output_dim))
             prev_context_img = np.zeros((self.n_embedding, self.size, self.size))
             next_context_img = np.zeros((self.n_embedding, self.size, self.size))
             target_img = np.zeros((self.n_embedding, self.size, self.size))
-            shapetarget_img = np.zeros((self.n_embedding, self.size, self.size))
+            conttarget_img = np.zeros((self.n_embedding, self.size, self.size))
 
             labels = []
 
@@ -189,21 +191,21 @@ class Trainer(object):
 
                 # select last layer output
                 summary_np = np.array(embedding_summary[-1])
-                # select first layer output
-                summary_np2 = np.array(embedding_summary[0])
+                # select cont layer output
+                summary_np3 = np.array(embedding_summary[1])
 
                 # cat several vectors (output of model)
                 prev_context_summary_np[batch: (batch+1)] = summary_np[self.constant_idx]
                 next_context_summary_np[batch: (batch+1)] = summary_np[self.batchsize + self.constant_idx]
                 prev_target_summary_np[batch: (batch+1)] = summary_np[2*self.batchsize + self.constant_idx]
                 next_target_summary_np[batch: (batch+1)] = summary_np[3*self.batchsize + self.constant_idx]
-                shapetarget_summary_np[batch: (batch+1)] = summary_np2[self.constant_idx]
+                conttarget_summary_np[batch: (batch+1)] = summary_np3[self.constant_idx]
 
                 # cat several images
                 prev_context_img[batch: (batch+1)] = x_previous[self.constant_idx]
                 next_context_img[batch: (batch+1)] = x_next[self.constant_idx]
                 target_img[batch: (batch+1)] = x_now[self.constant_idx]
-                shapetarget_img[batch: (batch+1)] = x_now[self.constant_idx]
+                conttarget_img[batch: (batch+1)] = x_now[self.constant_idx]
 
                 labels.append(x_label)
 
@@ -213,14 +215,14 @@ class Trainer(object):
                     next_context_summary_np,
                     prev_target_summary_np,
                     next_target_summary_np,
-                    shapetarget_summary_np
+                    conttarget_summary_np
                     ], axis=0)
                 cat_images = np.concatenate([
                     prev_context_img,
                     next_context_img,
                     target_img,
                     target_img,
-                    shapetarget_img
+                    conttarget_img
                     ], axis=0)
                 cat_labels = labels + labels + labels + labels + labels
 
@@ -421,7 +423,7 @@ class Trainer(object):
     def create_metadata_csv(self, cat_labels, path):
         # make metadata.tsv (labels)
         with open(path, "w") as f:
-            f.write("Index\tLabel\tPrevContext_NextContext_PrevTarget_NextTarget_ShapeTarget\n")
+            f.write("Index\tLabel\t{}\n".format(self.embedding_column_name))
 
             for index, label in enumerate(cat_labels):
                 id_label = self.label_dict[label]
