@@ -33,7 +33,8 @@ class Predictor(Trainer):
         self.constant_idx = 0
 
     def fit(self, data):
-        saver, sess = self.init_session()
+        sess = self.init_session()
+        saver = tf.train.Saver()
 
         saver.restore(sess, self.checkpoint_fullpath)
 
