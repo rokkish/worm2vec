@@ -32,7 +32,7 @@ class Creator(object):
         self.comb = list(self.get_comb())
 
         # 不適切な図形変換のペアを削除
-        self.rm_comb()
+        #self.rm_comb()
 
         # 補完ステップ数
         self.STEP = 10
@@ -54,13 +54,13 @@ class Creator(object):
         self.morph_coordinates = self.add_noise(self.morph_coordinates)
 
         # 図形の確認とgifの作成
-        #self.sample_plt()
+        self.sample_plt()
 
         # 読み込むためのpngfileの作成
-        self.save_png()
+        #self.save_png()
 
         # png -> ndarray変換
-        self.translate_into_np(n)
+        #self.translate_into_np(n)
 
     def get_comb(self):
         """need to load at many times
@@ -241,7 +241,7 @@ class Creator(object):
                 xy_step = xy[:, step, :]
 
                 patch = patches.Polygon(xy=xy_step, closed=True, fc="black", ec="black")
-                shape_name = "test_morphing"
+                shape_name = fig_i+fig_j
 
                 fig = plt.figure(figsize=(3, 3))
                 ax = plt.axes()
@@ -323,7 +323,7 @@ def main():
 
     init_t = time.time()
 
-    n = 20000
+    n = 1
 
     for i in range(n):
         creator.create(i)
