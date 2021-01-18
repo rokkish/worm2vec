@@ -1,0 +1,29 @@
+training:
+  dim: 1
+  multiply_dim: "2-4-8-16"
+  size: 64
+  learning_rate: 0.1
+  test_rate: 0.1
+  train_mode: true
+  seed: 0
+  n_epochs: 3
+  batchsize: 100
+  n_samples: 2000
+  restore: true
+  share_enc_trainable: false
+  optim: "sgd"
+dir:
+  data: "data/processed/minimorph"
+  checkpoint: "./checkpoints/model.ckpt"
+  checkpoint_fullpath: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2020-12-16/18-52-45/checkpoints/model.ckpt"
+  checkpoint_fullpath_subset: "/root/worm2vec/worm2vec/test/sequential/2dshape/outputs/2021-01-07/19-31-56/checkpoints_subset/model.ckpt"
+  losscsv: "/root/worm2vec/worm2vec/test/sequential/2dshape/logs/loss/loss.csv"
+  tensorboard: "./"
+device:
+  gpu:
+    allow_growth: False
+    id: "0"
+    log_device_placement: True
+exp_name: "test trainer.fit.testpredict"
+predicting:
+  dim_out: 256

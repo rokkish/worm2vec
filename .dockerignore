@@ -1,0 +1,5 @@
+test/harmonic/MNIST-rot/data
+test/harmonic/worm2vec/logs
+test/harmonic/worm2vec/outputs
+test/sequential/2dshape/data
+test/sequential/2dshape/outputs
