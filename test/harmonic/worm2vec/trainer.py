@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import wandb
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -203,6 +204,19 @@ class Trainer():
             self.loss_tocsv["valid_eucliddist_pn"].append(valid_eucliddist_dict["pn"])
             self.loss_tocsv["test_eucliddist_pp"].append(test_eucliddist_dict["pp"])
             self.loss_tocsv["test_eucliddist_pn"].append(test_eucliddist_dict["pn"])
+
+            # save to wandb
+            wandb.log({
+                'epochs': epoch,
+                'anchor_loss': anchor_loss,
+                'train_pp': train_cossim_dict["pp"],
+                'train_pn': train_cossim_dict["pn"],
+                'valid_pp': valid_cossim_dict["pp"],
+                'valid_pn': valid_cossim_dict["pn"],
+                'test_pp': test_cossim_dict["pp"],
+                'test_pn': test_cossim_dict["pn"],
+                'learning_rate': self.lr
+                })
 
             # Save model
             if epoch % 10 == 0 or epoch == self.n_epochs - 1:

@@ -36,6 +36,7 @@ path:
     worm_data: "../../../../data/.npz"
     fixedtestdata: "/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz"
 train_mode: True
+exp_name: "default"
 train:
     restart_train: False
 predict:

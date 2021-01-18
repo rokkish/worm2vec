@@ -2,6 +2,7 @@
 """
 import os
 import hydra
+import wandb
 import tensorflow as tf
 import numpy as np
 from omegaconf import DictConfig
@@ -127,6 +128,8 @@ def modify_gvs(grads_and_vars, params):
 
 @hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig):
+    wandb.login()
+    wandb.init(project="worm2vec-harmonic", name=cfg.exp_name)
 
     tf.reset_default_graph()
     logger.debug(cfg)
