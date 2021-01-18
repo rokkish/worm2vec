@@ -32,10 +32,10 @@ def load_fixedtestdata(path):
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
 
+    test = load_fixedtestdata(params.path.fixedtestdata)
     if params.train_mode:
         dataset = np_load(params.path.worm_data)
     else:
-        test = load_fixedtestdata(params.path.fixedtestdata)
         dataset = np.zeros([10**4] + list(test.shape[1:]))
 
     # Split
