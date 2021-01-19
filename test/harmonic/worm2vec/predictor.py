@@ -41,7 +41,6 @@ class Predictor(Trainer):
         self.view_pos = params.predict.view_pos
         self.view_neg = params.predict.view_neg
 
-        self.one_embedding_mode = params.predict.one_embedding_mode
         self.target_idx = params.predict.target_idx
 
         self.cossim_path_name = params.path.save_vector_path + "cossim_pn.csv"
@@ -70,9 +69,6 @@ class Predictor(Trainer):
 
         batcher = self.minibatcher_withlabel(data['test_x'])
 
-        if self.one_embedding_mode:
-            self.n_embedding = 1
-
         if self.view_anchor:
             cat_anchor_summary_np = np.zeros((self.n_embedding, self.n_classes))
             cat_Anchor = np.zeros((self.n_embedding, self.dim, self.dim))
@@ -94,13 +90,8 @@ class Predictor(Trainer):
         init_t = time.time()
 
         for i, (Pos, Neg, label_date, label_id) in enumerate(batcher):
-            if not self.one_embedding_mode and i == self.n_embedding:
+            if i == self.n_embedding:
                 break
-            if self.one_embedding_mode:
-                if i != self.target_idx:
-                    continue
-                else:
-                    i = 0
 
             feed_dict = {self.positive: Pos,
                          self.negative: Neg,

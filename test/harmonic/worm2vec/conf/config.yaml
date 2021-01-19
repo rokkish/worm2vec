@@ -43,7 +43,6 @@ train:
     restart_train: False
 predict:
     n_embedding: 2000
-    one_embedding_mode: False
     target_idx: -1
     view_anchor: False
     view_pos: False
