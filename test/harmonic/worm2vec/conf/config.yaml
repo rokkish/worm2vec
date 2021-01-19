@@ -35,6 +35,8 @@ path:
     # data
     worm_data: "../../../../data/.npz"
     fixedtestdata: "/root/worm2vec/data/variety_data_r36_n50_np/test/00.npz"
+    # save vector
+    save_vector_path: "/root/worm2vec/data/"
 train_mode: True
 exp_name: "default"
 train:
@@ -43,8 +45,10 @@ predict:
     n_embedding: 2000
     one_embedding_mode: False
     target_idx: -1
+    view_anchor: False
     view_pos: False
     view_neg: False
+    sprite_img_isSaved: True
 preprocess:
     test_rate: 0.1
     valid_rate: 0.1

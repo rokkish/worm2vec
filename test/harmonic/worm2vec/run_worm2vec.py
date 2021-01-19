@@ -14,6 +14,17 @@ import get_logger
 logger = get_logger.get_logger(name='run')
 
 
+def get_binaryfile_number(val):
+    """
+        Args:
+            val (path fo bmp file)  | ../../data/processed/alldata/date_000000.pt
+        Return:
+            file_number (int)       | 0
+    """
+    file_numbers = val.split("/")[-1].split(".pt")[0].split("_")
+    file_number = file_numbers[-1]
+    return int(file_number)
+
 def np_load(path):
     """Check path and Return data(np.array)
     """
@@ -29,14 +40,24 @@ def load_fixedtestdata(path):
     return np_load(path)
 
 
+def load_fixedtestdata_forpredict(path):
+    """must use minibatcher_withlabel
+    """
+    import glob
+    return glob.glob(path+"/*.pt")
+
+
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
 
-    test = load_fixedtestdata(params.path.fixedtestdata)
     if params.train_mode:
+        test = load_fixedtestdata(params.path.fixedtestdata)
         dataset = np_load(params.path.worm_data)
     else:
-        dataset = np.zeros([10**4] + list(test.shape[1:]))
+        import torch
+        test = load_fixedtestdata_forpredict(params.path.fixedtestdata)
+        test.sort(key=get_binaryfile_number)
+        dataset = np.zeros([10**4] + list(torch.load(test[0]).numpy().shape))
 
     # Split
     N = dataset.shape[0]
@@ -136,7 +157,6 @@ def main(cfg: DictConfig):
 
     # load_data
     data = load_data(cfg)
-    logger.debug("tr:{}, va:{}, te:{}".format(data["train_x"].shape, data["valid_x"].shape, data["test_x"].shape))
 
     # build model
     placeholders = set_placeholders(cfg.nn.batch_size, cfg.nn.dim, cfg.nn.n_positive, cfg.nn.n_negative)
