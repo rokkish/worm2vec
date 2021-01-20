@@ -1,4 +1,4 @@
-"""Trainer class mainly train model
+"""Predictor class mainly predict without training data.
 """
 import os
 import time
@@ -8,13 +8,12 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import get_logger
-logger = get_logger.get_logger(name="trainer")
+logger = get_logger.get_logger(name="predictor")
 from visualize.sprite_images import create_sprite_image, save_sprite_image
 from tensorboard.plugins import projector
 
-
-class Trainer(object):
-    """class for train sequential model.
+class Predictor(object):
+    """class for trained sequential model.
     """
     def __init__(self,
                  params,
@@ -35,6 +34,7 @@ class Trainer(object):
         self.dim = params.train.dim
         self.test_original_data_path = params.dir.test.original
         self.checkpoint = params.dir.checkpoint
+        self.checkpoint_fullpath = "/root/worm2vec/worm2vec/test/sequential/worm2vec/outputs/{}/checkpoints/model.ckpt".format(params.dir.checkpoint_datetime)
         self.default_logdir = params.dir.tensorboard
         self.size = params.predict.img_size
         self.output_dim = params.predict.dim_out
@@ -61,6 +61,8 @@ class Trainer(object):
 
         ### predict ###
         self.constant_idx = 0
+        self.skip_count = 0
+        self.single_view_mode = params.predict.single_view_mode
         self.layers_name = [
             "concat_inputs/concat:0",
             "context_encoder/MatMul:0",
@@ -72,10 +74,9 @@ class Trainer(object):
         self.sprite_image_path_name = "sprite.png"
         self.embedding_column_name = "ShapePrev_ShapeNext_PrevContShapeNow_NextContShapeNow_ContShapeNow"
 
-        self.skip_count = 0
 
-    def init_session(self):
-        """Initial tensorflow Session
+    def restore_session(self):
+        """Restore tensorflow Session
 
         Returns:
             sess: load inital config
@@ -84,91 +85,19 @@ class Trainer(object):
         sess.run([self.init_global,
                   self.init_local],
                  feed_dict={})
-        return sess
+
+        saver = tf.train.Saver()
+        saver.restore(sess, self.checkpoint_fullpath)
+
+        return saver, sess
 
     def fit(self, data):
-        """Train Model to fit data.
 
-        Args:
-            data ([dict]): have data and labels.
-        """
-        sess = self.init_session()
-        saver = tf.train.Saver()
+        saver, sess = self.restore_session()
 
-        train_loss_summary_op = tf.summary.scalar("train_loss/euclid_distance", self.loss)
-        test_loss_summary_op = tf.summary.scalar("test_loss/euclid_distance", self.loss)
-
-        init_t = time.time()
-        epoch = 0
-
-        while epoch < self.n_epochs:
-            # init
-            self.skip_count = 0
-            train_loss = 0.
-            test_loss = 0.
-
-            ### training steps ###
-
-            batcher = self.minibatcher_withlabel(data["train_x"], data["train_label"])
-
-            for batch, (x_previous, x_now, x_next, _, _) in enumerate(batcher):
-
-
-                feed_dict = {
-                    self.x_previous: x_previous,
-                    self.x_now: x_now,
-                    self.x_next: x_next,
-                    self.learning_rate: self.lr
-                }
-
-                __, loss_value, loss_summary = sess.run(
-                    [self.train_op, self.loss, train_loss_summary_op], feed_dict=feed_dict)
-                train_loss += loss_value
-                self.train_summary_writer.add_summary(loss_summary, batch)
-
-            train_loss /= (batch + 1.)
-
-            ### Test steps ###
-
-            batcher = self.minibatcher_withlabel(data["test_x"], data["test_label"])
-
-            for batch, (x_previous, x_now, x_next, x_label, x_date) in enumerate(batcher):
-
-                feed_dict = {
-                    self.x_previous: x_previous,
-                    self.x_now: x_now,
-                    self.x_next: x_next,
-                    self.learning_rate: self.lr
-                }
-
-                loss_value, loss_summary = sess.run([
-                    self.loss,
-                    test_loss_summary_op,
-                    ], feed_dict=feed_dict)
-                test_loss += loss_value
-                self.test_summary_writer.add_summary(loss_summary, batch)
-
-            test_loss /= (batch + 1.)
-
-            if epoch % 10 == 0 or epoch == self.n_epochs - 1:
-                self.predict(sess, data, epoch)
-
-            self.update_lr(epoch)
-
-            wandb.log({'epochs': epoch, 'loss': train_loss, 'test_loss': test_loss, 'learning_rate': self.lr, 'skip_count': self.skip_count})
-
-            saver.save(sess, self.checkpoint)
-
-            epoch += 1
-
-            logger.debug('[{:04d} | {:04.1f}] Train loss: {:04.8f}, Test loss: {:04.8f}'.format(epoch, time.time() - init_t, train_loss, test_loss))
-
-        sess.close()
-
-    def predict(self, sess, data, epoch):
         batcher = self.minibatcher_withlabel(data["test_x"], data["test_label"])
 
-        self.logdir = "{}projector/in_test/{:0=2}/".format(self.default_logdir, epoch)
+        self.logdir = "{}projector/after_test/".format(self.default_logdir)
         os.makedirs(self.logdir, exist_ok=True)
 
         medium_op = list(
@@ -235,26 +164,32 @@ class Trainer(object):
             labels["id"].extend(x_label)
             labels["date"].append(x_date)
 
-        cat_tensors = np.concatenate([
-            prev_context_summary_np,
-            next_context_summary_np,
-            prev_target_summary_np,
-            next_target_summary_np,
-            conttarget_summary_np
-            ], axis=0)
-        cat_images = np.concatenate([
-            prev_context_img,
-            next_context_img,
-            target_img,
-            target_img,
-            conttarget_img
-            ], axis=0)  
-        cat_labels = {
-            "id": [],
-            "date": []
-        }
-        cat_labels["id"] = labels["id"] + labels["id"] + labels["id"] + labels["id"] + labels["id"]
-        cat_labels["date"] = labels["date"] + labels["date"] + labels["date"] + labels["date"] + labels["date"]
+        if self.single_view_mode:
+            cat_tensors = conttarget_summary_np
+            cat_images = conttarget_img
+            cat_labels = {
+                "id": labels["id"],
+                "date": labels["date"]
+            }
+        else:
+            cat_tensors = np.concatenate([
+                prev_context_summary_np,
+                next_context_summary_np,
+                prev_target_summary_np,
+                next_target_summary_np,
+                conttarget_summary_np
+                ], axis=0)
+            cat_images = np.concatenate([
+                prev_context_img,
+                next_context_img,
+                target_img,
+                target_img,
+                conttarget_img
+                ], axis=0)  
+            cat_labels = {
+                "id": labels["id"] + labels["id"] + labels["id"] + labels["id"] + labels["id"],
+                "date": labels["date"] + labels["date"] + labels["date"] + labels["date"] + labels["date"]
+            }
 
         variables = tf.Variable(cat_tensors, trainable=False, name="embedding")
 
@@ -267,13 +202,6 @@ class Trainer(object):
         config_projector = self.set_config_projector(variables)
         summary_writer = tf.summary.FileWriter(self.logdir, sess.graph)
         projector.visualize_embeddings(summary_writer, config_projector)
-
-    def update_lr(self, epoch):
-        # update the learning rate
-        if epoch % 3 == 0 and epoch < 7:#warm up
-            self.lr *= 1.25
-        if epoch % 12 == 0 and epoch > 7:
-            self.lr = self.lr * 0.9
 
     def minibatcher_withlabel(self, inputs, labels):
         """

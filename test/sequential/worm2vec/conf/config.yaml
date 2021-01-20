@@ -1,0 +1,33 @@
+train:
+  dim: 10
+  learning_rate: 0.1
+  train_mode: true
+  seed: 0
+  n_epochs: 3
+  batchsize: 1
+  n_samples: 2000
+  optim: "sgd"
+test:
+  n_samples: 100
+dir:
+  data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/train/tensor.csv"
+  metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/train/metadata.tsv"
+  test:
+    data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/test/tensor.csv"
+    metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/test/metadata.tsv"
+    original: "/root/worm2vec/data/alldata_unpublished/alldata"
+  checkpoint: "./checkpoints/model.ckpt"
+  checkpoint_datetime: "date/time"
+  tensorboard: "./"
+device:
+  gpu:
+    allow_growth: False
+    id: "0"
+    log_device_placement: True
+exp_name: "default"
+predict:
+  img_size: 64
+  dim_out: 10
+  n_embedding: 100
+  isLoadedimg: False
+  single_view_mode: False
