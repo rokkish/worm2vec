@@ -240,7 +240,7 @@ class Trainer():
     @staticmethod
     def set_class_id(i):
         if i >= 10000:
-            raise ValueError("datasize must be undrer 10000")
+            raise ValueError("datasize must be under 10000")
         return i
 
     def minibatcher(self, inputs, batchsize, shuffle=False):
@@ -264,7 +264,9 @@ class Trainer():
             else:
                 excerpt = start_idx
 
-            yield inputs[excerpt, :self.n_positive, 0], inputs[excerpt, -self.n_negative:, 0], self.set_class_id(excerpt)
+            yield inputs[excerpt, :self.n_positive, 0], \
+                inputs[excerpt, self.n_positive: self.n_positive+self.n_negative:, 0], \
+                self.set_class_id(excerpt)
 
     def notrainloss_summary(self, mode, notrainloss, lossname=""):
         """
