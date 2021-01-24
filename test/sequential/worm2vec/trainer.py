@@ -37,6 +37,7 @@ class Trainer(object):
         self.checkpoint = params.dir.checkpoint
         self.default_logdir = params.dir.tensorboard
         self.size = params.predict.img_size
+        self.resize_hw = params.predict.img_resize_hw
         self.output_dim = params.predict.dim_out
         self.n_embedding = params.predict.n_embedding
         self.isLoadedimg = params.predict.isLoadedimg
@@ -182,10 +183,10 @@ class Trainer(object):
         prev_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
         next_target_summary_np = np.zeros((self.n_embedding, self.output_dim))
         conttarget_summary_np = np.zeros((self.n_embedding, self.output_dim))
-        prev_context_img = np.zeros((self.n_embedding, self.size, self.size))
-        next_context_img = np.zeros((self.n_embedding, self.size, self.size))
-        target_img = np.zeros((self.n_embedding, self.size, self.size))
-        conttarget_img = np.zeros((self.n_embedding, self.size, self.size))
+        prev_context_img = np.zeros((self.n_embedding, self.resize_hw, self.resize_hw))
+        next_context_img = np.zeros((self.n_embedding, self.resize_hw, self.resize_hw))
+        target_img = np.zeros((self.n_embedding, self.resize_hw, self.resize_hw))
+        conttarget_img = np.zeros((self.n_embedding, self.resize_hw, self.resize_hw))
 
         labels = {
             "id": [],
@@ -225,15 +226,15 @@ class Trainer(object):
 
             # cat several images
             if self.isLoadedimg:
-                for idx, x_label_i in enumerate(x_label):
-                    prev_img, next_img, now_img = self.load_original_img(x_label_i, x_date)
+                for idx, (x_label_i, x_date_i) in enumerate(zip(x_label, x_date)):
+                    prev_img, next_img, now_img = self.load_original_img(x_label_i, x_date_i)
                     prev_context_img[batch*bs + idx] = prev_img
                     next_context_img[batch*bs + idx] = next_img
                     target_img[batch*bs + idx] = now_img
                     conttarget_img[batch*bs + idx] = now_img
 
             labels["id"].extend(x_label)
-            labels["date"].append(x_date)
+            labels["date"].extend(x_date)
 
         cat_tensors = np.concatenate([
             prev_context_summary_np,
@@ -308,6 +309,7 @@ class Trainer(object):
             x_now = np.zeros((bs, dim))
             x_next = np.zeros((bs, dim))
             t_now_list = []
+            date_list = []
 
             for jdx in indices:
 
@@ -333,7 +335,7 @@ class Trainer(object):
                     x_now[stock_x] = tmp_now
                     x_next[stock_x] = tmp_next
                     t_now_list.append(t_now)
-
+                    date_list.append(date)
                     stock_x += 1
 
                 else:
@@ -341,7 +343,7 @@ class Trainer(object):
 
                 if stock_x == bs:
                     stock_x = 0
-                    yield x_prev, x_now, x_next, t_now_list, date
+                    yield x_prev, x_now, x_next, t_now_list, date_list
 
     def t_is_continuous(self, t_prev, t_now, t_next, window_size):
         if t_now - t_prev == window_size and t_next - t_now == window_size:
@@ -351,14 +353,21 @@ class Trainer(object):
 
     @staticmethod
     def load_pt_to_np(path):
-        return torch.load(path).numpy()
+        return torch.load(path).numpy()[0, 0]
 
     def reshape_np(self, arr):
-        arr = np.reshape(arr[0, 0], (1, self.size, self.size))
+        arr = np.reshape(arr, (1, self.resize_hw, self.resize_hw))
         return arr
 
     def get_original_data_path(self, date, time):
         return "{}/{}_{:0=6}.pt".format(self.test_original_data_path, date, time)
+
+    def resize(self, img):
+        from PIL import Image
+        img = Image.fromarray(img)
+        img = img.resize((self.resize_hw, self.resize_hw))
+        img = np.asarray(img)
+        return img
 
     def load_original_img(self, x_time, x_date):
         """
@@ -372,9 +381,9 @@ class Trainer(object):
         next_path = self.get_original_data_path(x_date, next_t)
         now_path = self.get_original_data_path(x_date, now_t)
 
-        prev_img = self.reshape_np(self.load_pt_to_np(prev_path))
-        next_img = self.reshape_np(self.load_pt_to_np(next_path))
-        now_img = self.reshape_np(self.load_pt_to_np(now_path))
+        prev_img = self.reshape_np(self.resize(self.load_pt_to_np(prev_path)))
+        next_img = self.reshape_np(self.resize(self.load_pt_to_np(next_path)))
+        now_img = self.reshape_np(self.resize(self.load_pt_to_np(now_path)))
 
         return prev_img, next_img, now_img
 
@@ -411,5 +420,5 @@ class Trainer(object):
 
         # config of sprite image
         embedding.sprite.image_path = self.sprite_image_path_name
-        embedding.sprite.single_image_dim.extend([self.size, self.size])
+        embedding.sprite.single_image_dim.extend([self.resize_hw, self.resize_hw])
         return config_projector
