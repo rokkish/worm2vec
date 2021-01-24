@@ -50,14 +50,18 @@ def load_fixedtestdata_forpredict(path):
 def load_data(params):
     # Load dataset (N, rot+neg, 1, H, W)
 
-    if params.train_mode:
-        test = load_fixedtestdata(params.path.fixedtestdata)
-        dataset = np_load(params.path.worm_data)
-    else:
+    if params.make_vector_mode:
         import torch
         test = load_fixedtestdata_forpredict(params.path.fixedtestdata)
         test.sort(key=get_binaryfile_number)
         dataset = np.zeros([10**4] + list(torch.load(test[0]).numpy().shape))
+    else:
+        if params.train_mode:
+            test = load_fixedtestdata(params.path.fixedtestdata)
+            dataset = np_load(params.path.worm_data)
+        else:
+            test = load_fixedtestdata(params.path.fixedtestdata)
+            dataset = np.zeros([10**4] + list(test.shape[1:]))
 
     # Split
     N = dataset.shape[0]
@@ -181,6 +185,7 @@ def main(cfg: DictConfig):
         predictor = Predictor(cfg, loss, valid_loss, optim, train_op, placeholders)
         predictor.fit(data)
 
+    del data
 
 if __name__ == "__main__":
     main()

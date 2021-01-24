@@ -38,6 +38,7 @@ path:
     # save vector
     save_vector_path: "/root/worm2vec/data/"
 train_mode: True
+make_vector_mode: False
 exp_name: "default"
 train:
     restart_train: False
