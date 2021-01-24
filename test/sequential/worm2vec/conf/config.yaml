@@ -10,11 +10,11 @@ train:
 test:
   n_samples: 100
 dir:
-  data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/train/tensor.csv"
-  metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/train/metadata.tsv"
+  data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant2/train/tensor.csv"
+  metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant2/train/metadata.tsv"
   test:
-    data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/test/tensor.csv"
-    metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant/test/metadata.tsv"
+    data: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant2/test/tensor.csv"
+    metadata: "/root/worm2vec/data/variety_data_strict_r36_n100_rotation_invariant2/test/metadata.tsv"
     original: "/root/worm2vec/data/alldata_unpublished/alldata"
   checkpoint: "./checkpoints/model.ckpt"
   checkpoint_datetime: "date/time"
@@ -27,6 +27,7 @@ device:
 exp_name: "default"
 predict:
   img_size: 64
+  img_resize_hw: 16
   dim_out: 10
   n_embedding: 100
   isLoadedimg: False
