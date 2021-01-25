@@ -246,7 +246,8 @@ class Predictor(Trainer):
         Returns:
             anc_pos_neg: 0:anchor, 1:pos, 2:neg
         """
-        if self.view_anchor:
+        #TODO:this If statement is not readable.
+        if self.view_anchor + self.view_pos + self.view_neg == 1:
             anc_pos_neg = 0
         elif self.view_pos and self.view_neg and not self.view_anchor:
             if idx < self.n_positive:
