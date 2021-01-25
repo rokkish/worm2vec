@@ -194,7 +194,7 @@ class Predictor(Trainer):
             #raise ValueError("len(labels) is not 2, but {}".format(len(labels)))
 
             yield arr[:self.n_positive, 0], \
-                arr[self.n_positive: self.n_positive+self.n_negative, 0], \
+                arr[-self.n_negative:, 0], \
                 date, id_
 
     def create_cossim_csv(self, cossim_pn, path):
