@@ -112,12 +112,14 @@ class Predictor(Trainer):
             if self.view_pos:
                 # cat batch_embedding
                 cat_summary_np[i*self.n_positive: (i+1)*self.n_positive] = summary_np[:self.n_positive]
-                cat_Pos[i*self.n_positive: (i+1)*self.n_positive] = Pos
+                if self.sprite_img_isSaved:
+                    cat_Pos[i*self.n_positive: (i+1)*self.n_positive] = Pos
 
             if self.view_neg:
                 # cat batch_embedding
                 cat_neg_summary_np[i*self.n_negative: (i+1)*self.n_negative] = summary_np[self.n_positive:]
-                cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
+                if self.sprite_img_isSaved:
+                    cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
             cossim_pn.append(cossim["pn"])
             labels["date"].append(label_date)
