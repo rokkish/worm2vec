@@ -122,8 +122,12 @@ class Predictor(Trainer):
                     cat_Neg[i*self.n_negative: (i+1)*self.n_negative] = Neg
 
             cossim_pn.append(cossim["pn"])
-            labels["date"].append(label_date)
-            labels["id"].append(label_id)
+            if self.view_pos:
+                labels["date"].extend([label_date]*self.n_positive)
+                labels["id"].extend([label_id]*self.n_positive)
+            else:
+                labels["date"].append(label_date)
+                labels["id"].append(label_id)
 
             ptime = time.time() - init_t
             print("\r{:0=6}/{:0=6} ({:0=3.1f}%)[{:.1f} sec]".format(i, self.n_embedding, 100 * (i+1)/self.n_embedding, ptime), end="")
