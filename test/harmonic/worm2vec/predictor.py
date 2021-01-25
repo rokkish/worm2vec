@@ -76,8 +76,7 @@ class Predictor(Trainer):
         if self.view_pos:
             cat_summary_np = np.zeros((self.n_positive * self.n_embedding,
                                     self.n_classes))
-            cat_Pos = np.zeros((self.n_positive * self.n_embedding,
-                                self.dim, self.dim))
+            cat_Pos = None#np.zeros((self.n_positive * self.n_embedding, self.dim, self.dim))
 
         if self.view_neg:
             cat_neg_summary_np = np.zeros((self.n_negative * self.n_embedding,
