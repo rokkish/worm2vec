@@ -41,7 +41,7 @@ class Predictor(object):
         self.output_dim = params.predict.dim_out
         self.n_embedding = params.predict.n_embedding
         self.isLoadedimg = params.predict.isLoadedimg
-
+        self.window_size = params.train.window_size
         # placeholders
         self.x_previous = placeholders["x_previous"]
         self.x_now = placeholders["x_now"]
@@ -221,9 +221,12 @@ class Predictor(object):
         bs = self.batchsize
         dates = set(labels["Label_date"])
         logger.debug(dates)
-        window_size = 1
+        window_size = self.window_size
 
         for i, date in enumerate(dates):
+
+            if date == 201302081353:
+                continue
 
             label_where_date = labels[labels["Label_date"]==date]
             idx_begin = label_where_date.index[0]
@@ -231,7 +234,7 @@ class Predictor(object):
 
             # prev, nextを参照するため. from w to N-w
             indices = np.arange(idx_begin + window_size, idx_end - window_size)
-            np.random.shuffle(indices)
+            #np.random.shuffle(indices)
 
             stock_x = 0
             x_prev = np.zeros((bs, dim))
@@ -249,7 +252,7 @@ class Predictor(object):
                     t_now_list = []
                     date_list = []
 
-                jdx_prev, jdx_now, jdx_next = jdx - 1, jdx, jdx + 1
+                jdx_prev, jdx_now, jdx_next = jdx - window_size, jdx, jdx + window_size
                 t_prev = labels.iloc[jdx_prev, 1]
                 t_now = labels.iloc[jdx_now, 1]
                 t_next = labels.iloc[jdx_next, 1]
