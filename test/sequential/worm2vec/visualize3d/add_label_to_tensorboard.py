@@ -1,8 +1,9 @@
 import pandas as pd
 
 path_to_metadata = "../outputs/2021-01-27/plt_onewindow_3k/plt_test_win_20/projector/after_test/metadata.tsv"
-path_to_labels = "./tmp/metadata/metadata_win20_j2.0.csv"
-save_path = "../outputs/2021-01-27/plt_onewindow_3k/plt_test_win_20/projector/add_8labels_j2/metadata.tsv"
+path_to_labels = "./tmp/metadata_clustering/metadata_win20_j0.5_test_kmeans_class10.csv"
+save_path = "../outputs/2021-01-27/plt_onewindow_3k/plt_test_win_20/projector/add_kmeanslabels/metadata.tsv"
+
 def main():
     metadata = pd.read_csv(path_to_metadata, sep="\t")
     label = pd.read_csv(path_to_labels, index_col=0)
