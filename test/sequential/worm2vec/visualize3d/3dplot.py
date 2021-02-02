@@ -82,14 +82,19 @@ class Plotter(object):
         self.save_3dpath = './tmp/gif/point_anim_worm2vec_3d_w{:0=2}_l{:0=4}.gif'.format(self.window_name, self.plot_length)
         self.save_3dpath_mp4 = './tmp/mp4/{}/point_anim_worm2vec_3d_w{:0=2}_l{:0=4}.mp4'.format(self.data_type, self.window_name, self.plot_length)
         self.save_2dpath = './tmp/point_anim_worm2vec_2d.gif'
+
         self.zoom_rate = 0.8
         self.t_afterimage = 20
         self.single_image_dim = 16
+        self.threshold_jump = args.j
+        self.degree_or_class = args.mode
+
         self.data = self.parse_txt()
         self.file_date, self.metadata_id_list = self.load_metadata()
         self.img = self.load_compressedimg()
         self.img_list = self.load_originalimg()
         self.init_t = time.time()
+        self.optical_color_label = self.calc_optical_color()
 
     def parse_txt(self):
         with open(self.path_to_pcadata) as f:
@@ -151,9 +156,18 @@ class Plotter(object):
 
     def plot3d(self):
         # sample data
-        x = self.data.loc[:, "pca-0"].values
-        y = self.data.loc[:, "pca-1"].values
-        z = self.data.loc[:, "pca-2"].values
+
+        df_with_label = pd.concat([self.data.iloc[:-1], self.optical_color_label], axis=1)
+        df_with_label = df_with_label.dropna(how="any")
+        drop_indexes = df_with_label.index
+        print("df_with_label", df_with_label.shape)
+        x = df_with_label.loc[:, "pca-0"].values
+        y = df_with_label.loc[:, "pca-1"].values
+        z = df_with_label.loc[:, "pca-2"].values
+        r = df_with_label.loc[:, "theta_x"].values
+        g = df_with_label.loc[:, "theta_y"].values
+        b = df_with_label.loc[:, "theta_z"].values
+
         lim = {
             "x": {
                 "min":x.min(),
@@ -165,7 +179,11 @@ class Plotter(object):
                 "min":z.min(),
                 "max":z.max()},
             }
-        time = list(map(str, range(self.plot_length)))
+        time = list(map(str, range(df_with_label.shape[0])))
+
+        # due to ignore data 
+        if df_with_label.shape[0] < self.plot_length:
+            self.plot_length = df_with_label.shape[0]
         #pprint.pprint(lim)
 
         # shortcut
@@ -173,10 +191,16 @@ class Plotter(object):
         t_ai = self.t_afterimage
         img_dim = self.single_image_dim
 
+        # color
+        optical_color = np.vstack([r, g, b])
+        print(optical_color.shape)
+        optical_color = np.reshape(optical_color, [optical_color.shape[1], optical_color.shape[0]])
+        print(optical_color.shape)
         # config 3d
-        fig = plt.figure(figsize=(9, 4))
+        fig = plt.figure(figsize=(18, 8))
         ax0 = fig.add_subplot(121, projection="3d")
         ax0.grid(False)
+        ax0.axis(False)
         ax0.set_box_aspect((1, 1, 1))
         ax0.set_xlim(lim["x"]["min"] * zr, lim["x"]["max"] * zr)
         ax0.set_ylim(lim["y"]["min"] * zr, lim["y"]["max"] * zr)
@@ -191,95 +215,139 @@ class Plotter(object):
         ax1.axis('off')
 
         # plot all dot
-        ax0.scatter(x, y, z, alpha=0.3, color="skyblue", s=1)
+        ax0.scatter(x, y, z, alpha=0.8, c=optical_color, s=20)
 
         # plot dot for animation
-        scat1,  = ax0.plot(x[0], y[0], z[0], alpha=1, lw=0, marker="o", color='black')
-
-        # plot afterimage
-        scat2,  = ax0.plot(x[0], y[0], z[0], alpha=0.7, color="black")
+        scat1,  = ax0.plot(x[0], y[0], z[0], alpha=1, lw=0, marker="o", markersize=20., c=optical_color[0])
 
         # plot title
         ax0.text2D(0.05, 0.95, "Worm2vec", transform=ax0.transAxes)
         scat3 = ax0.text(0.15, 0.95, 0, time[0], transform=ax0.transAxes, fontsize="medium")
 
         def init():
-            return scat1, scat2, scat3,
+            return scat1, scat3
 
         def animate(i):
             scat1.set_data((x[i].flatten(), y[i].flatten()))
             scat1.set_3d_properties(z[i].flatten())
+            scat1.set_color(optical_color[i])
 
-            if i > t_ai:
-                scat2.set_data((x[i-t_ai:i].flatten(), y[i-t_ai:i].flatten()))
-                scat2.set_3d_properties(z[i-t_ai:i].flatten())
-            else:
-                scat2.set_data((x[:i].flatten(), y[:i].flatten()))
-                scat2.set_3d_properties(z[:i].flatten())
-
-            scat3.set_text(time[i])
+            scat3.set_text(time[drop_indexes[i]])
 
             if len(imgs) > 0:
                 imgs.pop().remove()
 
-            #N_width = self.img.shape[0]//img_dim
-            #h = i//(N_width)
-            #w = i-(N_width)*h
-            #img = ax1.imshow(self.img[img_dim*h:img_dim*(h+1), img_dim*w:img_dim*(w+1)])
-            img = ax1.imshow(self.img_list[i], cmap='gray')
+            img = ax1.imshow(self.img_list[drop_indexes[i]], cmap='gray')
             imgs.append(img)
 
             print("\r {}/{}".format(i, self.plot_length), end="")
 
-            return scat1, scat2, scat3,
+            return scat1, scat3,
 
         ani = animation.FuncAnimation(fig, animate, self.plot_length,
-                                        interval=50, init_func=init, blit=True, repeat=False)
+                                        interval=500, init_func=init, blit=True, repeat=False)
+        ani.save(self.save_3dpath, writer="imagemagick",dpi=100)
         ani.save(self.save_3dpath_mp4, writer="ffmpeg",dpi=100)
-        #ani.save(self.save_3dpath, writer="imagemagick",dpi=100)
 
-    def plot2d(self):
-        # sample data
-        x = self.data.loc[:, "pca-0"].values
-        y = self.data.loc[:, "pca-1"].values
-        z = self.data.loc[:, "pca-2"].values
-        lim = {
-            "x": {
-                "min":x.min(),
-                "max":x.max()},
-            "y": {
-                "min":y.min(),
-                "max":y.max()},
-            "z": {
-                "min":z.min(),
-                "max":z.max()},
-            }
-        #pprint.pprint(lim)
+    def vector_between_points(self, df):
+        df_now = df.iloc[:-1, :].reset_index(drop=True)
+        df_next = df.iloc[1:, :].reset_index(drop=True)
+        return df_next - df_now
 
-        # config
-        fig = plt.figure(figsize=(6,6))
-        ax = fig.subplots()
-        zr = self.zoom_rate
-        #ax.set_box_aspect((1, 1, 1))
-        ax.set_xlim(lim["x"]["min"] * zr, lim["x"]["max"] * zr)
-        ax.set_ylim(lim["y"]["min"] * zr, lim["y"]["max"] * zr)
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
+    def euclid_distance(self, df):
+        """
+            Args:
+                pd.DataFrame: columns = (x, y, z)
+            Return:
+                pd.Series: euclid distance.
+        """
+        df_sub = self.vector_between_points(df)
+        df_dist = df_sub.pow(2).sum(axis=1).pow(0.5)
+        return df_dist
 
-        # plot data
-        scat1, = ax.plot(x[0], y[0], alpha=0.5, lw=0, marker="o", color='tab:green')
+    def plot_euclid_distance_hist(self):
+        df_dist = self.euclid_distance(self.data)
+        df_dist.hist(bins=100)
+        #plt.hist(df_dist.values, bins=100, cumulative=True, density=True)
+        plt.xlabel("euclid distance")
+        plt.ylabel("histogram")
+        plt.savefig("./tmp/graph/euclid_distance.png")
+        plt.close()
 
-        def init():
-            return scat1,
+    def degree_from_vector(self, df):
+        def abs_(v):
+            return np.abs(v)
 
-        def animate(i):
-            scat1.set_data((x[:i].flatten(), y[:i].flatten()))
-            print("\r {}/3000".format(i), end="")
-            return scat1,
+        vector = self.vector_between_points(df)
+        absolute_vector = np.linalg.norm(np.array(vector), axis=1)
+        vector = vector.div(absolute_vector, axis=0)
 
-        ani = animation.FuncAnimation(fig, animate, 3000,
-                                        interval=10, init_func=init, blit=True, repeat=True)
-        ani.save(self.save_2dpath, writer="imagemagick",dpi=100)
+        x, y, z = vector.iloc[:, 0].values, vector.iloc[:, 1].values, vector.iloc[:, 2].values
+        theta_x = np.arctan2(y, x) * 180 / np.pi
+        theta_y = np.arctan2(z, y) * 180 / np.pi
+        theta_z = np.arctan2(x, z) * 180 / np.pi
+
+        degree = {
+            "theta_x": theta_x,
+            "theta_y": theta_y,
+            "theta_z": theta_z,
+        }
+        return pd.DataFrame(degree)
+
+    def clustering_vector(self, df):
+
+        vector = self.vector_between_points(df)
+        absolute_vector = np.linalg.norm(np.array(vector), axis=1)
+        vector = vector.div(absolute_vector, axis=0)
+
+        vector = vector.where(vector>=0, -1)
+        vector = vector.where(vector<0, 1)
+        print(vector.head())
+        return vector
+
+    def ignore_jump(self, degree, dist):
+        print(degree.shape, dist.shape)
+        df = pd.concat([degree, dist], axis=1)
+        df.columns = ["theta_x", "theta_y", "theta_z", "dist"]
+        df = df.iloc[:, :3].where(df["dist"]<self.threshold_jump)
+        return df
+
+    def plot_degree_hist(self):
+        df_degree = self.degree_from_vector(self.data)
+        #df_dist = self.euclid_distance(self.data)
+        #df_degree = self.ignore_jump(df_degree, df_dist)
+        df_degree.hist(bins=100)
+        #plt.hist(df_dist.values, bins=100, cumulative=True, density=True)
+        plt.savefig("./tmp/graph/degree.png")
+        plt.close()
+
+    def calc_optical_color(self):
+        df_dist = self.euclid_distance(self.data)
+        if self.degree_or_class == "degree":
+            df_tmp = self.degree_from_vector(self.data)
+            df_tmp = self.ignore_jump(df_tmp, df_dist)
+            min_, max_ = -180., 180.
+        else:
+            df_tmp = self.clustering_vector(self.data)
+            df_tmp = self.ignore_jump(df_tmp, df_dist)
+            min_, max_ = -1., 1.
+        #df_color = df_tmp
+        df_color = (df_tmp - min_) / (max_ - min_) #* 255.
+        return df_color
+
+    def save_metadata(self):
+        df = self.optical_color_label
+        x = df.loc[:, "theta_x"].values
+        y = df.loc[:, "theta_y"].values
+        z = df.loc[:, "theta_z"].values
+        label = 4*x + 2*y + z
+        print(set(label))
+        dic = {
+            "vector_8label": label
+        }
+        df = pd.DataFrame(dic)
+        df = df.fillna(0)
+        df.to_csv("./tmp/metadata/metadata_win{:0=2}_j{:0=1.1f}.csv".format(self.window_name, self.threshold_jump))
 
 def isDebugmode():
     if os.getcwd() == "/root/worm2vec/worm2vec":
@@ -289,18 +357,17 @@ def isDebugmode():
 def main(args):
     if isDebugmode():
         os.chdir("./test/sequential/worm2vec/visualize3d")
-    #test_version()
-    #test_plot()
     plotter = Plotter(args)
-    #plotter.spherize()
     plotter.plot3d()
-#    plotter.plot2d()
+#    plotter.save_metadata()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", type=int, default=100)
     parser.add_argument("-w", type=int, default=20)
     parser.add_argument("-d", type=str, default="train")
+    parser.add_argument("-j", type=float, default=0.5)
+    parser.add_argument("--mode", type=str, default="degree")
     args = parser.parse_args()
     main(args)
 
