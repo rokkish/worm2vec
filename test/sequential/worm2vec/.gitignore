@@ -3,3 +3,5 @@ key.py
 # log
 outputs/*
 visualize3d/tmp/**
+**/notebooks/results_trans_prob/**
+**/analysis/outputs/**

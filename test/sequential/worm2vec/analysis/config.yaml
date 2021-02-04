@@ -1,0 +1,20 @@
+
+path:
+  load_vector: ../../../../outputs/2021-02-03/plt_onewindow/plt_onewindow_100k
+  save_data: ./tensorboard
+calc:
+  window: 1
+clustering:
+  model: "kmeans"
+  k: 10
+plot:
+  thres: 0.5
+  lower_bound: 0.
+  norm: true
+  figsize: 20
+  digraph:
+    lower_bound: 0.01
+exp_name: "default"
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d/%H-%M-%S}_${exp_name}_w${calc.window}_k${clustering.k}_from${plot.lower_bound}to${plot.thres}over${plot.digraph.lower_bound}

@@ -65,6 +65,8 @@ class Plotter(object):
         self.plot_length = args.l
         self.window_name = args.w
         self.data_type = args.d + "data"
+        self.threshold_jump = args.j
+        self.degree_or_class = args.mode
 
         if self.data_type == "testdata":
             date_of_path = "2021-01-27"
@@ -83,18 +85,18 @@ class Plotter(object):
         self.save_3dpath_mp4 = './tmp/mp4/{}/point_anim_worm2vec_3d_w{:0=2}_l{:0=4}.mp4'.format(self.data_type, self.window_name, self.plot_length)
         self.save_2dpath = './tmp/point_anim_worm2vec_2d.gif'
 
+        self.path_to_save_metadata_8vector = "./tmp/metadata_8vector/metadata_win{:0=2}_j{:0=1.1f}_{}.csv".format(self.window_name, self.threshold_jump, args.d)
+
         self.zoom_rate = 0.8
         self.t_afterimage = 20
         self.single_image_dim = 16
-        self.threshold_jump = args.j
-        self.degree_or_class = args.mode
 
         self.data = self.parse_txt()
         self.file_date, self.metadata_id_list = self.load_metadata()
         self.img = self.load_compressedimg()
         self.img_list = self.load_originalimg()
         self.init_t = time.time()
-        self.optical_color_label = self.calc_optical_color()
+        self.optical_color_label, self.euclid_distance_vectors = self.calc_optical_color()
 
     def parse_txt(self):
         with open(self.path_to_pcadata) as f:
@@ -266,11 +268,13 @@ class Plotter(object):
         return df_dist
 
     def plot_euclid_distance_hist(self):
+        from matplotlib.ticker import PercentFormatter
         df_dist = self.euclid_distance(self.data)
-        df_dist.hist(bins=100)
+        df_dist.hist(bins=100, weights=np.ones(len(df_dist))/len(df_dist), cumulative=True, density=True)
         #plt.hist(df_dist.values, bins=100, cumulative=True, density=True)
         plt.xlabel("euclid distance")
         plt.ylabel("histogram")
+        plt.yticks(np.arange(0, 1.01, step=0.1))
         plt.savefig("./tmp/graph/euclid_distance.png")
         plt.close()
 
@@ -314,10 +318,7 @@ class Plotter(object):
 
     def plot_degree_hist(self):
         df_degree = self.degree_from_vector(self.data)
-        #df_dist = self.euclid_distance(self.data)
-        #df_degree = self.ignore_jump(df_degree, df_dist)
         df_degree.hist(bins=100)
-        #plt.hist(df_dist.values, bins=100, cumulative=True, density=True)
         plt.savefig("./tmp/graph/degree.png")
         plt.close()
 
@@ -333,21 +334,29 @@ class Plotter(object):
             min_, max_ = -1., 1.
         #df_color = df_tmp
         df_color = (df_tmp - min_) / (max_ - min_) #* 255.
-        return df_color
+        return df_color, df_dist
 
-    def save_metadata(self):
+    def create_8vector(self):
         df = self.optical_color_label
         x = df.loc[:, "theta_x"].values
         y = df.loc[:, "theta_y"].values
         z = df.loc[:, "theta_z"].values
         label = 4*x + 2*y + z
         print(set(label))
+        return label
+
+    def save_metadata(self):
+        label = self.create_8vector()
+        vector_scalar = self.euclid_distance_vectors
+        # FIXME: Need to add edge.
+        # Add 8vector_label: -1, vector_scalar: 0.0
         dic = {
-            "vector_8label": label
+            "8vector_label": label,
+            "vector_scalar": vector_scalar,
         }
         df = pd.DataFrame(dic)
         df = df.fillna(0)
-        df.to_csv("./tmp/metadata/metadata_win{:0=2}_j{:0=1.1f}.csv".format(self.window_name, self.threshold_jump))
+        df.to_csv(self.path_to_save_metadata_8vector)
 
 def isDebugmode():
     if os.getcwd() == "/root/worm2vec/worm2vec":
@@ -358,7 +367,8 @@ def main(args):
     if isDebugmode():
         os.chdir("./test/sequential/worm2vec/visualize3d")
     plotter = Plotter(args)
-    plotter.plot3d()
+    plotter.plot_euclid_distance_hist()
+#    plotter.plot3d()
 #    plotter.save_metadata()
 
 if __name__ == '__main__':
