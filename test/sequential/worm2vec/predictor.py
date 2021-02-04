@@ -225,9 +225,6 @@ class Predictor(object):
 
         for i, date in enumerate(dates):
 
-            if date == 201302081353:
-                continue
-
             label_where_date = labels[labels["Label_date"]==date]
             idx_begin = label_where_date.index[0]
             idx_end = label_where_date.index[-1]
