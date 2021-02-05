@@ -155,6 +155,29 @@ class Analyzer(object):
         else:
             raise ValueError("invalid labelling model")
 
+    def plt_inertia_for_optimized_num_of_cluster(self):
+
+        for glob_name, arr in self.spherized_tensor.items():
+
+            print(f"Inertia: {glob_name}")
+
+            if self.model == "kmeans":
+                inertias = []
+                for i in range(1, self.k+1):
+                    km = KMeans(n_clusters=i, random_state=0).fit(arr)
+                    inertias.append(km.inertia_)
+
+                plt.plot(range(1, self.k), inertias, marker='o')
+                plt.title("inertia")
+                plt.xlim(1, self.k)
+                plt.xlabel("Number of clusters")
+                plt.ylabel("Distortion")
+                plt.savefig(f"./inertia_{glob_name}.pdf")
+                plt.close()
+
+            else:
+                raise ValueError("invalid labelling model")
+
     def clustering(self):
         for glob_name, df in self.time_date_dist.items():
             print(f"Label: {glob_name}")
@@ -243,16 +266,16 @@ class Analyzer(object):
             ax1.set_title("trans_prob")
             ax1.set_xlabel("next")
             ax1.set_ylabel("now")
-            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=True, square=True)
+            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=False, square=True)
 
             ax2 = fig.add_subplot(1, 2, 2)
             ax2.set_title("reverse")
             ax2.set_xlabel("next")
             ax2.set_ylabel("now")
-            sns.heatmap(arr_trans_prob_rev, ax=ax2, cmap="GnBu", annot=True, square=True)
+            sns.heatmap(arr_trans_prob_rev, ax=ax2, cmap="GnBu", annot=False, square=True)
 
             #, fmt="g")
-            plt.savefig(f"./matrix_thres_from_{self.lower_bound}_to_{self.thres}_{self.norm}_{glob_name}.png")
+            plt.savefig(f"./matrix_thres_from_{self.lower_bound}_to_{self.thres}_{self.norm}_{glob_name}.pdf")
             plt.close()
 
     def plot_digraph(self):
@@ -261,7 +284,7 @@ class Analyzer(object):
         for glob_name, df in self.time_date_dist_class.items():
             arr_trans_prob = self.trans_prob(df)
 
-            dg = Digraph(format="png")
+            dg = Digraph(format="pdf")
 
             # edge
             for now_ in range(arr_trans_prob.shape[0]):
@@ -288,7 +311,7 @@ class Analyzer(object):
             plt.ylabel("histogram")
             plt.xlim(0., 2.)
             #plt.yticks(np.arange(0, 1.01, step=0.1))
-            plt.savefig(f"./hist_dist_{glob_name}.png")
+            plt.savefig(f"./hist_dist_{glob_name}.pdf")
             plt.close()
 
 @hydra.main(config_name="config")
@@ -297,8 +320,9 @@ def main(cfg: DictConfig):
     analyzer.load_vector()
     analyzer.spherize()
     analyzer.calc_distance()
-    analyzer.clustering()
+    analyzer.plt_inertia_for_optimized_num_of_cluster()
 
+    analyzer.clustering()
     analyzer.plot_euclid_distance_hist()
     analyzer.save_for_tensorboard()
     analyzer.plot_heatmap()
