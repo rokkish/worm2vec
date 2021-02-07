@@ -1,0 +1,7 @@
+path:
+  load_dir: ../../../outputs/2021-02-06/00-14-09_Gephi_dim10_100k_w20_top10_k100_from0.0to2.0over0.1/tensorboard/plt_train_win_20
+  save_name: metadata2.tsv
+exp_name: merge_gephi
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d/%H-%M-%S}_${exp_name}

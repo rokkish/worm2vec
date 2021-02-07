@@ -3,12 +3,16 @@
     1. Caliculate distance and Clustering Spherized data top-3.
     2. Plot transition probabilities at heatmap.
 """
+from io import BytesIO
 import os
 import glob
+import json
+from os.path import basename
 import hydra
 import pprint
 import numpy as np
 import pandas as pd
+from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
@@ -22,10 +26,12 @@ class Analyzer(object):
         self.path_to_tensor = "projector/after_test/tensor.csv"
         self.path_to_save_data = cfg.path.save_data
         self.window = cfg.calc.window
+        self.topk = cfg.calc.topk
         self.model = cfg.clustering.model
         self.k = cfg.clustering.k
         self.thres = cfg.plot.thres
         self.lower_bound = cfg.plot.lower_bound
+        self.heat_annot = cfg.plot.heat_annot
         self.isNormed = cfg.plot.norm
         self.figsize = cfg.plot.figsize
         self.digraph_lower_bound = cfg.plot.digraph.lower_bound
@@ -53,9 +59,8 @@ class Analyzer(object):
             self.metadata[glob_name] = pd.read_csv(f"{path_to_predict}/{self.path_to_metadata}", sep="\t")
             self.tensor[glob_name] = pd.read_csv(f"{path_to_predict}/{self.path_to_tensor}", header=None, sep="\t")
 
-    @staticmethod
-    def slice_topk(df, k=3):
-        return df.iloc[:, :k]
+    def slice_topk(self, df):
+        return df.iloc[:, :self.topk]
 
     def spherize(self):
         """Sphereize data. 
@@ -130,7 +135,7 @@ class Analyzer(object):
                 df_time_in_a_date = data[data["Date"]==date].loc[:, "Time"]
                 df_date_in_a_date = pd.DataFrame([date]*df_time_in_a_date.shape[0], columns=["Date"])
 
-                df_xyz = data[data["Date"]==date].iloc[:, -3:]
+                df_xyz = data[data["Date"]==date].iloc[:, -self.topk:]
                 df_dist_in_a_date = self.euclid_distance(df_xyz)
                 df_dist_in_a_date = self.append_zero_last(df_dist_in_a_date)
 
@@ -157,9 +162,11 @@ class Analyzer(object):
 
     def plt_inertia_for_optimized_num_of_cluster(self):
 
-        for glob_name, arr in self.spherized_tensor.items():
+        for glob_name, df in self.tensor.items():
 
             print(f"Inertia: {glob_name}")
+
+            arr = df.values
 
             if self.model == "kmeans":
                 inertias = []
@@ -167,7 +174,7 @@ class Analyzer(object):
                     km = KMeans(n_clusters=i, random_state=0).fit(arr)
                     inertias.append(km.inertia_)
 
-                plt.plot(range(1, self.k), inertias, marker='o')
+                plt.plot(range(1, self.k+1), inertias, marker='o')
                 plt.title("inertia")
                 plt.xlim(1, self.k)
                 plt.xlabel("Number of clusters")
@@ -178,11 +185,57 @@ class Analyzer(object):
             else:
                 raise ValueError("invalid labelling model")
 
+    def plt_silhouette_for_optimized_num_of_clusters(self):
+        from sklearn.metrics import silhouette_samples
+        from matplotlib import cm
+
+        for glob_name, df in self.tensor.items():
+
+            print(f"SILHOUETTE: {glob_name}")
+
+            arr = df.values
+
+            if self.model == "kmeans":
+                for k in range(2, self.k+1):
+                    km = KMeans(n_clusters=k, random_state=0).fit(arr).labels_
+
+                    ### silhouette_analysis
+                    cluster_labels = np.unique(km)
+                    n_clusters = cluster_labels.shape[0]
+
+                    silhouette_vals = silhouette_samples(arr, km, metric='euclidean')
+                    y_ax_lower, y_ax_upper= 0, 0
+                    yticks = []
+
+                    for i, c in enumerate(cluster_labels):
+                            c_silhouette_vals = silhouette_vals[km==c]
+                            c_silhouette_vals.sort()
+                            y_ax_upper += len(c_silhouette_vals)
+                            color = cm.jet(float(i)/n_clusters)
+                            plt.barh(range(y_ax_lower,y_ax_upper),            # 水平の棒グラフのを描画（底辺の範囲を指定）
+                                            c_silhouette_vals,               # 棒の幅（1サンプルを表す）
+                                            height=1.0,                      # 棒の高さ
+                                            edgecolor='none',                # 棒の端の色
+                                            color=color)                     # 棒の色
+                            yticks.append((y_ax_lower+y_ax_upper)/2)          # クラスタラベルの表示位置を追加
+                            y_ax_lower += len(c_silhouette_vals)              # 底辺の値に棒の幅を追加
+
+                    silhouette_avg = np.mean(silhouette_vals)                 # シルエット係数の平均値
+                    plt.axvline(silhouette_avg,color="red",linestyle="--")    # 係数の平均値に破線を引く 
+                    plt.yticks(yticks, cluster_labels + 1)                     # クラスタレベルを表示
+                    plt.ylabel('Cluster')
+                    plt.xlabel('silhouette coefficient')
+                    plt.savefig(f"./silhouette_{k}_{glob_name}.pdf")
+                    plt.close()
+
+            else:
+                raise ValueError("invalid labelling model")
+
     def clustering(self):
         for glob_name, df in self.time_date_dist.items():
             print(f"Label: {glob_name}")
 
-            clustering_label = self.labelling(self.spherized_tensor[glob_name])
+            clustering_label = self.labelling(self.tensor[glob_name].values)
             df_class = pd.DataFrame({self.model: clustering_label})
             self.time_date_dist_class[glob_name] = pd.concat([df, df_class], axis=1)
             self.time_date_dist_class[glob_name].columns = ["Time", "Date", "Dist", "Class"]
@@ -266,13 +319,13 @@ class Analyzer(object):
             ax1.set_title("trans_prob")
             ax1.set_xlabel("next")
             ax1.set_ylabel("now")
-            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=False, square=True)
+            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=self.heat_annot, square=True)
 
             ax2 = fig.add_subplot(1, 2, 2)
             ax2.set_title("reverse")
             ax2.set_xlabel("next")
             ax2.set_ylabel("now")
-            sns.heatmap(arr_trans_prob_rev, ax=ax2, cmap="GnBu", annot=False, square=True)
+            sns.heatmap(arr_trans_prob_rev, ax=ax2, cmap="GnBu", annot=self.heat_annot, square=True)
 
             #, fmt="g")
             plt.savefig(f"./matrix_thres_from_{self.lower_bound}_to_{self.thres}_{self.norm}_{glob_name}.pdf")
@@ -314,17 +367,87 @@ class Analyzer(object):
             plt.savefig(f"./hist_dist_{glob_name}.pdf")
             plt.close()
 
+    def create_csv_for_gephi(self, glob_name):
+        gephi_df = pd.DataFrame(None)
+
+        metadata_path = f"{self.path_to_save_data}/{glob_name}/metadata.tsv"
+        metadata_df = pd.read_csv(metadata_path, sep="\t")
+
+        image_path_df = metadata_df.loc[:, "Time"].astype("int").astype("str")
+        tmp_path = "./imgs/"
+        tmp_path2 = ".png"
+        image_path_df = image_path_df + tmp_path2
+
+        sauce = metadata_df.loc[:, "Class"]
+        target = pd.DataFrame(self.sift_for_trans_prob(metadata_df))
+
+        gephi_df = pd.concat([
+            gephi_df, 
+            metadata_df.loc[:, ["Date", "Dist"]],
+            sauce,
+            target,
+            image_path_df
+            ], axis=1)
+
+        gephi_df = gephi_df[gephi_df["Dist"]!=-1]
+
+        gephi_path = f"{self.path_to_save_data}/{glob_name}/data_for_gephi.csv"
+        gephi_df.columns = ["Date", "Dist", "Source", "Target", "image"]
+        gephi_df.to_csv(gephi_path, index=False)
+        return gephi_df
+
+    def parse_pbtxt(self, path):
+        #TODO: autocheck
+        dim = 16
+        return dim
+
+    def split_img_and_save(self, glob_name, gephi_df):
+        sprite_path = f"{self.path_to_save_data}/{glob_name}/sprite.png"
+        pbtxt_path = f"{self.path_to_save_data}/{glob_name}/projector_config.pbtxt"
+        dim = self.parse_pbtxt(pbtxt_path)
+
+        with open(sprite_path, "rb") as f:
+            binary = f.read()
+        img = Image.open(BytesIO(binary))
+        img_arr = np.asarray(img)
+
+        path_to_save_split_img = f"{self.path_to_save_data}/{glob_name}/imgs"
+        os.makedirs(path_to_save_split_img, exist_ok=True)
+
+        H, W = img_arr.shape[0]//dim, img_arr.shape[1]//dim
+
+        for i in range(gephi_df.shape[0]):
+            basename = os.path.basename(gephi_df.loc[:, "image"].iloc[i])
+            path_to_save_img_i = f"{path_to_save_split_img}/{basename}"
+            wi = (i % W) * dim
+            hi = (i // H) * dim
+            arr_i = img_arr[hi: hi + dim, wi: wi + dim]
+            img_i = Image.fromarray(arr_i)
+            img_i.save(path_to_save_img_i, format="png")
+
+    def process_for_gephi(self):
+        """
+            1.1 transfer .csv from metadat.tsv
+            1.2 concat csv, image path list
+            2. split sprite.png into each img_id.png
+        """
+        for glob_name, df in self.time_date_dist_class.items():
+            
+            gephi_df = self.create_csv_for_gephi(glob_name)
+            self.split_img_and_save(glob_name, gephi_df)
+
 @hydra.main(config_name="config")
 def main(cfg: DictConfig):
     analyzer = Analyzer(cfg)
     analyzer.load_vector()
     analyzer.spherize()
     analyzer.calc_distance()
-    analyzer.plt_inertia_for_optimized_num_of_cluster()
-
+#    analyzer.plt_inertia_for_optimized_num_of_cluster()
+#    analyzer.plt_silhouette_for_optimized_num_of_clusters()
     analyzer.clustering()
-    analyzer.plot_euclid_distance_hist()
     analyzer.save_for_tensorboard()
+    analyzer.process_for_gephi()
+    analyzer.plot_euclid_distance_hist()
     analyzer.plot_heatmap()
     analyzer.plot_digraph()
 

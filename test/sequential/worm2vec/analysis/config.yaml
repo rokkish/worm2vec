@@ -4,12 +4,14 @@ path:
   save_data: ./tensorboard
 calc:
   window: 1
+  topk: 3
 clustering:
   model: "kmeans"
   k: 10
 plot:
   thres: 0.5
   lower_bound: 0.
+  heat_annot: true
   norm: true
   figsize: 20
   digraph:
@@ -17,4 +19,4 @@ plot:
 exp_name: "default"
 hydra:
   run:
-    dir: ./outputs/${now:%Y-%m-%d/%H-%M-%S}_${exp_name}_w${calc.window}_k${clustering.k}_from${plot.lower_bound}to${plot.thres}over${plot.digraph.lower_bound}
+    dir: ./outputs/${now:%Y-%m-%d/%H-%M-%S}_${exp_name}_w${calc.window}_top${calc.topk}_k${clustering.k}_from${plot.lower_bound}to${plot.thres}over${plot.digraph.lower_bound}
