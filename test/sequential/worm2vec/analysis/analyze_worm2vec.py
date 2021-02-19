@@ -235,7 +235,7 @@ class Analyzer(object):
         for glob_name, df in self.time_date_dist.items():
             print(f"Label: {glob_name}")
 
-            clustering_label = self.labelling(self.tensor[glob_name].values)
+            clustering_label = self.labelling(self.spherized_tensor[glob_name].values)
             df_class = pd.DataFrame({self.model: clustering_label})
             self.time_date_dist_class[glob_name] = pd.concat([df, df_class], axis=1)
             self.time_date_dist_class[glob_name].columns = ["Time", "Date", "Dist", "Class"]
@@ -313,20 +313,22 @@ class Analyzer(object):
             arr_trans_prob = self.trans_prob(df)
             arr_trans_prob_rev = self.trans_prob_reverse(df)
 
-            fig = plt.figure(figsize=(2*self.figsize, self.figsize))
+            pd.DataFrame(arr_trans_prob).to_csv(f"./arr_trans_porb_{glob_name}.csv")
 
-            ax1 = fig.add_subplot(1, 2, 1)
+            fig = plt.figure(figsize=(1*self.figsize, self.figsize))
+
+            ax1 = fig.add_subplot(1, 1, 1)
             ax1.set_title("trans_prob")
             ax1.set_xlabel("next")
             ax1.set_ylabel("now")
-            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=self.heat_annot, square=True)
-
+            sns.heatmap(arr_trans_prob, ax=ax1, cmap="GnBu", annot=self.heat_annot, square=True)#, fmt="g")
+            """
             ax2 = fig.add_subplot(1, 2, 2)
             ax2.set_title("reverse")
             ax2.set_xlabel("next")
             ax2.set_ylabel("now")
             sns.heatmap(arr_trans_prob_rev, ax=ax2, cmap="GnBu", annot=self.heat_annot, square=True)
-
+            """
             #, fmt="g")
             plt.savefig(f"./matrix_thres_from_{self.lower_bound}_to_{self.thres}_{self.norm}_{glob_name}.pdf")
             plt.close()
