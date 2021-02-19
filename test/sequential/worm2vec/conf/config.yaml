@@ -1,7 +1,3 @@
-hydra:
-  run:
-    # Output directory for normal runs
-    dir: ./outputs/${now:%Y-%m-%d/plt_onewindow/%H-%M-%S}
 train:
   dim: 10
   learning_rate: 0.1
@@ -38,3 +34,7 @@ predict:
   n_embedding: 100
   isLoadedimg: False
   single_view_mode: False
+hydra:
+  run:
+    # Output directory for normal runs
+    dir: ./outputs/${now:%Y-%m-%d/}${exp_name}
