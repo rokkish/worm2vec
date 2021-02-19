@@ -86,7 +86,7 @@ def set_optimizer(learning_rate, optim):
         return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 
-@hydra.main(config_path="./conf/config.yaml")
+@hydra.main(config_name="./conf/config")
 def main(cfg: DictConfig):
     wandb.login()
     wandb.init(project="worm2vec-skipgram", name=cfg.exp_name)
